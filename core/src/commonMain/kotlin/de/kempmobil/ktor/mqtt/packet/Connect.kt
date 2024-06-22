@@ -13,17 +13,17 @@ public class Connect(
     public val retainWillMessage: Boolean,
     public val keepAliveSeconds: UShort,
     public val clientId: String,
-    public val userName: String?,
-    public val password: String?,
-    public val sessionExpiryInterval: SessionExpiryInterval?,
-    public val receiveMaximum: ReceiveMaximum?,
-    public val maximumPacketSize: MaximumPacketSize?,
-    public val topicAliasMaximum: TopicAliasMaximum?,
-    public val requestResponseInformation: RequestResponseInformation?,
-    public val requestProblemInformation: RequestProblemInformation?,
-    public val userProperties: UserProperties,
-    public val authenticationMethod: AuthenticationMethod?,
-    public val authenticationData: AuthenticationData?
+    public val userName: String? = null,
+    public val password: String? = null,
+    public val sessionExpiryInterval: SessionExpiryInterval? = null,
+    public val receiveMaximum: ReceiveMaximum? = null,
+    public val maximumPacketSize: MaximumPacketSize? = null,
+    public val topicAliasMaximum: TopicAliasMaximum? = null,
+    public val requestResponseInformation: RequestResponseInformation? = null,
+    public val requestProblemInformation: RequestProblemInformation? = null,
+    public val userProperties: UserProperties = UserProperties.EMPTY,
+    public val authenticationMethod: AuthenticationMethod? = null,
+    public val authenticationData: AuthenticationData? = null
 ) : AbstractPacket(PacketType.CONNECT)
 
 // The MQTT protocol name: "04MQTT"
@@ -66,10 +66,10 @@ private val Connect.propertiesByteCount: Int
 
 private val Connect.bits: Byte
     get() {
-        var bits = if (isCleanStart) 1 else 0
+        var bits = if (isCleanStart) 2 else 0
         if (willMessage != null) {
             // When there is not will message, the QoS and retain flags must be zero, hence evaluate them here:
-            bits = (bits or 2) or (willOqS.value shl 3)
+            bits = (bits or 4) or (willOqS.value shl 3)
             if (retainWillMessage) bits = bits or (1 shl 5)
         }
         if (password != null) bits = bits or (1 shl 6)

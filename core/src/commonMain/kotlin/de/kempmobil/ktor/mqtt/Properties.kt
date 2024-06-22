@@ -1,11 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.util.*
-import de.kempmobil.ktor.mqtt.util.writeMqttString
-import de.kempmobil.ktor.mqtt.util.utf8Size
-import de.kempmobil.ktor.mqtt.util.variableByteIntSize
-import de.kempmobil.ktor.mqtt.util.writeMqttByteString
-import de.kempmobil.ktor.mqtt.util.writeVariableByteInt
 import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
 import kotlin.jvm.JvmInline
@@ -79,6 +74,17 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
         41 -> SubscriptionIdentifierAvailable(readByte()) as Property<T>
         42 -> SharedSubscriptionAvailable(readByte()) as Property<T>
         else -> throw MalformedPacketException("Unknown property identifier: $identifier")
+    }
+}
+
+/**
+ * Tries to read all bytes of this [ByteReadPacket] and convert them into a list of properties.
+ */
+public fun ByteReadPacket.readProperties(): List<Property<*>> {
+    return buildList {
+        while (canRead()) {
+            add(readProperty<Property<*>>())
+        }
     }
 }
 
