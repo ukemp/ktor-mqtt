@@ -21,7 +21,7 @@ public sealed interface Property<T> {
  *
  * @throws MalformedPacketException when the property is contained more than once
  */
-internal inline fun <reified T> List<Property<*>>.singleOrNull(): T? {
+internal inline fun <reified T : Property<*>> List<Property<*>>.singleOrNull(): T? {
     val instances = filterIsInstance<T>()
     return if (instances.isEmpty()) {
         null
