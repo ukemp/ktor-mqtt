@@ -1,14 +1,14 @@
-package de.kempmobil.ktor.mqtt
+package de.kempmobil.ktor.mqtt.packet
 
-import de.kempmobil.ktor.mqtt.PacketDirection.CLIENT_TO_SERVER
-import de.kempmobil.ktor.mqtt.PacketDirection.SERVER_TO_CLIENT
-import de.kempmobil.ktor.mqtt.PacketDirection.BOTH
+import de.kempmobil.ktor.mqtt.MalformedPacketException
+import de.kempmobil.ktor.mqtt.packet.PacketDirection.*
 
-public enum class PacketType(
-    public val value: Int,
-    public val direction: PacketDirection,
-    public val hasVariableHeader: Boolean,
-    public val mayHavePayload: Boolean
+// TODO: do we need this?
+internal enum class PacketType(
+    internal val value: Int,
+    internal val direction: PacketDirection,
+    internal val hasVariableHeader: Boolean,
+    internal val mayHavePayload: Boolean
 ) {
     CONNECT(1, CLIENT_TO_SERVER, true, true),
     CONNACK(2, SERVER_TO_CLIENT, false,false),
