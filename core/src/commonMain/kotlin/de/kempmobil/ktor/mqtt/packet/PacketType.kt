@@ -4,7 +4,7 @@ import de.kempmobil.ktor.mqtt.MalformedPacketException
 import de.kempmobil.ktor.mqtt.packet.PacketDirection.*
 
 // TODO: do we need this?
-internal enum class PacketType(
+public enum class PacketType(
     internal val value: Int,
     internal val direction: PacketDirection,
     internal val hasVariableHeader: Boolean,

@@ -26,7 +26,7 @@ public class Connect(
     public val authenticationData: AuthenticationData? = null
 ) : AbstractPacket(PacketType.CONNECT)
 
-// The MQTT protocol name: "04MQTT"
+// The MQTT protocol name: "04MQTT" encoded as an MQTT string
 private val ProtocolName = byteArrayOf(0, 4, 77, 81, 84, 84)
 
 internal fun BytePacketBuilder.write(connect: Connect) {
@@ -55,6 +55,12 @@ internal fun BytePacketBuilder.write(connect: Connect) {
             write(willMessage.properties)
             writeMqttString(willMessage.topic)
             writeMqttByteString(willMessage.payload)
+        }
+        if (userName != null) {
+            writeMqttString(userName)
+        }
+        if (password != null) {
+            writeMqttString(password)
         }
     }
 }

@@ -14,32 +14,21 @@ public sealed interface Property<T> {
      * The value of this property
      */
     public val value: T
-
-    /**
-     * The number of bytes which are used by this property when encoded in MQTT format.
-     */
-    public fun byteCount(): Int
 }
 
 /**
- * provides a null-safe byte count
+ * Provides a null-safe byte count.
+ *
+ * @see WritableProperty.byteCount
  */
-internal val <T> Property<T>?.byteCount: Int
-    get() = this?.byteCount() ?: 0
+internal val Property<*>?.byteCount: Int
+    get() = (this as? WritableProperty)?.byteCount() ?: 0
 
 
 public fun <T> BytePacketBuilder.write(property: Property<T>) {
     with(property as WritableProperty) {
         writeByte(identifier.toByte())
         writeValue(value)
-    }
-}
-
-public fun <T> ByteReadPacket.readAllProperties(): List<Property<T>> {
-    return buildList {
-        while (canRead()) {
-            add(readProperty())
-        }
     }
 }
 
@@ -80,7 +69,7 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
 /**
  * Tries to read all bytes of this [ByteReadPacket] and convert them into a list of properties.
  */
-public fun ByteReadPacket.readProperties(): List<Property<*>> {
+public fun ByteReadPacket.readAllProperties(): List<Property<*>> {
     return buildList {
         while (canRead()) {
             add(readProperty<Property<*>>())
@@ -363,7 +352,7 @@ public value class UserProperty(override val value: StringPair) : WritableProper
         get() = { write(it) }
 
     override fun byteCount(): Int {
-        return value.name.utf8Size() + value.value.utf8Size() + 5
+        return value.name.utf8Size() + value.value.utf8Size() + 5 // 1 for the identifier 2 * 2 for the string lengths
     }
 }
 
@@ -415,11 +404,18 @@ public value class SharedSubscriptionAvailable(override val value: Byte) : Writa
     override fun byteCount(): Int = 2
 }
 
+// ---- Helper functions/classes ---------------------------------------------------------------------------------------
+
 private interface WritableProperty<T> : Property<T> {
 
     val identifier: Int
 
     val writeValue: BytePacketBuilder.(T) -> Unit
+
+    /**
+     * The number of bytes which are used by this property when encoded in MQTT format.
+     */
+    fun byteCount(): Int
 }
 
 private val ByteWriter: BytePacketBuilder.(Byte) -> Unit = {
