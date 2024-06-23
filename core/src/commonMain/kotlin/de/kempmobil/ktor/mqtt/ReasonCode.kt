@@ -1,6 +1,60 @@
 package de.kempmobil.ktor.mqtt
 
-public data class ReasonCode(val code: Int, val name: String)
+public data class ReasonCode(val code: Int, val name: String) {
+
+    public companion object {
+        public fun from(code: Byte, defaultSuccessReason: ReasonCode = Success): ReasonCode {
+            check(defaultSuccessReason.code == 0) { "The default success reason must be one of 'Success', 'NormalDisconnection' or 'GrantedQoS0'" }
+
+            return when (code.toInt()) {
+                0 -> defaultSuccessReason
+                1 -> GrantedQoS1
+                2 -> GrantedQoS2
+                4 -> DisconnectWithWillMessage
+                16 -> NoMatchingSubscribers
+                17 -> NoSubscriptionExisted
+                24 -> ContinueAuthentication
+                25 -> ReAuthenticate
+                128 -> UnspecifiedError
+                129 -> MalformedPacket
+                130 -> ProtocolError
+                131 -> ImplementationSpecificError
+                132 -> UnsupportedProtocolVersion
+                133 -> ClientIdentifierNotValid
+                134 -> BadUserNameOrPassword
+                135 -> NotAuthorized
+                136 -> ServerUnavailable
+                137 -> ServerBusy
+                138 -> Banned
+                139 -> ServerShuttingDown
+                140 -> BadAuthenticationMethod
+                141 -> KeepAliveTimeout
+                142 -> SessionTakenOver
+                143 -> TopicFilterInvalid
+                144 -> TopicNameInvalid
+                145 -> PacketIdentifierInUse
+                146 -> PacketIdentifierNotFound
+                147 -> ReceiveMaximumExceeded
+                148 -> TopicAliasInvalid
+                149 -> PacketTooLarge
+                150 -> MessageRateTooHigh
+                151 -> QuotaExceeded
+                152 -> AdministrativeAction
+                153 -> PayloadFormatInvalid
+                154 -> RetainNotSupported
+                155 -> QoSNotSupported
+                156 -> UseAnotherServer
+                157 -> ServerMoved
+                158 -> SharedSubscriptionsNotSupported
+                159 -> ConnectionRateExceeded
+                160 -> MaximumConnectTime
+                161 -> SubscriptionIdentifiersNotSupported
+                162 -> WildcardSubscriptionsNotSupported
+                else -> throw MalformedPacketException("Unknown reason code: $code")
+            }
+        }
+    }
+}
 
 public val Success: ReasonCode = ReasonCode(0, "Success")
 public val NormalDisconnection: ReasonCode = ReasonCode(0, "Normal disconnection")

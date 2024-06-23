@@ -17,6 +17,22 @@ public sealed interface Property<T> {
 }
 
 /**
+ * Returns the property of the specified type, when contained in the list or `null` otherwise
+ *
+ * @throws MalformedPacketException when the property is contained more than once
+ */
+internal inline fun <reified T> List<Property<*>>.singleOrNull(): T? {
+    val instances = filterIsInstance<T>()
+    return if (instances.size == 1) {
+        instances.first()
+    } else if (instances.size > 1) {
+        throw MalformedPacketException()
+    } else {
+        null
+    }
+}
+
+/**
  * Provides a null-safe byte count.
  *
  * @see WritableProperty.byteCount
@@ -29,6 +45,12 @@ public fun <T> BytePacketBuilder.write(property: Property<T>) {
     with(property as WritableProperty) {
         writeByte(identifier.toByte())
         writeValue(value)
+    }
+}
+
+public fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) {
+    properties.forEach {
+        if (it != null) write(it)
     }
 }
 
@@ -69,10 +91,13 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
 /**
  * Tries to read all bytes of this [ByteReadPacket] and convert them into a list of properties.
  */
-public fun ByteReadPacket.readAllProperties(): List<Property<*>> {
+public fun ByteReadPacket.readAllProperties(byteCount: Int): List<Property<*>> {
+    var bytesRead = 0
     return buildList {
-        while (canRead()) {
-            add(readProperty<Property<*>>())
+        while (bytesRead < byteCount) {
+            val property = readProperty<Property<*>>()
+            bytesRead += (property as WritableProperty).byteCount()
+            add(property)
         }
     }
 }

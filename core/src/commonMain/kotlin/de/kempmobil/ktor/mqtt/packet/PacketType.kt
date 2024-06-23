@@ -3,7 +3,6 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.MalformedPacketException
 import de.kempmobil.ktor.mqtt.packet.PacketDirection.*
 
-// TODO: do we need this?
 public enum class PacketType(
     internal val value: Int,
     internal val direction: PacketDirection,
@@ -38,3 +37,9 @@ public enum class PacketType(
         }
     }
 }
+
+/**
+ * Returns the byte as it is expected in the fixed header of the binary packet (in the upper four bits).
+ */
+internal val PacketType.headerByte: Byte
+    get() = (value shl 4).toByte()

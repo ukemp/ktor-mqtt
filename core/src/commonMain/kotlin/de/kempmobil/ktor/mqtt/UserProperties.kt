@@ -9,6 +9,10 @@ public data class UserProperties(public val values: List<UserProperty>) {
     public companion object {
 
         public val EMPTY: UserProperties = UserProperties(emptyList())
+
+        public fun from(properties: List<Property<*>>): UserProperties {
+            return UserProperties(properties.filterIsInstance<UserProperty>())
+        }
     }
 }
 
