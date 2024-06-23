@@ -23,12 +23,12 @@ public sealed interface Property<T> {
  */
 internal inline fun <reified T> List<Property<*>>.singleOrNull(): T? {
     val instances = filterIsInstance<T>()
-    return if (instances.size == 1) {
-        instances.first()
-    } else if (instances.size > 1) {
-        throw MalformedPacketException()
-    } else {
+    return if (instances.isEmpty()) {
         null
+    } else if (instances.size == 1) {
+        instances.first()
+    } else {
+        throw MalformedPacketException("A property which may appear only once, exists ${instances.size} times: $instances")
     }
 }
 
