@@ -1,11 +1,11 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
-import de.kempmobil.ktor.mqtt.util.writeMqttByteString
+import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 
-public class Connect(
+public data class Connect(
     public val isCleanStart: Boolean,
     public val willMessage: WillMessage?,
     public val willOqS: QoS,
@@ -50,9 +50,7 @@ internal fun BytePacketBuilder.write(connect: Connect) {
         // Write the payload
         writeMqttString(clientId) // Must always be present!
         if (willMessage != null) {
-            writeProperties(*willMessage.properties.asArray())
-            writeMqttString(willMessage.topic)
-            writeMqttByteString(willMessage.payload)
+            write(willMessage)
         }
         if (userName != null) {
             writeMqttString(userName)
@@ -61,6 +59,55 @@ internal fun BytePacketBuilder.write(connect: Connect) {
             writeMqttString(password)
         }
     }
+}
+
+@OptIn(ExperimentalUnsignedTypes::class)
+internal fun ByteReadPacket.readConnect(): Connect {
+    val protocolName = readMqttString()
+    wellFormedWhen(protocolName == "MQTT") { "Connect packet must start with 'MQTT', but is: '$protocolName'" }
+
+    val version = readByte()
+    wellFormedWhen(version == 5.toByte()) { "Connect packet version must be 5, but is: $version" }
+
+    val bits = readByte()
+    val keepAliveSeconds = readUShort()
+    val properties = readProperties()
+    val clientId = readMqttString()
+    val willMessage = if (bits.isWillMessageFlagSet) {
+        readWillMessage()
+    } else {
+        null
+    }
+    val userName = if (bits.isUserNameFlagSet) {
+        readMqttString()
+    } else {
+        null
+    }
+    val password = if (bits.isPasswordFlagSet) {
+        readMqttString()
+    } else {
+        null
+    }
+
+    return Connect(
+        isCleanStart = bits.isCleanStartFlagSet,
+        willMessage = willMessage,
+        willOqS = bits.willQoS,
+        retainWillMessage = bits.isRetainWillMessageFlagSet,
+        keepAliveSeconds = keepAliveSeconds,
+        clientId = clientId,
+        userName = userName,
+        password = password,
+        sessionExpiryInterval = properties.singleOrNull<SessionExpiryInterval>(),
+        receiveMaximum = properties.singleOrNull(),
+        maximumPacketSize = properties.singleOrNull(),
+        topicAliasMaximum = properties.singleOrNull(),
+        requestResponseInformation = properties.singleOrNull<RequestResponseInformation>(),
+        requestProblemInformation = properties.singleOrNull<RequestProblemInformation>(),
+        userProperties = UserProperties.from(properties),
+        authenticationMethod = properties.singleOrNull<AuthenticationMethod>(),
+        authenticationData = properties.singleOrNull<AuthenticationData>()
+    )
 }
 
 private val Connect.bits: Byte
@@ -76,3 +123,21 @@ private val Connect.bits: Byte
 
         return bits.toByte()
     }
+
+private val Byte.willQoS: QoS
+    get() = QoS.from(((toInt() and 24) shr 3))
+
+private val Byte.isCleanStartFlagSet: Boolean
+    get() = (toInt() and 2) != 0
+
+private val Byte.isWillMessageFlagSet: Boolean
+    get() = (toInt() and 4) != 0
+
+private val Byte.isRetainWillMessageFlagSet: Boolean
+    get() = (toInt() and (1 shl 5)) != 0
+
+private val Byte.isPasswordFlagSet: Boolean
+    get() = (toInt() and (1 shl 6)) != 0
+
+private val Byte.isUserNameFlagSet: Boolean
+    get() = (toInt() and (1 shl 7)) != 0

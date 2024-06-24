@@ -1,5 +1,10 @@
 package de.kempmobil.ktor.mqtt
 
+import de.kempmobil.ktor.mqtt.util.readMqttByteString
+import de.kempmobil.ktor.mqtt.util.readMqttString
+import de.kempmobil.ktor.mqtt.util.writeMqttByteString
+import de.kempmobil.ktor.mqtt.util.writeMqttString
+import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
 
 public data class WillMessage(
@@ -32,4 +37,18 @@ public class WillMessageBuilder(private val topic: String) {
 
         val EMPTY_PAYLOAD = ByteString(ByteArray(0))
     }
+}
+
+internal fun BytePacketBuilder.write(willMessage: WillMessage) {
+    writeProperties(*willMessage.properties.asArray())
+    writeMqttString(willMessage.topic)
+    writeMqttByteString(willMessage.payload)
+}
+
+internal fun ByteReadPacket.readWillMessage(): WillMessage {
+    val properties = readProperties()
+    val topic = readMqttString()
+    val payload = readMqttByteString()
+
+    return WillMessage(topic, payload, WillProperties.from(properties))
 }

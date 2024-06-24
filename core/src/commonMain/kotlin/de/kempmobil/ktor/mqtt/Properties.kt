@@ -19,6 +19,20 @@ public sealed interface Property<T> {
 /**
  * Returns the property of the specified type, when contained in the list or `null` otherwise
  *
+ * @throws MalformedPacketException when the property is not contained exactly once in the list
+ */
+internal inline fun <reified T : Property<*>> List<Property<*>>.single(): T {
+    val instances = filterIsInstance<T>()
+    return if (instances.size == 1) {
+        instances.first()
+    } else {
+        throw MalformedPacketException("Missing property of type: ${T::class}")
+    }
+}
+
+/**
+ * Returns the property of the specified type, when contained in the list or `null` otherwise
+ *
  * @throws MalformedPacketException when the property is contained more than once
  */
 internal inline fun <reified T : Property<*>> List<Property<*>>.singleOrNull(): T? {

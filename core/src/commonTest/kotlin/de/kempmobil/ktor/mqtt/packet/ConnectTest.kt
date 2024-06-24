@@ -64,4 +64,33 @@ class ConnectTest {
         // End of stream
         assertFalse(reader.canRead())
     }
+
+    @Test
+    fun `reading connect packet`() {
+        val willMessage = buildWillMessage("will-topic") {
+            payload = ByteString(byteArrayOf(1, 5, 33))
+            properties {
+                willDelayInterval = 99
+            }
+        }
+
+        val connect = Connect(
+            isCleanStart = true,
+            willMessage = willMessage,
+            willOqS = QoS.AT_LEAST_ONCE,
+            retainWillMessage = false,
+            keepAliveSeconds = 67.toUShort(),
+            clientId = "client-id",
+            sessionExpiryInterval = SessionExpiryInterval(10),
+            userName = "user-name",
+            password = "password"
+        )
+
+        val reader = buildPacket {
+            write(connect)
+        }
+
+        val actual = reader.readConnect()
+        assertEquals(connect, actual)
+    }
 }

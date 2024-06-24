@@ -10,7 +10,23 @@ public data class WillProperties(
     public val responseTopic: ResponseTopic?,
     public val correlationData: CorrelationData?,
     public val userProperties: UserProperties
-)
+) {
+
+    internal companion object {
+
+        internal fun from(properties: List<Property<*>>): WillProperties {
+            return WillProperties(
+                willDelayInterval = properties.single<WillDelayInterval>(),
+                payloadFormatIndicator = properties.singleOrNull<PayloadFormatIndicator>(),
+                messageExpiryInterval = properties.singleOrNull<MessageExpiryInterval>(),
+                contentType = properties.singleOrNull<ContentType>(),
+                responseTopic = properties.singleOrNull<ResponseTopic>(),
+                correlationData = properties.singleOrNull<CorrelationData>(),
+                userProperties = UserProperties.from(properties)
+            )
+        }
+    }
+}
 
 public fun buildWillProperties(init: WillPropertiesBuilder.() -> Unit): WillProperties {
     val builder = WillPropertiesBuilder()
