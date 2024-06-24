@@ -4,8 +4,6 @@ import io.ktor.utils.io.core.*
 
 public data class UserProperties(public val values: List<UserProperty>) {
 
-    internal fun byteCount(): Int = values.sumOf { it.byteCount }
-
     public companion object {
 
         public val EMPTY: UserProperties = UserProperties(emptyList())
@@ -38,6 +36,9 @@ public class UserPropertiesBuilder() {
         }
     }
 }
+
+internal val UserProperties.asArray: Array<UserProperty>
+    get() = values.toTypedArray()
 
 internal fun BytePacketBuilder.write(userProperties: UserProperties) {
     if (userProperties.values.isNotEmpty()) {

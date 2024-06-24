@@ -1,7 +1,6 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
-import de.kempmobil.ktor.mqtt.util.readVariableByteInt
 import io.ktor.utils.io.core.*
 
 public data class Connack(
@@ -28,7 +27,6 @@ public data class Connack(
 
 internal fun BytePacketBuilder.write(connack: Connack) {
     with(connack) {
-        writeFixedHeader(this, propertiesByteCount + 2)
         writeByte(if (isSessionPresent) 1 else 0)
         writeByte(reason.code.toByte())
         writeProperties(
@@ -48,8 +46,8 @@ internal fun BytePacketBuilder.write(connack: Connack) {
             serverReference,
             authenticationMethod,
             authenticationData,
+            *userProperties.asArray
         )
-        write(userProperties)
     }
 }
 
@@ -58,10 +56,9 @@ internal fun BytePacketBuilder.write(connack: Connack) {
  * of the fixed header of the Connack packet.
  */
 internal fun ByteReadPacket.readConnack(): Connack {
-    val remaining = readVariableByteInt()
     val isSessionPresent = readByte() == 1.toByte()
     val reason = ReasonCode.from(readByte())
-    val properties = readAllProperties(remaining - 2)
+    val properties = readProperties()
 
     return Connack(
         isSessionPresent = isSessionPresent,
@@ -85,11 +82,3 @@ internal fun ByteReadPacket.readConnack(): Connack {
         authenticationData = properties.singleOrNull<AuthenticationData>(),
     )
 }
-
-private val Connack.propertiesByteCount: Int
-    get() = sessionExpiryInterval.byteCount + receiveMaximum.byteCount + maximumQoS.byteCount + retainAvailable.byteCount +
-            maximumPacketSize.byteCount + assignedClientIdentifier.byteCount + topicAliasMaximum.byteCount +
-            reasonString.byteCount + userProperties.byteCount() + wildcardSubscriptionAvailable.byteCount +
-            subscriptionIdentifierAvailable.byteCount + sharedSubscriptionAvailable.byteCount + serverKeepAlive.byteCount +
-            responseInformation.byteCount + serverReference.byteCount + authenticationMethod.byteCount +
-            authenticationData.byteCount

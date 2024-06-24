@@ -27,8 +27,6 @@ class ConnackTest {
             write(connack)
         }
 
-        assertEquals(PacketType.CONNACK.headerByte, reader.readByte())
-
         val actual = reader.readConnack()
 
         assertTrue(actual.isSessionPresent)

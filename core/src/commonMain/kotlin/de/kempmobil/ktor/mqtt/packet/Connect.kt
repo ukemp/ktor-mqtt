@@ -3,7 +3,6 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.util.writeMqttByteString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
-import de.kempmobil.ktor.mqtt.util.writeVariableByteInt
 import io.ktor.utils.io.core.*
 
 public class Connect(
@@ -36,23 +35,22 @@ internal fun BytePacketBuilder.write(connect: Connect) {
     with(connect) {
         writeByte(bits)
         writeShort(keepAliveSeconds.toShort())
-
-        // Write properties
-        writeVariableByteInt(propertiesByteCount)
-        if (sessionExpiryInterval != null) write(sessionExpiryInterval)
-        if (receiveMaximum != null) write(receiveMaximum)
-        if (maximumPacketSize != null) write(maximumPacketSize)
-        if (topicAliasMaximum != null) write(topicAliasMaximum)
-        if (requestResponseInformation != null) write(requestResponseInformation)
-        if (requestProblemInformation != null) write(requestProblemInformation)
-        write(userProperties)
-        if (authenticationMethod != null) write(authenticationMethod)
-        if (authenticationData != null) write(authenticationData)
+        writeProperties(
+            sessionExpiryInterval,
+            receiveMaximum,
+            maximumPacketSize,
+            topicAliasMaximum,
+            requestResponseInformation,
+            requestProblemInformation,
+            authenticationMethod,
+            authenticationData,
+            *userProperties.asArray
+        )
 
         // Write the payload
         writeMqttString(clientId) // Must always be present!
         if (willMessage != null) {
-            write(willMessage.properties)
+            writeProperties(*willMessage.properties.asArray())
             writeMqttString(willMessage.topic)
             writeMqttByteString(willMessage.payload)
         }
@@ -64,11 +62,6 @@ internal fun BytePacketBuilder.write(connect: Connect) {
         }
     }
 }
-
-private val Connect.propertiesByteCount: Int
-    get() = sessionExpiryInterval.byteCount + receiveMaximum.byteCount + maximumPacketSize.byteCount + topicAliasMaximum.byteCount +
-            requestResponseInformation.byteCount + requestProblemInformation.byteCount + userProperties.byteCount() +
-            authenticationMethod.byteCount + authenticationData.byteCount
 
 private val Connect.bits: Byte
     get() {

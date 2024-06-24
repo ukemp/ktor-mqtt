@@ -32,15 +32,6 @@ internal inline fun <reified T : Property<*>> List<Property<*>>.singleOrNull(): 
     }
 }
 
-/**
- * Provides a null-safe byte count.
- *
- * @see WritableProperty.byteCount
- */
-internal val Property<*>?.byteCount: Int
-    get() = (this as? WritableProperty)?.byteCount() ?: 0
-
-
 public fun <T> BytePacketBuilder.write(property: Property<T>) {
     with(property as WritableProperty) {
         writeByte(identifier.toByte())
@@ -48,7 +39,13 @@ public fun <T> BytePacketBuilder.write(property: Property<T>) {
     }
 }
 
+/**
+ * Writes all specified properties, which are non-null. Also prepends the byte count as a variable byte integer.
+ */
 public fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) {
+    val byteCount = properties.sumOf { (it as? WritableProperty)?.byteCount() ?: 0 }
+    writeVariableByteInt(byteCount)
+
     properties.forEach {
         if (it != null) write(it)
     }
@@ -89,10 +86,12 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
 }
 
 /**
- * Tries to read all bytes of this [ByteReadPacket] and convert them into a list of properties.
+ * Reads all properties from this packet by first reading the variable int byte count and then the properties.
  */
-public fun ByteReadPacket.readAllProperties(byteCount: Int): List<Property<*>> {
+public fun ByteReadPacket.readProperties(): List<Property<*>> {
+    val byteCount = readVariableByteInt()
     var bytesRead = 0
+
     return buildList {
         while (bytesRead < byteCount) {
             val property = readProperty<Property<*>>()
@@ -101,6 +100,7 @@ public fun ByteReadPacket.readAllProperties(byteCount: Int): List<Property<*>> {
         }
     }
 }
+
 
 @JvmInline
 public value class PayloadFormatIndicator(override val value: Byte) : WritableProperty<Byte> {

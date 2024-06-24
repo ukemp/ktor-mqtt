@@ -1,7 +1,5 @@
 package de.kempmobil.ktor.mqtt
 
-import de.kempmobil.ktor.mqtt.util.writeVariableByteInt
-import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
 
 public data class WillProperties(
@@ -47,19 +45,14 @@ public class WillPropertiesBuilder(
     }
 }
 
-internal fun WillProperties.byteCount() =
-    willDelayInterval.byteCount + payloadFormatIndicator.byteCount + messageExpiryInterval.byteCount +
-            contentType.byteCount + responseTopic.byteCount + correlationData.byteCount + userProperties.byteCount()
-
-internal fun BytePacketBuilder.write(willProperties: WillProperties) {
-    with(willProperties) {
-        writeVariableByteInt(byteCount())
-        write(willDelayInterval)
-        if (payloadFormatIndicator != null) write(payloadFormatIndicator)
-        if (messageExpiryInterval != null) write(messageExpiryInterval)
-        if (contentType != null) write(contentType)
-        if (responseTopic != null) write(responseTopic)
-        if (correlationData != null) write(correlationData)
-        write(userProperties)
-    }
+internal fun WillProperties.asArray(): Array<Property<*>?> {
+    return arrayOf(
+        willDelayInterval,
+        payloadFormatIndicator,
+        messageExpiryInterval,
+        contentType,
+        responseTopic,
+        correlationData,
+        *userProperties.asArray
+    )
 }

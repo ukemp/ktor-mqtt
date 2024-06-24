@@ -29,6 +29,8 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(libs.ktor.client.core)
+                implementation(libs.ktor.network)
+                implementation(libs.ktor.network.tls)
                 implementation(libs.kotlinx.io)
                 implementation(libs.kotlinx.coroutines.core)
             }
