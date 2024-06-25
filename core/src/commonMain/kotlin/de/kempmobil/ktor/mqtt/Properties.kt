@@ -179,6 +179,10 @@ public value class CorrelationData(override val value: ByteString) : WritablePro
 @JvmInline
 public value class SubscriptionIdentifier(override val value: Int) : WritableProperty<Int> {
 
+    init {
+        wellFormedWhen(value != 0) { "Subscription identifiers must not be zero" }
+    }
+
     // This is a "variable byte integer" property (the only one)
     public override val identifier: Int
         get() = 11
