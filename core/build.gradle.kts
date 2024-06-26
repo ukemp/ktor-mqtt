@@ -41,6 +41,17 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.test)
             }
         }
+        jvmTest {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.junit.api)
+                implementation(libs.junit.engine)
+                implementation(libs.testcontainers)
+                implementation(libs.testcontainers.junit)
+                implementation(libs.slf4j.api)
+                implementation(libs.slf4j.simple)
+            }
+        }
     }
 }
 
