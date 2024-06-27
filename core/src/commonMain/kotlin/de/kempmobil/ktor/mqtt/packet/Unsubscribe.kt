@@ -6,8 +6,9 @@ import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 
 internal data class Unsubscribe(
-    val userProperties: UserProperties = UserProperties.EMPTY,
-    val topics: List<Topic>
+    val packetIdentifier: UShort,
+    val topics: List<Topic>,
+    val userProperties: UserProperties = UserProperties.EMPTY
 ) : AbstractPacket(PacketType.UNSUBSCRIBE) {
 
     init {
@@ -17,8 +18,10 @@ internal data class Unsubscribe(
     override val headerFlags = 2
 }
 
+@OptIn(ExperimentalUnsignedTypes::class)
 internal fun BytePacketBuilder.write(unsubscribe: Unsubscribe) {
     with(unsubscribe) {
+        writeUShort(packetIdentifier)
         writeProperties(*userProperties.asArray)
 
         // Payload
@@ -28,12 +31,14 @@ internal fun BytePacketBuilder.write(unsubscribe: Unsubscribe) {
     }
 }
 
+@OptIn(ExperimentalUnsignedTypes::class)
 internal fun ByteReadPacket.readUnsubscribe(): Unsubscribe {
+    val packetIdentifier = readUShort()
     val properties = readProperties()
     val topics = buildList {
         while (canRead()) {
             add(Topic(readMqttString()))
         }
     }
-    return Unsubscribe(UserProperties.from(properties), topics)
+    return Unsubscribe(packetIdentifier, topics, UserProperties.from(properties))
 }

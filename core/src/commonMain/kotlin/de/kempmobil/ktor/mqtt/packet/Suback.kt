@@ -4,9 +4,9 @@ import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
 
 internal data class Suback(
+    val reasons: List<ReasonCode>,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
-    val reasons: List<ReasonCode>
 ) : AbstractPacket(PacketType.SUBACK) {
 
     init {
