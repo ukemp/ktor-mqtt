@@ -21,9 +21,9 @@ internal suspend fun ByteReadChannel.readPacket(): Packet {
         PacketType.SUBACK -> bytes.readSuback()
         PacketType.UNSUBSCRIBE -> bytes.readUnsubscribe()
         PacketType.UNSUBACK -> bytes.readUnsuback()
-        PacketType.DISCONNECT -> bytes.readDisconnect()
-        PacketType.AUTH -> bytes.readAuth()
         PacketType.PINGREQ -> Pingreq
         PacketType.PINGRESP -> Pingresp
+        PacketType.DISCONNECT -> bytes.readDisconnect()
+        PacketType.AUTH -> bytes.readAuth()
     }
 }

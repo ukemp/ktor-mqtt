@@ -17,15 +17,10 @@ internal suspend fun ByteWriteChannel.write(packet: Packet) {
             PacketType.SUBACK -> write(packet as Suback)
             PacketType.UNSUBSCRIBE -> write(packet as Unsubscribe)
             PacketType.UNSUBACK -> write(packet as Unsuback)
+            PacketType.PINGREQ -> Unit
+            PacketType.PINGRESP -> Unit
             PacketType.DISCONNECT -> write(packet as Disconnect)
             PacketType.AUTH -> write(packet as Auth)
-            PacketType.PINGREQ -> {
-                // Nothing to do
-            }
-
-            PacketType.PINGRESP -> {
-                // Nothing to do
-            }
         }
     }
     writeFixedHeader(packet, bytes.remaining.toInt())
