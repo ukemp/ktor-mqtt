@@ -4,25 +4,25 @@ import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
 
 internal data class Connack(
-    public val isSessionPresent: Boolean,
-    public val reason: ReasonCode,
-    public val sessionExpiryInterval: SessionExpiryInterval? = null,
-    public val receiveMaximum: ReceiveMaximum? = null,
-    public val maximumQoS: MaximumQoS? = null,
-    public val retainAvailable: RetainAvailable? = null,
-    public val maximumPacketSize: MaximumPacketSize? = null,
-    public val assignedClientIdentifier: AssignedClientIdentifier? = null,
-    public val topicAliasMaximum: TopicAliasMaximum? = null,
-    public val reasonString: ReasonString? = null,
-    public val userProperties: UserProperties = UserProperties.EMPTY,
-    public val wildcardSubscriptionAvailable: WildcardSubscriptionAvailable? = null,
-    public val subscriptionIdentifierAvailable: SubscriptionIdentifierAvailable? = null,
-    public val sharedSubscriptionAvailable: SharedSubscriptionAvailable? = null,
-    public val serverKeepAlive: ServerKeepAlive? = null,
-    public val responseInformation: ResponseInformation? = null,
-    public val serverReference: ServerReference? = null,
-    public val authenticationMethod: AuthenticationMethod? = null,
-    public val authenticationData: AuthenticationData? = null
+    val isSessionPresent: Boolean,
+    val reason: ReasonCode,
+    val sessionExpiryInterval: SessionExpiryInterval? = null,
+    val receiveMaximum: ReceiveMaximum? = null,
+    val maximumQoS: MaximumQoS? = null,
+    val retainAvailable: RetainAvailable? = null,
+    val maximumPacketSize: MaximumPacketSize? = null,
+    val assignedClientIdentifier: AssignedClientIdentifier? = null,
+    val topicAliasMaximum: TopicAliasMaximum? = null,
+    val reasonString: ReasonString? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+    val wildcardSubscriptionAvailable: WildcardSubscriptionAvailable? = null,
+    val subscriptionIdentifierAvailable: SubscriptionIdentifierAvailable? = null,
+    val sharedSubscriptionAvailable: SharedSubscriptionAvailable? = null,
+    val serverKeepAlive: ServerKeepAlive? = null,
+    val responseInformation: ResponseInformation? = null,
+    val serverReference: ServerReference? = null,
+    val authenticationMethod: AuthenticationMethod? = null,
+    val authenticationData: AuthenticationData? = null
 ) : AbstractPacket(PacketType.CONNACK)
 
 internal fun BytePacketBuilder.write(connack: Connack) {

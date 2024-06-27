@@ -7,20 +7,20 @@ import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
 
 internal data class Publish(
-    public val isDupMessage: Boolean = false,
-    public val qoS: QoS = QoS.AT_MOST_ONCE,
-    public val isRetainMessage: Boolean = false,
-    public val packetIdentifier: UShort? = null,
-    public val topicName: String,
-    public val payloadFormatIndicator: PayloadFormatIndicator? = null,
-    public val messageExpiryInterval: MessageExpiryInterval? = null,
-    public val topicAlias: TopicAlias? = null,
-    public val responseTopic: ResponseTopic? = null,
-    public val correlationData: CorrelationData? = null,
-    public val userProperties: UserProperties = UserProperties.EMPTY,
-    public val subscriptionIdentifier: SubscriptionIdentifier? = null,
-    public val contentType: ContentType? = null,
-    public val payload: ByteString
+    val isDupMessage: Boolean = false,
+    val qoS: QoS = QoS.AT_MOST_ONCE,
+    val isRetainMessage: Boolean = false,
+    val packetIdentifier: UShort? = null,
+    val topicName: String,
+    val payloadFormatIndicator: PayloadFormatIndicator? = null,
+    val messageExpiryInterval: MessageExpiryInterval? = null,
+    val topicAlias: TopicAlias? = null,
+    val responseTopic: ResponseTopic? = null,
+    val correlationData: CorrelationData? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+    val subscriptionIdentifier: SubscriptionIdentifier? = null,
+    val contentType: ContentType? = null,
+    val payload: ByteString
 ) : AbstractPacket(PacketType.PUBLISH) {
 
     init {

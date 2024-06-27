@@ -6,23 +6,23 @@ import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 
 internal data class Connect(
-    public val isCleanStart: Boolean,
-    public val willMessage: WillMessage?,
-    public val willOqS: QoS,
-    public val retainWillMessage: Boolean,
-    public val keepAliveSeconds: UShort,
-    public val clientId: String,
-    public val userName: String? = null,
-    public val password: String? = null,
-    public val sessionExpiryInterval: SessionExpiryInterval? = null,
-    public val receiveMaximum: ReceiveMaximum? = null,
-    public val maximumPacketSize: MaximumPacketSize? = null,
-    public val topicAliasMaximum: TopicAliasMaximum? = null,
-    public val requestResponseInformation: RequestResponseInformation? = null,
-    public val requestProblemInformation: RequestProblemInformation? = null,
-    public val userProperties: UserProperties = UserProperties.EMPTY,
-    public val authenticationMethod: AuthenticationMethod? = null,
-    public val authenticationData: AuthenticationData? = null
+    val isCleanStart: Boolean,
+    val willMessage: WillMessage?,
+    val willOqS: QoS,
+    val retainWillMessage: Boolean,
+    val keepAliveSeconds: UShort,
+    val clientId: String,
+    val userName: String? = null,
+    val password: String? = null,
+    val sessionExpiryInterval: SessionExpiryInterval? = null,
+    val receiveMaximum: ReceiveMaximum? = null,
+    val maximumPacketSize: MaximumPacketSize? = null,
+    val topicAliasMaximum: TopicAliasMaximum? = null,
+    val requestResponseInformation: RequestResponseInformation? = null,
+    val requestProblemInformation: RequestProblemInformation? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+    val authenticationMethod: AuthenticationMethod? = null,
+    val authenticationData: AuthenticationData? = null
 ) : AbstractPacket(PacketType.CONNECT)
 
 // The MQTT protocol name: "04MQTT" encoded as an MQTT string
