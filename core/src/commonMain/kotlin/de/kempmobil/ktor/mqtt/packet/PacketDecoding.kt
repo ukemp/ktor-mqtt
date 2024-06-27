@@ -11,7 +11,7 @@ internal suspend fun ByteReadChannel.readPacket(): Packet {
 
     return when (type) {
         PacketType.CONNACK -> bytes.readConnack()
-        PacketType.CONNECT -> bytes.readConnack()
+        PacketType.CONNECT -> bytes.readConnect()
         PacketType.PUBLISH -> bytes.readPublish(header.toInt())
         PacketType.PUBACK -> bytes.readPublishResponse(PubackFactory)
         PacketType.PUBREC -> bytes.readPublishResponse(PubrecFactory)
