@@ -30,7 +30,7 @@ internal fun BytePacketBuilder.write(subscribe: Subscribe) {
 
         // Filter are written as payload
         filters.forEach {
-            writeMqttString(it.filter)
+            writeMqttString(it.filter.name)
             writeByte(it.subscriptionOptions.bits)
         }
     }
@@ -44,7 +44,7 @@ internal fun ByteReadPacket.readSubscribe(): Subscribe {
         while (canRead()) {
             val filter = readMqttString()
             val options = readByte().toSubscriptionOptions()
-            add(TopicFilter(filter, options))
+            add(TopicFilter(Topic(filter), options))
         }
     }
 
