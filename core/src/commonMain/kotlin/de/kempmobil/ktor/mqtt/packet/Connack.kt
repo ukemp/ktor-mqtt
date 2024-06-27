@@ -3,7 +3,7 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
 
-public data class Connack(
+internal data class Connack(
     public val isSessionPresent: Boolean,
     public val reason: ReasonCode,
     public val sessionExpiryInterval: SessionExpiryInterval? = null,

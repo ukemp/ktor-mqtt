@@ -3,7 +3,7 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.util.writeVariableByteInt
 import io.ktor.utils.io.*
 
-public abstract class AbstractPacket(final override val type: PacketType) : Packet {
+internal abstract class AbstractPacket(final override val type: PacketType) : Packet {
 
     internal open val headerFlags: Int = 0
 }
