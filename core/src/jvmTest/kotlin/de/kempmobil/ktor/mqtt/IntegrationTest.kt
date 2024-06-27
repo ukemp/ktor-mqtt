@@ -1,10 +1,8 @@
 package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.packet.*
-import de.kempmobil.ktor.mqtt.util.readVariableByteInt
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
-import io.ktor.utils.io.core.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -16,7 +14,6 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.text.toByteArray
 
 
 @Testcontainers
@@ -81,10 +78,7 @@ class IntegrationTest {
         val sendChannel = socket.openWriteChannel(autoFlush = true)
 
         launch(Dispatchers.IO) {
-            val header = receiveChannel.readByte()
-            val length = receiveChannel.readVariableByteInt()
-            val packet = receiveChannel.readPacket(length)
-            val connack = packet.readConnack()
+            val connack = receiveChannel.readPacket() as Connack
             println(">>> Received packet: $connack")
 
             if (connack.reason == Success) {
@@ -92,20 +86,12 @@ class IntegrationTest {
                     topicName = "test-topic",
                     payload = ByteString("testpayload".toByteArray())
                 )
-                val pubPacket = buildPacket {
-                    write(publish)
-                }
-                sendChannel.writeFixedHeader(publish, pubPacket.remaining.toInt())
-                sendChannel.writePacket(pubPacket)
+                sendChannel.write(publish)
             }
             socket.close()
             selectorManager.close()
         }
 
-        val packet = buildPacket {
-            write(connect)
-        }
-        sendChannel.writeFixedHeader(connect, packet.remaining.toInt())
-        sendChannel.writePacket(packet)
+        sendChannel.write(connect)
     }
 }

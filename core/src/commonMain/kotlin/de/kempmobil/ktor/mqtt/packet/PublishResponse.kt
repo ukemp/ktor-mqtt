@@ -52,6 +52,42 @@ internal interface PublishResponseFactory<T> {
     ): T
 }
 
+internal val PubackFactory = object : PublishResponseFactory<Puback> {
+    override fun invoke(
+        packetIdentifier: UShort,
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties
+    ) = Puback(packetIdentifier, reason, reasonString, userProperties)
+}
+
+internal val PubrecFactory = object : PublishResponseFactory<Pubrec> {
+    override fun invoke(
+        packetIdentifier: UShort,
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties
+    ) = Pubrec(packetIdentifier, reason, reasonString, userProperties)
+}
+
+internal val PubrelFactory = object : PublishResponseFactory<Pubrel> {
+    override fun invoke(
+        packetIdentifier: UShort,
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties
+    ) = Pubrel(packetIdentifier, reason, reasonString, userProperties)
+}
+
+internal val PubcompFactory = object : PublishResponseFactory<Pubcomp> {
+    override fun invoke(
+        packetIdentifier: UShort,
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties
+    ) = Pubcomp(packetIdentifier, reason, reasonString, userProperties)
+}
+
 @OptIn(ExperimentalUnsignedTypes::class)
 internal fun BytePacketBuilder.write(publishResponse: PublishResponse) {
     with(publishResponse) {

@@ -1,6 +1,17 @@
 package de.kempmobil.ktor.mqtt.packet
 
+import de.kempmobil.ktor.mqtt.util.writeVariableByteInt
+import io.ktor.utils.io.*
+
 internal interface Packet {
 
-    public val type: PacketType
+    val type: PacketType
+
+    val headerFlags: Int
+}
+
+internal suspend fun ByteWriteChannel.writeFixedHeader(packet: Packet, remainingLength: Int) {
+    check(packet.headerFlags < 16) { "Header flags may only contain 4 bits: ${packet.headerFlags}" }
+    writeByte(((packet.type.value shl 4) or packet.headerFlags).toByte())
+    writeVariableByteInt(remainingLength)
 }
