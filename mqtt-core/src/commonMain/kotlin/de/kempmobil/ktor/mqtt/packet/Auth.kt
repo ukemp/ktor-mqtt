@@ -3,7 +3,7 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
 
-internal data class Auth(
+public data class Auth(
     val reason: ReasonCode,
     val authenticationMethod: AuthenticationMethod,
     val authenticationData: AuthenticationData? = null,

@@ -5,7 +5,7 @@ import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 
-internal data class Connect(
+public data class Connect(
     val isCleanStart: Boolean,
     val willMessage: WillMessage?,
     val willOqS: QoS,

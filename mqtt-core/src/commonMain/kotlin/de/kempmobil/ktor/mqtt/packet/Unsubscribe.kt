@@ -5,7 +5,7 @@ import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 
-internal data class Unsubscribe(
+public data class Unsubscribe(
     val packetIdentifier: UShort,
     val topics: List<Topic>,
     val userProperties: UserProperties = UserProperties.EMPTY
@@ -15,7 +15,7 @@ internal data class Unsubscribe(
         wellFormedWhen(topics.isNotEmpty()) { "Empty topic list in UNSUBSCRIBE" }
     }
 
-    override val headerFlags = 2
+    override val headerFlags: Int = 2
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)

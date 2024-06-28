@@ -3,11 +3,11 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.util.writeVariableByteInt
 import io.ktor.utils.io.*
 
-internal interface Packet {
+public interface Packet {
 
-    val type: PacketType
+    public val type: PacketType
 
-    val headerFlags: Int
+    public val headerFlags: Int
 }
 
 internal suspend fun ByteWriteChannel.writeFixedHeader(packet: Packet, remainingLength: Int) {

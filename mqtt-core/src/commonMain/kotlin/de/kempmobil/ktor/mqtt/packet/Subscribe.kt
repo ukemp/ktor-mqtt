@@ -5,18 +5,18 @@ import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 
-internal class Subscribe(
-    val packetIdentifier: UShort,
-    val filters: List<TopicFilter>,
-    val subscriptionIdentifier: SubscriptionIdentifier?,
-    val userProperties: UserProperties = UserProperties.EMPTY,
+public class Subscribe(
+    public val packetIdentifier: UShort,
+    public val filters: List<TopicFilter>,
+    public val subscriptionIdentifier: SubscriptionIdentifier?,
+    public val userProperties: UserProperties = UserProperties.EMPTY,
 ) : AbstractPacket(PacketType.SUBSCRIBE) {
 
     init {
         wellFormedWhen(filters.isNotEmpty()) { "Empty list of topic filters for SUBSCRIBE " }
     }
 
-    override val headerFlags = 2
+    override val headerFlags: Int = 2
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)

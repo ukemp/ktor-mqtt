@@ -1,34 +1,34 @@
 package de.kempmobil.ktor.mqtt.packet
 
-internal interface PacketReceiver {
+public interface PacketReceiver {
 
-    fun onConnect(connect: Connect)
+    public fun onConnect(connect: Connect)
 
-    fun onConnack(connack: Connack)
+    public fun onConnack(connack: Connack)
 
-    fun onPublish(publish: Publish)
+    public fun onPublish(publish: Publish)
 
-    fun onPuback(puback: Puback)
+    public fun onPuback(puback: Puback)
 
-    fun onPubrec(pubrec: Pubrec)
+    public fun onPubrec(pubrec: Pubrec)
 
-    fun onPubrel(pubrel: Pubrel)
+    public fun onPubrel(pubrel: Pubrel)
 
-    fun onPubcomp(pubcomp: Pubcomp)
+    public fun onPubcomp(pubcomp: Pubcomp)
 
-    fun onSubscribe(subscribe: Subscribe)
+    public fun onSubscribe(subscribe: Subscribe)
 
-    fun onSuback(suback: Suback)
+    public fun onSuback(suback: Suback)
 
-    fun onUnsubscribe(unsubscribe: Unsubscribe)
+    public fun onUnsubscribe(unsubscribe: Unsubscribe)
 
-    fun onUnsuback(unsuback: Unsuback)
+    public fun onUnsuback(unsuback: Unsuback)
 
-    fun onPingreq()
+    public fun onPingreq()
 
-    fun onPingresp()
+    public fun onPingresp()
 
-    fun onDisconnect(disconnect: Disconnect)
+    public fun onDisconnect(disconnect: Disconnect)
 
-    fun onAuth(auth: Auth)
+    public fun onAuth(auth: Auth)
 }

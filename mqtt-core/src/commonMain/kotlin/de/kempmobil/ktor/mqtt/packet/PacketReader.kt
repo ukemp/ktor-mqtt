@@ -5,7 +5,7 @@ import de.kempmobil.ktor.mqtt.util.readVariableByteInt
 import io.ktor.utils.io.*
 
 
-internal suspend fun ByteReadChannel.readPacket(receiver: PacketReceiver) {
+public suspend fun ByteReadChannel.readPacket(receiver: PacketReceiver) {
     val header = readByte()
     val type = PacketType.from(header)
     val length = readVariableByteInt()

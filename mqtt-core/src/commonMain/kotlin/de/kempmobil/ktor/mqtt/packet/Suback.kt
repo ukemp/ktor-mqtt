@@ -3,7 +3,7 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
 
-internal data class Suback(
+public data class Suback(
     val reasons: List<ReasonCode>,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,

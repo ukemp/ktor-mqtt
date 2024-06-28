@@ -3,7 +3,7 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
 
-internal data class Disconnect(
+public data class Disconnect(
     val reason: ReasonCode,
     val sessionExpiryInterval: SessionExpiryInterval? = null,
     val reasonString: ReasonString? = null,

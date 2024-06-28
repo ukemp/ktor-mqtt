@@ -3,7 +3,7 @@ package de.kempmobil.ktor.mqtt.packet
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 
-internal suspend fun ByteWriteChannel.write(packet: Packet) {
+public suspend fun ByteWriteChannel.write(packet: Packet) {
     val bytes = buildPacket {
         when (packet.type) {
             PacketType.CONNACK -> write(packet as Connack)

@@ -3,7 +3,7 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
 
-internal data class Unsuback(
+public data class Unsuback(
     val packetIdentifier: UShort,
     val reasons: List<ReasonCode>,
     val reasonString: ReasonString? = null,

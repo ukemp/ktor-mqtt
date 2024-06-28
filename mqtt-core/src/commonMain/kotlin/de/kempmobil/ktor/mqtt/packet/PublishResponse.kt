@@ -6,36 +6,36 @@ import io.ktor.utils.io.core.*
 /**
  * Base class for PUBACK, PUBREC, PUBREL and PUBCOMP.
  */
-internal sealed class PublishResponse(
+public sealed class PublishResponse(
     type: PacketType,
-    val packetIdentifier: UShort,
-    val reason: ReasonCode,
-    val reasonString: ReasonString? = null,
-    val userProperties: UserProperties = UserProperties.EMPTY
+    public val packetIdentifier: UShort,
+    public val reason: ReasonCode,
+    public val reasonString: ReasonString? = null,
+    public val userProperties: UserProperties = UserProperties.EMPTY
 ) : AbstractPacket(type)
 
-internal class Puback(
+public class Puback(
     packetIdentifier: UShort,
     reason: ReasonCode,
     reasonString: ReasonString? = null,
     userProperties: UserProperties = UserProperties.EMPTY
 ) : PublishResponse(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties)
 
-internal class Pubrec(
+public class Pubrec(
     packetIdentifier: UShort,
     reason: ReasonCode,
     reasonString: ReasonString? = null,
     userProperties: UserProperties = UserProperties.EMPTY
 ) : PublishResponse(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties)
 
-internal class Pubrel(
+public class Pubrel(
     packetIdentifier: UShort,
     reason: ReasonCode,
     reasonString: ReasonString? = null,
     userProperties: UserProperties = UserProperties.EMPTY
 ) : PublishResponse(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties)
 
-internal class Pubcomp(
+public class Pubcomp(
     packetIdentifier: UShort,
     reason: ReasonCode,
     reasonString: ReasonString? = null,

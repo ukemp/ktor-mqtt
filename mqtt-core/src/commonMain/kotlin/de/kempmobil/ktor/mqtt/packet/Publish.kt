@@ -6,7 +6,7 @@ import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
 
-internal data class Publish(
+public data class Publish(
     val isDupMessage: Boolean = false,
     val qoS: QoS = QoS.AT_MOST_ONCE,
     val isRetainMessage: Boolean = false,
