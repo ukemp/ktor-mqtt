@@ -19,6 +19,7 @@ ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "k
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }
 ktor-network-tls = { module = "io.ktor:ktor-network-tls", version.ref = "ktor" }
+kermit = "co.touchlab:kermit:2.0.2"
 
 # JVM Integration test libraries
 junit-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
