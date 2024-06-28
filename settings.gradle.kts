@@ -15,4 +15,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Ktor-MQTT"
-include(":core")
+include(":mqtt-core")
+include(":mqtt-client")

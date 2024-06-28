@@ -1,13 +1,7 @@
 package de.kempmobil.ktor.mqtt.util
 
 import de.kempmobil.ktor.mqtt.MalformedPacketException
-import io.ktor.utils.io.ByteReadChannel
-import io.ktor.utils.io.ByteWriteChannel
-import io.ktor.utils.io.charsets.*
 import io.ktor.utils.io.core.*
-import io.ktor.utils.io.readFully
-import io.ktor.utils.io.writeStringUtf8
-import kotlin.String
 
 private const val MAX_TEXT_SIZE = 65_535
 

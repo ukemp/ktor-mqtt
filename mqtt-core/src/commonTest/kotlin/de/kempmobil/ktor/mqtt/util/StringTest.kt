@@ -2,9 +2,9 @@ package de.kempmobil.ktor.mqtt.util
 
 import de.kempmobil.ktor.mqtt.MalformedPacketException
 import io.ktor.utils.io.core.*
-import kotlinx.coroutines.test.runTest
-import kotlinx.io.bytestring.ByteString
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class StringTest {
 

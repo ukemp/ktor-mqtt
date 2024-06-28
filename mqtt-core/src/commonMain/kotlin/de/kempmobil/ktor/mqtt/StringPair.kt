@@ -2,8 +2,6 @@ package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
-import io.ktor.utils.io.ByteReadChannel
-import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.core.*
 
 public data class StringPair(val name: String, val value: String)

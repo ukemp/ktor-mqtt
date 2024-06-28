@@ -1,8 +1,6 @@
 package de.kempmobil.ktor.mqtt.util
 
 import io.ktor.utils.io.core.*
-import io.ktor.utils.io.readFully
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
