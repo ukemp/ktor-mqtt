@@ -8,7 +8,7 @@ import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
 
 public data class WillMessage(
-    public val topic: String,
+    public val topic: Topic,
     public val payload: ByteString,
     public val properties: WillProperties
 )
@@ -30,7 +30,7 @@ public class WillMessageBuilder(private val topic: String) {
     }
 
     public fun build(): WillMessage {
-        return WillMessage(topic, payload, propertiesBuilder.build())
+        return WillMessage(Topic(topic), payload, propertiesBuilder.build())
     }
 
     private companion object {
@@ -41,7 +41,7 @@ public class WillMessageBuilder(private val topic: String) {
 
 internal fun BytePacketBuilder.write(willMessage: WillMessage) {
     writeProperties(*willMessage.properties.asArray())
-    writeMqttString(willMessage.topic)
+    writeMqttString(willMessage.topic.name)
     writeMqttByteString(willMessage.payload)
 }
 
@@ -50,5 +50,5 @@ internal fun ByteReadPacket.readWillMessage(): WillMessage {
     val topic = readMqttString()
     val payload = readMqttByteString()
 
-    return WillMessage(topic, payload, WillProperties.from(properties))
+    return WillMessage(Topic(topic), payload, WillProperties.from(properties))
 }

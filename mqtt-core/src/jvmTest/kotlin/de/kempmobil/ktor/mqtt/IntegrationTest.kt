@@ -151,6 +151,10 @@ class IntegrationTest {
                 Logger.i { "Received packet: $auth" }
             }
 
+            override fun onMalformedPacket(exception: MalformedPacketException) {
+                Logger.e(throwable = exception) { "malformed packet received" }
+            }
+
         }
 
         launch(Dispatchers.IO) {

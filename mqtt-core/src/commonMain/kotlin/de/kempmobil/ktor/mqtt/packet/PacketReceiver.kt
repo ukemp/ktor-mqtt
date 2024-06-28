@@ -1,5 +1,7 @@
 package de.kempmobil.ktor.mqtt.packet
 
+import de.kempmobil.ktor.mqtt.MalformedPacketException
+
 public interface PacketReceiver {
 
     public fun onConnect(connect: Connect)
@@ -31,4 +33,6 @@ public interface PacketReceiver {
     public fun onDisconnect(disconnect: Disconnect)
 
     public fun onAuth(auth: Auth)
+
+    public fun onMalformedPacket(exception: MalformedPacketException)
 }

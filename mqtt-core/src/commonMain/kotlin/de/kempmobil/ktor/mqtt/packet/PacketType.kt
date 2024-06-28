@@ -1,29 +1,23 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.MalformedPacketException
-import de.kempmobil.ktor.mqtt.packet.PacketDirection.*
 
-public enum class PacketType(
-    internal val value: Int,
-    internal val direction: PacketDirection,
-    internal val hasVariableHeader: Boolean,
-    internal val mayHavePayload: Boolean
-) {
-    CONNECT(1, CLIENT_TO_SERVER, true, true),
-    CONNACK(2, SERVER_TO_CLIENT, false,false),
-    PUBLISH(3, BOTH, true, true),
-    PUBACK(4, BOTH, true, false),
-    PUBREC(5, BOTH, true, false),
-    PUBREL(6, BOTH, true, false),
-    PUBCOMP(7, BOTH, true, false),
-    SUBSCRIBE(8, CLIENT_TO_SERVER, true, true),
-    SUBACK(9, SERVER_TO_CLIENT, true, true),
-    UNSUBSCRIBE(10, CLIENT_TO_SERVER,true, true),
-    UNSUBACK(11, SERVER_TO_CLIENT, true, true),
-    PINGREQ(12, CLIENT_TO_SERVER, false, false),
-    PINGRESP(13, SERVER_TO_CLIENT, false, false),
-    DISCONNECT(14, BOTH, false, false),
-    AUTH(15, BOTH, true, false);
+public enum class PacketType(internal val value: Int) {
+    CONNECT(1),
+    CONNACK(2),
+    PUBLISH(3),
+    PUBACK(4),
+    PUBREC(5),
+    PUBREL(6),
+    PUBCOMP(7),
+    SUBSCRIBE(8),
+    SUBACK(9),
+    UNSUBSCRIBE(10),
+    UNSUBACK(11),
+    PINGREQ(12),
+    PINGRESP(13),
+    DISCONNECT(14),
+    AUTH(15);
 
     public companion object {
 
@@ -37,9 +31,3 @@ public enum class PacketType(
         }
     }
 }
-
-/**
- * Returns the byte as it is expected in the fixed header of the binary packet (in the upper four bits).
- */
-internal val PacketType.headerByte: Byte
-    get() = (value shl 4).toByte()
