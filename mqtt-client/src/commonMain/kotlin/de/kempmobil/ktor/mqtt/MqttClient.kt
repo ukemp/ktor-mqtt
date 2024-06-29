@@ -1,12 +1,19 @@
 package de.kempmobil.ktor.mqtt
 
-import io.ktor.network.selector.*
 
 public class MqttClient(private val config: MqttClientConfig) {
 
-    private val selectorManager = SelectorManager(config.dispatcher)
+    private val sessionHandler = SessionHandler(config)
 
     public fun start() {
+        sessionHandler.start()
+    }
+
+    public fun subscribe(
+        filters: List<TopicFilter>,
+        subscriptionIdentifier: SubscriptionIdentifier?,
+        userProperties: UserProperties = UserProperties.EMPTY,
+    ) {
 
     }
 }

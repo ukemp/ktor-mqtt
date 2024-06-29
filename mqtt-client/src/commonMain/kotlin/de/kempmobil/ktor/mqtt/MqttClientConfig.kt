@@ -11,7 +11,7 @@ public data class MqttClientConfig(
     public val host: String,
     public val port: Int,
     public val dispatcher: CoroutineContext,
-    public var clientId: String,
+    public val clientId: String,
     public val willMessage: WillMessage?,
     public val willOqS: QoS,
     public val retainWillMessage: Boolean,
@@ -27,7 +27,7 @@ public data class MqttClientConfig(
     public val authenticationMethod: AuthenticationMethod? = null,
     public val authenticationData: AuthenticationData? = null,
     public val userProperties: UserProperties,
-    public val tlsConfig: TLSConfig?
+    public val tlsConfig: TLSConfigBuilder?
 )
 
 public fun MqttClientConfig(host: String, port: Int, init: MqttClientConfigBuilder.() -> Unit): MqttClientConfig {
@@ -69,7 +69,7 @@ public class MqttClientConfigBuilder(
     }
 
     public fun tls(init: TLSConfigBuilder.() -> Unit) {
-        tlsConfigBuilder = TLSConfigBuilder().also(init)
+        tlsConfigBuilder = TLSConfigBuilder()
     }
 
     public fun build(): MqttClientConfig = MqttClientConfig(
@@ -92,7 +92,7 @@ public class MqttClientConfigBuilder(
         authenticationMethod = authenticationMethod,
         authenticationData = authenticationData,
         userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
-        tlsConfig = tlsConfigBuilder?.build()
+        tlsConfig = tlsConfigBuilder
     )
 }
 
