@@ -66,6 +66,7 @@ public fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) {
 }
 
 @Suppress("UNCHECKED_CAST")
+@OptIn(ExperimentalUnsignedTypes::class)
 public fun <T> ByteReadPacket.readProperty(): Property<T> {
     return when (val identifier = readByte().toInt()) {
         1 -> PayloadFormatIndicator(readByte()) as Property<T>
@@ -74,7 +75,7 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
         8 -> ResponseTopic(readMqttString()) as Property<T>
         9 -> CorrelationData(readMqttByteString()) as Property<T>
         11 -> SubscriptionIdentifier(readVariableByteInt()) as Property<T>
-        17 -> SessionExpiryInterval(readInt()) as Property<T>
+        17 -> SessionExpiryInterval(readUShort()) as Property<T>
         18 -> AssignedClientIdentifier(readMqttString()) as Property<T>
         19 -> ServerKeepAlive(readShort()) as Property<T>
         21 -> AuthenticationMethod(readMqttString()) as Property<T>
@@ -194,15 +195,18 @@ public value class SubscriptionIdentifier(override val value: Int) : WritablePro
 }
 
 @JvmInline
-public value class SessionExpiryInterval(override val value: Int) : WritableProperty<Int> {
+public value class SessionExpiryInterval(override val value: UShort) : WritableProperty<UShort> {
 
     public override val identifier: Int
         get() = 17
 
-    override val writeValue: BytePacketBuilder.(Int) -> Unit
-        get() = IntWriter
+    override val writeValue: BytePacketBuilder.(UShort) -> Unit
+        get() = UShortWriter
 
     override fun byteCount(): Int = 5
+
+    public val doesNotExpire: Boolean
+        get() = value == UShort.MAX_VALUE
 }
 
 @JvmInline
@@ -467,6 +471,11 @@ private val ByteWriter: BytePacketBuilder.(Byte) -> Unit = {
 
 private val ShortWriter: BytePacketBuilder.(Short) -> Unit = {
     writeShort(it)
+}
+
+@OptIn(ExperimentalUnsignedTypes::class)
+private val UShortWriter: BytePacketBuilder.(UShort) -> Unit = {
+    writeUShort(it)
 }
 
 private val IntWriter: BytePacketBuilder.(Int) -> Unit = {

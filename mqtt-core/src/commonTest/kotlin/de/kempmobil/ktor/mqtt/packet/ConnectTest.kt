@@ -29,7 +29,7 @@ class ConnectTest {
             retainWillMessage = false,
             keepAliveSeconds = 67.toUShort(),
             clientId = "client-id",
-            sessionExpiryInterval = SessionExpiryInterval(10),
+            sessionExpiryInterval = SessionExpiryInterval(10u),
             userName = "user-name",
             password = "password"
         )
@@ -81,7 +81,7 @@ class ConnectTest {
             retainWillMessage = false,
             keepAliveSeconds = 67.toUShort(),
             clientId = "client-id",
-            sessionExpiryInterval = SessionExpiryInterval(10),
+            sessionExpiryInterval = SessionExpiryInterval(10u),
             userName = "user-name",
             password = "password"
         )
