@@ -5,11 +5,10 @@ public data class ReasonCode(val code: Int, val name: String) {
     public companion object {
         public fun from(code: Byte, defaultSuccessReason: ReasonCode = Success): ReasonCode {
             check(defaultSuccessReason.code == 0) {
-                "The default success reason must be one of 'Success', " +
-                        "'NormalDisconnection' or 'GrantedQoS0'"
+                "The default success reason must be one of 'Success', NormalDisconnection' or 'GrantedQoS0'"
             }
 
-            return when (code.toInt()) {
+            return when (code.toInt() and 0xFF) {
                 0 -> defaultSuccessReason
                 GrantedQoS1.code -> GrantedQoS1
                 GrantedQoS2.code -> GrantedQoS2

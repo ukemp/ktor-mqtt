@@ -25,7 +25,7 @@ public enum class PacketType(internal val value: Int) {
          * Converts the upper 4 bits of the specified MQTT header field into an instance of this.
          */
         public fun from(header: Byte): PacketType {
-            val value = header.toInt() shr 4
+            val value = (header.toInt() and 0xFF) shr 4
             return entries.firstOrNull { it.value == value }
                 ?: throw MalformedPacketException("Unknown header type: $header")
         }

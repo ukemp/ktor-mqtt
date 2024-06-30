@@ -68,7 +68,7 @@ public fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) {
 @Suppress("UNCHECKED_CAST")
 @OptIn(ExperimentalUnsignedTypes::class)
 public fun <T> ByteReadPacket.readProperty(): Property<T> {
-    return when (val identifier = readByte().toInt()) {
+    return when (val identifier = (readByte().toInt() and 0xFF)) {
         1 -> PayloadFormatIndicator(readByte()) as Property<T>
         2 -> MessageExpiryInterval(readInt()) as Property<T>
         3 -> ContentType(readMqttString()) as Property<T>

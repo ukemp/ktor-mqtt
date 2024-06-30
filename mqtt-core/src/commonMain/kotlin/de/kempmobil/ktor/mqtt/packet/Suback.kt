@@ -4,6 +4,7 @@ import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
 
 public data class Suback(
+    val packetIdentifier: UShort,
     val reasons: List<ReasonCode>,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
@@ -14,8 +15,10 @@ public data class Suback(
     }
 }
 
+@OptIn(ExperimentalUnsignedTypes::class)
 internal fun BytePacketBuilder.write(suback: Suback) {
     with(suback) {
+        writeUShort(packetIdentifier)
         writeProperties(reasonString, *userProperties.asArray)
 
         // Payload
@@ -25,7 +28,9 @@ internal fun BytePacketBuilder.write(suback: Suback) {
     }
 }
 
+@OptIn(ExperimentalUnsignedTypes::class)
 internal fun ByteReadPacket.readSuback(): Suback {
+    val packetIdentifier = readUShort()
     val properties = readProperties()
     val reasons = buildList {
         while (canRead()) {
@@ -34,6 +39,7 @@ internal fun ByteReadPacket.readSuback(): Suback {
     }
 
     return Suback(
+        packetIdentifier = packetIdentifier,
         reasonString = properties.singleOrNull<ReasonString>(),
         userProperties = UserProperties.from(properties),
         reasons = reasons

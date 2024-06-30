@@ -30,15 +30,9 @@ public data class MqttClientConfig(
     public val tlsConfig: TLSConfigBuilder?
 )
 
-public fun MqttClientConfig(host: String, port: Int, init: MqttClientConfigBuilder.() -> Unit): MqttClientConfig {
-    val builder = MqttClientConfigBuilder(host, port)
-    builder.init()
-    return builder.build()
-}
-
 public class MqttClientConfigBuilder(
     public val host: String,
-    public val port: Int,
+    public var port: Int = 1883
 ) {
     private var userPropertiesBuilder: UserPropertiesBuilder? = null
     private var willMessageBuilder: WillMessageBuilder? = null
