@@ -1,20 +1,16 @@
 package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
-import de.kempmobil.ktor.mqtt.packet.Packet
-import de.kempmobil.ktor.mqtt.packet.PacketReceiver
-import de.kempmobil.ktor.mqtt.packet.readPacket
-import de.kempmobil.ktor.mqtt.packet.write
+import de.kempmobil.ktor.mqtt.packet.*
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
 import io.ktor.utils.io.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.launch
 
 internal class MqttConnection(
     private val config: MqttClientConfig,
@@ -73,8 +69,8 @@ internal class MqttConnection(
         } catch (ex: CancellationException) {
             Logger.d { "Packet reader job has been cancelled" }
             return
-        } catch (ex: Exception) {
-            Logger.d(throwable = ex) { "Unexpected exception waiting reading bytes" }
+        } catch (ex: ClosedReceiveChannelException) {
+            Logger.d { "Read channel has been closed, terminating..." }
             return
         }
         Logger.d { "Packet reader job terminated gracefully" }
@@ -83,9 +79,14 @@ internal class MqttConnection(
     private suspend fun ByteWriteChannel.outgoingMessagesLoop() {
         try {
             outPackets.collect { packet ->
-                Logger.d { "Received new ${packet.type.name} packet for sending to ${config.host}:${config.port}" }
+                Logger.d { "Sending new ${packet.type.name} packet to ${config.host}:${config.port}" }
                 write(packet)
                 flush()
+
+                if (packet is Disconnect) {
+                    Logger.i { "Disconnect message sent to server, terminating the connection now" }
+                    connectJob?.cancel("Disconnect requested")
+                }
             }
         } catch (ex: CancellationException) {
             Logger.d { "Packet writer job has been cancelled" }

@@ -20,8 +20,8 @@ public class MqttClient(private val config: MqttClientConfig) {
         connection.send(createConnect())
     }
 
-    public fun stop() {
-        connection.stop()
+    public fun stop(reasonCode: ReasonCode = NormalDisconnection, reasonString: ReasonString? = null) {
+        connection.send(createDisconnect(reasonCode, reasonString))
     }
 
     public fun subscribe(
@@ -51,6 +51,14 @@ public class MqttClient(private val config: MqttClientConfig) {
             userProperties = config.userProperties,
             authenticationMethod = config.authenticationMethod,
             authenticationData = config.authenticationData
+        )
+    }
+
+    private fun createDisconnect(reasonCode: ReasonCode, reasonString: ReasonString?): Disconnect {
+        return Disconnect(
+            reasonCode,
+            sessionExpiryInterval = config.sessionExpiryInterval,
+            reasonString = reasonString,
         )
     }
 

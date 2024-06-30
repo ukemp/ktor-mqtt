@@ -24,8 +24,8 @@ class IntegrationTest {
 
     private lateinit var host: String
     private var port: Int = -1
-    private val user = "mqtt-test-user"
-    private val password = "3n63hLKRV31fHf41NF95"  // Encrypted in the resources/passwd file
+    private val testUser = "mqtt-test-user"
+    private val testPassword = "3n63hLKRV31fHf41NF95"  // Encrypted in the resources/passwd file
 
     @Container
     var mosquitto: GenericContainer<*> = GenericContainer(
@@ -53,8 +53,8 @@ class IntegrationTest {
     fun `connect to server`() = runTest {
         Logger.i { "Connecting to MQTT container $host:$port" }
         val client = MqttClient(host, port) {
-            userName = user
-            password = this@IntegrationTest.password
+            userName = testUser
+            password = testPassword
         }
         client.start()
         Thread.sleep(2000)
