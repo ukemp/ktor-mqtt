@@ -23,7 +23,18 @@ public data class Connect(
     val userProperties: UserProperties = UserProperties.EMPTY,
     val authenticationMethod: AuthenticationMethod? = null,
     val authenticationData: AuthenticationData? = null
-) : AbstractPacket(PacketType.CONNECT)
+) : AbstractPacket(PacketType.CONNECT) {
+
+    override fun toString(): String {
+        // Overwritten to prevent printing of password
+        return "Connect(isCleanStart=$isCleanStart, willMessage=$willMessage, willOqS=$willOqS, retainWillMessage=$retainWillMessage, " +
+                "keepAliveSeconds=$keepAliveSeconds, clientId='$clientId', userName=$userName, password=********, " +
+                "sessionExpiryInterval=$sessionExpiryInterval, receiveMaximum=$receiveMaximum, maximumPacketSize=$maximumPacketSize, " +
+                "topicAliasMaximum=$topicAliasMaximum, requestResponseInformation=$requestResponseInformation, " +
+                "requestProblemInformation=$requestProblemInformation, userProperties=$userProperties, " +
+                "authenticationMethod=$authenticationMethod, authenticationData=$authenticationData)"
+    }
+}
 
 // The MQTT protocol name: "04MQTT" encoded as an MQTT string
 private val ProtocolName = byteArrayOf(0, 4, 77, 81, 84, 84)
