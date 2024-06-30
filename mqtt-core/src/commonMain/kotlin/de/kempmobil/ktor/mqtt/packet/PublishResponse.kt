@@ -108,7 +108,11 @@ internal fun <T> ByteReadPacket.readPublishResponse(createResponse: PublishRespo
 
     return if (canRead()) {
         val reason = ReasonCode.from(readByte())
-        val properties = readProperties()
+        val properties = if (canRead()) {
+            readProperties()
+        } else {
+            emptyList()
+        }
         createResponse(
             packetIdentifier = packetIdentifier,
             reason = reason,
