@@ -56,13 +56,13 @@ internal class MqttConnection(
     // --- Private methods ---------------------------------------------------------------------------------------------
 
     private suspend fun openSocket(): Socket {
-        val socket = aSocket(selectorManager).tcp().connect(config.host, config.port)
-        config.tlsConfig?.let { tlsConfigBuilder ->
-            socket.tls(config.dispatcher) {
-                takeFrom(tlsConfigBuilder)
+        return if (config.tlsConfig == null) {
+            aSocket(selectorManager).tcp().connect(config.host, config.port)
+        } else {
+            aSocket(selectorManager).tcp().connect(config.host, config.port).tls(config.dispatcher) {
+                config.tlsConfig.build()
             }
         }
-        return socket
     }
 
     private suspend fun ByteReadChannel.incomingMessageLoop() {
