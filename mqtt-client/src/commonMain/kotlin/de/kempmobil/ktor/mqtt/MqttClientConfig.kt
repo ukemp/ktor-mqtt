@@ -7,7 +7,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
 
 
-public data class MqttClientConfig(
+public class MqttClientConfig(
     public val host: String,
     public val port: Int,
     public val dispatcher: CoroutineContext,
@@ -63,7 +63,7 @@ public class MqttClientConfigBuilder(
     }
 
     public fun tls(init: TLSConfigBuilder.() -> Unit) {
-        tlsConfigBuilder = TLSConfigBuilder()
+        tlsConfigBuilder = TLSConfigBuilder().also(init)
     }
 
     public fun build(): MqttClientConfig = MqttClientConfig(
