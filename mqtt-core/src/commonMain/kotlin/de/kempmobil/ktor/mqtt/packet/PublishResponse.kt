@@ -12,7 +12,12 @@ public sealed class PublishResponse(
     public val reason: ReasonCode,
     public val reasonString: ReasonString? = null,
     public val userProperties: UserProperties = UserProperties.EMPTY
-) : AbstractPacket(type)
+) : AbstractPacket(type) {
+
+    override fun toString(): String {
+        return "${this::class.simpleName}(packetIdentifier=$packetIdentifier, reason=$reason, reasonString=$reasonString, userProperties=$userProperties)"
+    }
+}
 
 public class Puback(
     packetIdentifier: UShort,
@@ -26,21 +31,25 @@ public class Pubrec(
     reason: ReasonCode,
     reasonString: ReasonString? = null,
     userProperties: UserProperties = UserProperties.EMPTY
-) : PublishResponse(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties)
+) : PublishResponse(PacketType.PUBREC, packetIdentifier, reason, reasonString, userProperties)
 
 public class Pubrel(
     packetIdentifier: UShort,
     reason: ReasonCode,
     reasonString: ReasonString? = null,
     userProperties: UserProperties = UserProperties.EMPTY
-) : PublishResponse(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties)
+) : PublishResponse(PacketType.PUBREL, packetIdentifier, reason, reasonString, userProperties) {
+
+    // Note: this is the only response packet with a header flag!
+    override val headerFlags: Int = 2
+}
 
 public class Pubcomp(
     packetIdentifier: UShort,
     reason: ReasonCode,
     reasonString: ReasonString? = null,
     userProperties: UserProperties = UserProperties.EMPTY
-) : PublishResponse(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties)
+) : PublishResponse(PacketType.PUBCOMP, packetIdentifier, reason, reasonString, userProperties)
 
 internal interface PublishResponseFactory<T> {
 
