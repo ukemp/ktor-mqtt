@@ -2,35 +2,64 @@ package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.*
-import io.ktor.utils.io.core.*
-import kotlinx.io.bytestring.ByteString
+import kotlinx.coroutines.flow.first
 
 
 public class MqttClient(private val config: MqttClientConfig) {
 
-    private val connection = MqttConnection(config, Receiver())
+    private val connection = MqttConnection(config)
 
     private var packetIdentifier: UShort = 1u
+
+    private var _maxQos = QoS.EXACTLY_ONE
+    public val maxQos: QoS
+        get() = _maxQos
 
     private val isCleanStart: Boolean
         get() = true // TODO
 
-    public fun start() {
+    /**
+     * Tries to connect to the MQTT server and send a CONNECT message.
+     *
+     * @throws ConnectionException when a connection cannot be established
+     * @return the CONNACK message returned by the server
+     */
+    public suspend fun connect(): Connack {
         connection.start()
         connection.send(createConnect())
+
+        val connack = (connection.packetsReceived.first { it is Connack }) as Connack
+        return inspectConnack(connack)
     }
 
-    public fun stop(reasonCode: ReasonCode = NormalDisconnection, reasonString: ReasonString? = null) {
+    public suspend fun publish(publish: Publish) {
+        if (publish.qoS.value > maxQos.value) {
+            throw MalformedPacketException("QoS of $publish is larger than the server QoS of $maxQos")
+        }
+        connection.send(publish)
+
+        when (publish.qoS) {
+            QoS.AT_MOST_ONCE -> {
+                return
+            }
+
+            QoS.AT_LEAST_ONCE -> {
+                connection.packetsReceived.first { publish.isAssociatedPuback(it) }
+            }
+
+            QoS.EXACTLY_ONE -> {
+                connection.packetsReceived.first { publish.isAssociatedPubrec(it) }
+                connection.send(Pubrel(packetIdentifier = publish.packetIdentifier!!, Success))
+                connection.packetsReceived.first { publish.isAssociatedPubcomp(it) }
+            }
+        }
+    }
+
+    public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reasonString: ReasonString? = null) {
         connection.send(createDisconnect(reasonCode, reasonString))
     }
 
-    public fun subscribe(
-        filters: List<TopicFilter>,
-        subscriptionIdentifier: SubscriptionIdentifier?,
-        userProperties: UserProperties = UserProperties.EMPTY,
-    ) {
-
-    }
+    // ---- Helper methods ---------------------------------------------------------------------------------------------
 
     private fun createConnect(): Connect {
         return Connect(
@@ -54,6 +83,14 @@ public class MqttClient(private val config: MqttClientConfig) {
         )
     }
 
+    private fun inspectConnack(connack: Connack): Connack {
+        connack.maximumQoS?.let {
+            _maxQos = it.qoS
+            Logger.i { "${config.host} sent maximum Qos: $_maxQos!" }
+        }
+        return connack
+    }
+
     private fun createDisconnect(reasonCode: ReasonCode, reasonString: ReasonString?): Disconnect {
         return Disconnect(
             reasonCode,
@@ -68,85 +105,6 @@ public class MqttClient(private val config: MqttClientConfig) {
             packetIdentifier = 1u
         }
         return packetIdentifier
-    }
-
-    // ---- Inner classes ----------------------------------------------------------------------------------------------
-
-    private inner class Receiver : PacketReceiver {
-
-        override fun onConnect(connect: Connect) {
-            Logger.w { "Illegal client packet received: $connect" }
-        }
-
-        override fun onConnack(connack: Connack) {
-            Logger.v { "New packet received: $connack" }
-            val publish = Publish(
-                topicName = "test-topic",
-                payload = ByteString("testpayload".toByteArray())
-            )
-            val subscribe = Subscribe(
-                1u,
-                listOf(TopicFilter(Topic("test/topic"))),
-                subscriptionIdentifier = null
-            )
-            connection.send(subscribe)
-        }
-
-        override fun onPublish(publish: Publish) {
-            Logger.v { "New packet received: $publish" }
-        }
-
-        override fun onPuback(puback: Puback) {
-            Logger.v { "New packet received: $puback" }
-        }
-
-        override fun onPubrec(pubrec: Pubrec) {
-            Logger.v { "New packet received: $pubrec" }
-        }
-
-        override fun onPubrel(pubrel: Pubrel) {
-            Logger.v { "New packet received: $pubrel" }
-        }
-
-        override fun onPubcomp(pubcomp: Pubcomp) {
-            Logger.v { "New packet received: $pubcomp" }
-        }
-
-        override fun onSubscribe(subscribe: Subscribe) {
-            Logger.w { "Illegal client packet received: $subscribe" }
-        }
-
-        override fun onSuback(suback: Suback) {
-            Logger.v { "New packet received: $suback" }
-        }
-
-        override fun onUnsubscribe(unsubscribe: Unsubscribe) {
-            Logger.w { "Illegal client packet received: $unsubscribe" }
-        }
-
-        override fun onUnsuback(unsuback: Unsuback) {
-            Logger.v { "New packet received: $unsuback" }
-        }
-
-        override fun onPingreq() {
-            Logger.w { "Illegal client packet received: PINGREQ" }
-        }
-
-        override fun onPingresp() {
-            Logger.v { "New packet received: PINGRESP" }
-        }
-
-        override fun onDisconnect(disconnect: Disconnect) {
-            Logger.v { "New packet received: $disconnect" }
-        }
-
-        override fun onAuth(auth: Auth) {
-            Logger.v { "New packet received: $auth" }
-        }
-
-        override fun onMalformedPacket(exception: MalformedPacketException) {
-            Logger.e(throwable = exception) { "Malformed packet received" }
-        }
     }
 }
 

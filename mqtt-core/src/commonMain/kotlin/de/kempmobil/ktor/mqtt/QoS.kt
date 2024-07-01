@@ -1,6 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
-public enum class QoS(internal val value: Int) {
+public enum class QoS(public val value: Int) {
 
     AT_MOST_ONCE(0),
     AT_LEAST_ONCE(1),

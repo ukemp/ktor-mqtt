@@ -1,13 +1,17 @@
 package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
+import de.kempmobil.ktor.mqtt.packet.Publish
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.bytestring.encodeToByteString
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
 import org.testcontainers.junit.jupiter.Container
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.time.Duration.Companion.seconds
 
 class IntegrationTest {
 
@@ -50,15 +54,25 @@ class IntegrationTest {
     }
 
     @Test
-    fun `connect to server`() = runTest {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun `connect to server`() = runTest(timeout = 4.seconds) {
         Logger.i { "Connecting to MQTT container $host:$port" }
         val client = MqttClient(host, port) {
             userName = testUser
             password = testPassword
         }
-        client.start()
-        Thread.sleep(2000)
-        client.stop()
+        val connack = client.connect()
+        println("Received: $connack")
+        val puback = client.publish(
+            Publish(
+                packetIdentifier = 42u,
+                topicName = "test/topic",
+                payload = "abc".encodeToByteString(),
+                qoS = QoS.EXACTLY_ONE
+            )
+        )
+        println("Published: $puback")
+        client.disconnect()
 
         Logger.i { "Terminating..." }
     }

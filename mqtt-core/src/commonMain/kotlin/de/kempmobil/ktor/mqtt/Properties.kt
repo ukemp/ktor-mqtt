@@ -375,6 +375,9 @@ public value class MaximumQoS(override val value: Byte) : WritableProperty<Byte>
         get() = ByteWriter
 
     override fun byteCount(): Int = 2
+
+    public val qoS: QoS
+        get() = QoS.from(value.toInt())
 }
 
 @JvmInline

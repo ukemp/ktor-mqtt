@@ -39,6 +39,18 @@ public data class Publish(
             if (isDupMessage) bits = bits or (1 shl 3)
             return bits
         }
+
+    public fun isAssociatedPuback(packet: Packet): Boolean {
+        return packet is Puback && packet.packetIdentifier == packetIdentifier
+    }
+
+    public fun isAssociatedPubrec(packet: Packet): Boolean {
+        return packet is Pubrec && packet.packetIdentifier == packetIdentifier
+    }
+
+    public fun isAssociatedPubcomp(packet: Packet): Boolean {
+        return packet is Pubcomp && packet.packetIdentifier == packetIdentifier
+    }
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)

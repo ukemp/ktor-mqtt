@@ -1,52 +1,64 @@
 package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
-import de.kempmobil.ktor.mqtt.packet.*
+import de.kempmobil.ktor.mqtt.packet.Disconnect
+import de.kempmobil.ktor.mqtt.packet.Packet
+import de.kempmobil.ktor.mqtt.packet.readPacket
+import de.kempmobil.ktor.mqtt.packet.write
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 
 internal class MqttConnection(
-    private val config: MqttClientConfig,
-    private val receiver: PacketReceiver
+    private val config: MqttClientConfig
 ) {
     private val selectorManager = SelectorManager(config.dispatcher)
 
     private val scope = CoroutineScope(config.dispatcher)
 
-    private val outPackets = MutableSharedFlow<Packet>(replay = 10, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private var sendChannel: ByteWriteChannel? = null
 
     private var socket: Socket? = null
 
-    private var connectJob: Job? = null
+    private var receiverJob: Job? = null
 
-    internal fun start() {
-        connectJob = scope.launch {
-            socket = openSocket().also { socket ->
-                val receiveChannel = socket.openReadChannel()
-                val sendChannel = socket.openWriteChannel()
-                launch { receiveChannel.incomingMessageLoop() }
-                launch { sendChannel.outgoingMessagesLoop() }
+    private val _packetsReceived = MutableSharedFlow<Packet>()
+    internal val packetsReceived: SharedFlow<Packet>
+        get() = _packetsReceived
+
+    internal suspend fun start() {
+        try {
+            socket = scope.async {
+                openSocket()
+            }.await().also { socket ->
+                sendChannel = socket.openWriteChannel()
+                receiverJob = scope.launch {
+                    socket.openReadChannel().incomingMessageLoop()
+                }
             }
+        } catch (ex: Exception) {
+            throw ConnectionException(ex)
         }
     }
 
-    internal fun stop() {
-        connectJob?.cancel()
-        socket?.close()
-        selectorManager.close()
-    }
+    internal suspend fun send(packet: Packet): Boolean {
+        sendChannel?.run {
+            Logger.v { "Sending $packet..." }
+            write(packet)
+            flush()
 
-    internal fun send(packet: Packet) {
-        scope.launch {
-            outPackets.emit(packet)
-        }
+            if (packet is Disconnect) {
+                Logger.i { "Disconnect message sent to server, terminating the connection now" }
+                this@MqttConnection.close()
+            }
+            return true
+        } ?: return false
     }
 
     // --- Private methods ---------------------------------------------------------------------------------------------
@@ -63,8 +75,12 @@ internal class MqttConnection(
 
     private suspend fun ByteReadChannel.incomingMessageLoop() {
         try {
-            while (connectJob?.isActive == true) {
-                readPacket(receiver)
+            while (receiverJob?.isActive == true) {
+                val packet = readPacket()
+                if (packet is Disconnect) {
+                    Logger.i { "Received $packet from ${config.host}" }
+                }
+                _packetsReceived.emit(packet)
             }
         } catch (ex: CancellationException) {
             Logger.d { "Packet reader job has been cancelled" }
@@ -72,27 +88,22 @@ internal class MqttConnection(
         } catch (ex: ClosedReceiveChannelException) {
             Logger.d { "Read channel has been closed, terminating..." }
             return
+        } catch (ex: MalformedPacketException) {
+            Logger.e(throwable = ex) { "Malformed packet received, sending DISCONNECT" }
+            send(Disconnect(reason = MalformedPacket, sessionExpiryInterval = config.sessionExpiryInterval))
+            return
         }
         Logger.d { "Packet reader job terminated gracefully" }
     }
 
-    private suspend fun ByteWriteChannel.outgoingMessagesLoop() {
-        try {
-            outPackets.collect { packet ->
-                Logger.d { "Sending new ${packet.type.name} packet to ${config.host}:${config.port}" }
-                write(packet)
-                flush()
+    private fun close() {
+        receiverJob?.cancel()
+        socket?.close()
+        sendChannel?.close()
+        selectorManager.close()
 
-                if (packet is Disconnect) {
-                    Logger.i { "Disconnect message sent to server, terminating the connection now" }
-                    connectJob?.cancel("Disconnect requested")
-                }
-            }
-        } catch (ex: CancellationException) {
-            Logger.d { "Packet writer job has been cancelled" }
-        } catch (ex: Exception) {
-            Logger.d(throwable = ex) { "Unexpected exception writing bytes" }
-            return
-        }
+        receiverJob = null
+        socket = null
+        sendChannel = null
     }
 }

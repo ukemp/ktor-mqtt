@@ -25,7 +25,12 @@ internal fun BytePacketBuilder.write(disconnect: Disconnect) {
 
 internal fun ByteReadPacket.readDisconnect(): Disconnect {
     val reason = ReasonCode.from(readByte(), defaultSuccessReason = NormalDisconnection)
-    val properties = readProperties()
+
+    val properties = if (canRead()) {
+        readProperties()
+    } else {
+        emptyList()
+    }
 
     return Disconnect(
         reason = reason,
