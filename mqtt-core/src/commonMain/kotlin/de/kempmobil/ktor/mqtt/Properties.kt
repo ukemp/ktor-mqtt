@@ -77,7 +77,7 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
         11 -> SubscriptionIdentifier(readVariableByteInt()) as Property<T>
         17 -> SessionExpiryInterval(readUShort()) as Property<T>
         18 -> AssignedClientIdentifier(readMqttString()) as Property<T>
-        19 -> ServerKeepAlive(readShort()) as Property<T>
+        19 -> ServerKeepAlive(readUShort()) as Property<T>
         21 -> AuthenticationMethod(readMqttString()) as Property<T>
         22 -> AuthenticationData(readMqttByteString()) as Property<T>
         23 -> RequestProblemInformation(readByte()) as Property<T>
@@ -222,13 +222,13 @@ public value class AssignedClientIdentifier(override val value: String) : Writab
 }
 
 @JvmInline
-public value class ServerKeepAlive(override val value: Short) : WritableProperty<Short> {
+public value class ServerKeepAlive(override val value: UShort) : WritableProperty<UShort> {
 
     public override val identifier: Int
         get() = 19
 
-    override val writeValue: BytePacketBuilder.(Short) -> Unit
-        get() = ShortWriter
+    override val writeValue: BytePacketBuilder.(UShort) -> Unit
+        get() = UShortWriter
 
     override fun byteCount(): Int = 3
 }

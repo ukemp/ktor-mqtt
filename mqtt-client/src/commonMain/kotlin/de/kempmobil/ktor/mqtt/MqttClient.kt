@@ -2,12 +2,19 @@ package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 
 public class MqttClient(private val config: MqttClientConfig) {
 
     private val connection = MqttConnection(config)
+
+    private val scope = CoroutineScope(config.dispatcher)
 
     private var packetIdentifier: UShort = 1u
 
@@ -57,6 +64,7 @@ public class MqttClient(private val config: MqttClientConfig) {
 
     public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reasonString: ReasonString? = null) {
         connection.send(createDisconnect(reasonCode, reasonString))
+        scope.cancel()
     }
 
     // ---- Helper methods ---------------------------------------------------------------------------------------------
@@ -86,8 +94,19 @@ public class MqttClient(private val config: MqttClientConfig) {
     private fun inspectConnack(connack: Connack): Connack {
         connack.maximumQoS?.let {
             _maxQos = it.qoS
-            Logger.i { "${config.host} sent maximum Qos: $_maxQos!" }
         }
+
+        val keepAlive = connack.serverKeepAlive?.value ?: config.keepAliveSeconds
+        if (keepAlive > 0u) {
+            val pingDuration = keepAlive.toInt().seconds
+            scope.launch {
+                delay(pingDuration)
+                connection.send(Pingreq)
+            }
+        }
+
+        Logger.i { "Parameters negotiated with server: max. QoS=$maxQos, keep alive=$keepAlive sec." }
+
         return connack
     }
 
