@@ -64,11 +64,13 @@ internal class MqttConnection(
     // --- Private methods ---------------------------------------------------------------------------------------------
 
     private suspend fun openSocket(): Socket {
-        return if (config.tlsConfig == null) {
-            aSocket(selectorManager).tcp().connect(config.host, config.port)
-        } else {
-            aSocket(selectorManager).tcp().connect(config.host, config.port).tls(config.dispatcher) {
-                config.tlsConfig.build()
+        return with(config) {
+            if (tlsConfig == null) {
+                aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
+            } else {
+                aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(dispatcher) {
+                    tlsConfig.build()
+                }
             }
         }
     }

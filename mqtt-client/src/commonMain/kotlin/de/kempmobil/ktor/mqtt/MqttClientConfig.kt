@@ -1,8 +1,9 @@
 package de.kempmobil.ktor.mqtt
 
+import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
 
@@ -27,6 +28,7 @@ public class MqttClientConfig(
     public val authenticationMethod: AuthenticationMethod? = null,
     public val authenticationData: AuthenticationData? = null,
     public val userProperties: UserProperties,
+    public val tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit),
     public val tlsConfig: TLSConfigBuilder?
 )
 
@@ -37,8 +39,9 @@ public class MqttClientConfigBuilder(
     private var userPropertiesBuilder: UserPropertiesBuilder? = null
     private var willMessageBuilder: WillMessageBuilder? = null
     private var tlsConfigBuilder: TLSConfigBuilder? = null
+    private var tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit)? = null
 
-    public val dispatcher: CoroutineContext = Dispatchers.IO
+    public val dispatcher: CoroutineDispatcher = Dispatchers.Default
     public var clientId: String = generateClientId()
     public var willOqS: QoS = QoS.AT_MOST_ONCE
     public var retainWillMessage: Boolean = false
@@ -54,16 +57,34 @@ public class MqttClientConfigBuilder(
     public var authenticationMethod: AuthenticationMethod? = null
     public var authenticationData: AuthenticationData? = null
 
+    /**
+     * Build user properties used in the CONNECT packet of this client.
+     */
     public fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userPropertiesBuilder = UserPropertiesBuilder().also(init)
     }
 
+    /**
+     * Build the last will message for this client.
+     */
     public fun willMessage(topic: String, init: WillMessageBuilder.() -> Unit) {
         willMessageBuilder = WillMessageBuilder(topic).also(init)
     }
 
+    /**
+     * Add TLS configuration for this client. Just use `tls { }` to enable TLS support.
+     */
     public fun tls(init: TLSConfigBuilder.() -> Unit) {
         tlsConfigBuilder = TLSConfigBuilder().also(init)
+    }
+
+    /**
+     * Configure the TCP options for this client
+     *
+     * @see SocketOptions.TCPClientSocketOptions
+     */
+    public fun tcp(init: SocketOptions.TCPClientSocketOptions.() -> Unit) {
+        tcpOptions = init
     }
 
     public fun build(): MqttClientConfig = MqttClientConfig(
@@ -86,6 +107,7 @@ public class MqttClientConfigBuilder(
         authenticationMethod = authenticationMethod,
         authenticationData = authenticationData,
         userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
+        tcpOptions = tcpOptions ?: { },
         tlsConfig = tlsConfigBuilder
     )
 }
