@@ -25,9 +25,9 @@ public class MqttClientConfig(
     public val sessionExpiryInterval: SessionExpiryInterval? = null,
     public val receiveMaximum: ReceiveMaximum? = null,
     public val maximumPacketSize: MaximumPacketSize? = null,
-    public val topicAliasMaximum: TopicAliasMaximum? = null,
-    public val requestResponseInformation: RequestResponseInformation? = null,
-    public val requestProblemInformation: RequestProblemInformation? = null,
+    public val topicAliasMaximum: TopicAliasMaximum,
+    public val requestResponseInformation: RequestResponseInformation,
+    public val requestProblemInformation: RequestProblemInformation,
     public val authenticationMethod: AuthenticationMethod? = null,
     public val authenticationData: AuthenticationData? = null,
     public val userProperties: UserProperties,
@@ -55,9 +55,9 @@ public class MqttClientConfigBuilder(
     public var sessionExpiryInterval: SessionExpiryInterval? = null
     public var receiveMaximum: ReceiveMaximum? = null
     public var maximumPacketSize: MaximumPacketSize? = null
-    public var topicAliasMaximum: TopicAliasMaximum? = null
-    public var requestResponseInformation: RequestResponseInformation? = null
-    public var requestProblemInformation: RequestProblemInformation? = null
+    public var topicAliasMaximum: TopicAliasMaximum = TopicAliasMaximum(0u)
+    public var requestResponseInformation: RequestResponseInformation = RequestResponseInformation(0)
+    public var requestProblemInformation: RequestProblemInformation = RequestProblemInformation(1)
     public var authenticationMethod: AuthenticationMethod? = null
     public var authenticationData: AuthenticationData? = null
 

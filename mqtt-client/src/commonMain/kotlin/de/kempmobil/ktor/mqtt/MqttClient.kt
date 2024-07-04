@@ -23,6 +23,10 @@ public class MqttClient(private val config: MqttClientConfig) {
     public val maxQos: QoS
         get() = _maxQos
 
+    private var _serverTopicAliasMaximum: TopicAliasMaximum? = null
+    public val serverTopicAliasMaximum: TopicAliasMaximum?
+        get() = _serverTopicAliasMaximum
+
     private val isCleanStart: Boolean
         get() = true // TODO
 
@@ -33,11 +37,14 @@ public class MqttClient(private val config: MqttClientConfig) {
      * @return the CONNACK message returned by the server
      */
     public suspend fun connect(): Connack {
-        val connack: Deferred<Connack> = awaitPacket(PacketType.CONNACK)
         connection.start()
-        connection.send(createConnect())
 
-        return inspectConnack(connack.await())
+        val connect = createConnect()
+        val connack: Connack = awaitResponseOf(PacketType.CONNACK) {
+            connection.send(connect)
+        }
+
+        return inspectConnack(connack)
     }
 
     public suspend fun publish(publish: Publish) {
@@ -96,24 +103,23 @@ public class MqttClient(private val config: MqttClientConfig) {
         connack.maximumQoS?.let {
             _maxQos = it.qoS
         }
+        _serverTopicAliasMaximum = connack.topicAliasMaximum
 
-        val keepAlive = connack.serverKeepAlive?.value ?: config.keepAliveSeconds
-        if (keepAlive > 0u) {
-            val pingDuration = keepAlive.toInt().seconds
+        val keepAlive = (connack.serverKeepAlive?.value ?: config.keepAliveSeconds).toInt().seconds
+        if (keepAlive.inWholeSeconds > 0) {
             scope.launch {
-                delay(pingDuration)
-                connection.send(Pingreq)
-                val pingResponseReceived = withTimeoutOrNull(pingDuration) {
-                    connection.packetsReceived.first { it is Pingresp }
-                    true
-                }
-                if (pingResponseReceived == null) {
-                    disconnect(KeepAliveTimeout)
+                delay(keepAlive)
+                awaitResponseOf<Pingresp>(PacketType.PINGRESP) {
+                    connection.send(Pingreq)
                 }
             }
         }
 
-        Logger.i { "Parameters negotiated with server: max. QoS=$maxQos, keep alive=$keepAlive sec." }
+        Logger.i {
+            "Received server parameters: max. QoS=$maxQos, " +
+                    "keep alive=$keepAlive sec., " +
+                    "server topic alias maximum=$serverTopicAliasMaximum"
+        }
 
         return connack
     }
@@ -127,8 +133,11 @@ public class MqttClient(private val config: MqttClientConfig) {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private suspend fun <P : Packet> awaitPacket(predicate: suspend (Packet) -> Boolean): Deferred<P> {
-        return scope.async {
+    private suspend fun <P : Packet> awaitResponseOf(
+        predicate: suspend (Packet) -> Boolean,
+        request: suspend () -> Unit
+    ): P {
+        val waitForResponse = scope.async {
             try {
                 withTimeout(config.messageTimeout) {
                     (connection.packetsReceived.first(predicate)) as P
@@ -138,11 +147,13 @@ public class MqttClient(private val config: MqttClientConfig) {
                 throw TimeoutException("Didn't receive requested packet within ${config.messageTimeout}")
             }
         }
+        request()
+        return waitForResponse.await()
     }
 
     @Suppress("UNCHECKED_CAST")
-    private suspend fun <P : Packet> awaitPacket(type: PacketType): Deferred<P> {
-        return scope.async {
+    private suspend fun <P : Packet> awaitResponseOf(type: PacketType, request: suspend () -> Unit): P {
+        val waitForResponse = scope.async {
             try {
                 withTimeout(config.messageTimeout) {
                     (connection.packetsReceived.first { it.type == type }) as P
@@ -152,6 +163,8 @@ public class MqttClient(private val config: MqttClientConfig) {
                 throw TimeoutException("Didn't receive packet of type $type within ${config.messageTimeout}")
             }
         }
+        request()
+        return waitForResponse.await()
     }
 
     private fun nextPacketIdentifier(): UShort {

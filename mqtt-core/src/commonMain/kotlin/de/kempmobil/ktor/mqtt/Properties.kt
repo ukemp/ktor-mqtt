@@ -87,8 +87,8 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
         28 -> ServerReference(readMqttString()) as Property<T>
         31 -> ReasonString(readMqttString()) as Property<T>
         33 -> ReceiveMaximum(readShort()) as Property<T>
-        34 -> TopicAliasMaximum(readShort()) as Property<T>
-        35 -> TopicAlias(readShort()) as Property<T>
+        34 -> TopicAliasMaximum(readUShort()) as Property<T>
+        35 -> TopicAlias(readUShort()) as Property<T>
         36 -> MaximumQoS(readByte()) as Property<T>
         37 -> RetainAvailable(readByte()) as Property<T>
         38 -> UserProperty(readStringPair()) as Property<T>
@@ -342,25 +342,25 @@ public value class ReceiveMaximum(override val value: Short) : WritableProperty<
 }
 
 @JvmInline
-public value class TopicAliasMaximum(override val value: Short) : WritableProperty<Short> {
+public value class TopicAliasMaximum(override val value: UShort) : WritableProperty<UShort> {
 
     public override val identifier: Int
         get() = 34
 
-    override val writeValue: BytePacketBuilder.(Short) -> Unit
-        get() = ShortWriter
+    override val writeValue: BytePacketBuilder.(UShort) -> Unit
+        get() = UShortWriter
 
     override fun byteCount(): Int = 3
 }
 
 @JvmInline
-public value class TopicAlias(override val value: Short) : WritableProperty<Short> {
+public value class TopicAlias(override val value: UShort) : WritableProperty<UShort> {
 
     public override val identifier: Int
         get() = 35
 
-    override val writeValue: BytePacketBuilder.(Short) -> Unit
-        get() = ShortWriter
+    override val writeValue: BytePacketBuilder.(UShort) -> Unit
+        get() = UShortWriter
 
     override fun byteCount(): Int = 3
 }

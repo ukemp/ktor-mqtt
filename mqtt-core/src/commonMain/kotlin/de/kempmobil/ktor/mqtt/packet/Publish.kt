@@ -25,7 +25,10 @@ public data class Publish(
 
     init {
         wellFormedWhen(topicName.isNotBlank() || topicAlias != null) {
-            "Either a topic name or a topic alias must be present in a PUBLISH paket"
+            "Either a non empty topic name or a topic alias must be present in a PUBLISH paket"
+        }
+        wellFormedWhen(topicAlias == null || topicAlias.value != 0.toUShort()) {
+            "A topic alias with value 0 (zero) is not permitted"
         }
         wellFormedWhen((!qoS.requiresPacketIdentifier) || packetIdentifier != null) {
             "For $qoS a packet identifier must be present"
