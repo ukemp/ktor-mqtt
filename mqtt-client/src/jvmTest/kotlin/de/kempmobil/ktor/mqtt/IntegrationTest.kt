@@ -2,9 +2,8 @@ package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.Publish
-import kotlinx.coroutines.Dispatchers
+import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.encodeToByteString
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
@@ -16,16 +15,17 @@ import kotlin.time.Duration.Companion.seconds
 
 class IntegrationTest {
 
-    // To use podman with testcontainers, run the following:
+    // To use podman instead of docker with testcontainers, run the following once on your system:
     // systemctl --user enable --now podman.socket
     //
-    // Then add the following environment variables (either in the run configuration of Intellij or as exported shell
-    // variables):
+    // Then create a file .testcontainers.properties in your home directory using these commands:
     //
-    // REPLACE ${UID} WITH THE ACTUAL VALUE, WHEN USING IT IN THE INTELLIJ RUN CONFIGURATION!
+    // echo docker.host=unix:///run/user/${UID}/podman/podman.sock > .testcontainers.properties
+    // echo ryuk.container.image=docker.io/testcontainers/ryuk:lastest >> .testcontainers.properties
     //
-    // DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock
-    // TESTCONTAINERS_RYUK_DISABLED=true
+    // Note: ${UID} must be replaced with the actual value in the .properties file, hence use the "echo"
+    // command instead of pasting the properties directly into the file!!!
+
 
     private lateinit var host: String
     private var port: Int = -1
@@ -38,7 +38,8 @@ class IntegrationTest {
             .withFileFromClasspath("mosquitto.conf", "mosquitto.conf")
             .withFileFromClasspath("passwd", "passwd")
             .withFileFromClasspath("Dockerfile", "Dockerfile")
-    ).withExposedPorts(1883)
+    )
+        .withExposedPorts(1883)
 
 
     @BeforeTest
@@ -54,18 +55,18 @@ class IntegrationTest {
         mosquitto.stop()
     }
 
-//    @Test
-//    fun `connection state propagated properly`() = runTest {
-//        val client = MqttClient(host, port) {
-//            userName = testUser
-//            password = testPassword
-//        }
-//        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
-//        client.connect()
-//        assertEquals(ConnectionState.CONNECTED, client.connectionState.value)
-//        mosquitto.stop()
-//        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
-//    }
+    @Test
+    fun `connection state propagated properly`() = runTest {
+        val client = MqttClient(host, port) {
+            userName = testUser
+            password = testPassword
+        }
+        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
+        client.connect()
+        assertEquals(ConnectionState.CONNECTED, client.connectionState.value)
+        mosquitto.stop()
+        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
+    }
 
     @Test
     fun `connect to server`() = runTest(timeout = 4.seconds) {
@@ -74,21 +75,19 @@ class IntegrationTest {
             userName = testUser
             password = testPassword
         }
-        withContext(Dispatchers.Default.limitedParallelism(1)) {
-            val connack = client.connect()
-            println("Received: $connack")
-            val puback = client.publish(
-                Publish(
-                    packetIdentifier = 42u,
-                    topicName = "test/topic",
-                    payload = "abc".encodeToByteString(),
-                    qoS = QoS.EXACTLY_ONE
-                )
+        val connack = client.connect()
+        println("Received: $connack")
+        val puback = client.publish(
+            Publish(
+                packetIdentifier = 42u,
+                topicName = "test/topic",
+                payload = "abc".encodeToByteString(),
+                qoS = QoS.EXACTLY_ONE
             )
-            println("Published: $puback")
-            client.disconnect()
+        )
+        println("Published: $puback")
+        client.disconnect()
 
-            Logger.i { "Terminating..." }
-        }
+        Logger.i { "Terminating..." }
     }
 }
