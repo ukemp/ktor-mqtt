@@ -3,8 +3,6 @@ package de.kempmobil.ktor.mqtt
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
-public class MalformedPacketException(message: String? = null) : MqttException(message)
-
 
 /**
  * Throws a [MalformedPacketException] when `condition` is `false`, with the specified message as the exception message.

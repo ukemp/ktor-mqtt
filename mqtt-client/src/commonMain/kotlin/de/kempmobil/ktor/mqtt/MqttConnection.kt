@@ -13,11 +13,21 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 
 internal class MqttConnection(
     private val config: MqttClientConfig
 ) {
+    private val _packetsReceived = MutableSharedFlow<Packet>()
+    internal val packetsReceived: SharedFlow<Packet>
+        get() = _packetsReceived
+
+    private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
+    internal val connectionState: StateFlow<ConnectionState>
+        get() = _connectionState
+
     private val selectorManager = SelectorManager(config.dispatcher)
 
     private val scope = CoroutineScope(config.dispatcher)
@@ -28,14 +38,13 @@ internal class MqttConnection(
 
     private var receiverJob: Job? = null
 
-    private val _packetsReceived = MutableSharedFlow<Packet>()
-    internal val packetsReceived: SharedFlow<Packet>
-        get() = _packetsReceived
-
     internal suspend fun start() {
         try {
             socket = scope.async {
-                openSocket()
+                _connectionState.emit(ConnectionState.CONNECTING)
+                val socket = openSocket()
+                _connectionState.emit(ConnectionState.CONNECTED)
+                socket
             }.await().also { socket ->
                 sendChannel = socket.openWriteChannel()
                 receiverJob = scope.launch {
@@ -43,7 +52,8 @@ internal class MqttConnection(
                 }
             }
         } catch (ex: Exception) {
-            throw ConnectionException(ex)
+            _connectionState.emit(ConnectionState.DISCONNECTED)
+            throw ConnectionException("Cannot connect to ${config.host}:${config.port}", ex)
         }
     }
 
@@ -86,19 +96,24 @@ internal class MqttConnection(
             }
         } catch (ex: CancellationException) {
             Logger.d { "Packet reader job has been cancelled" }
+            _connectionState.emit(ConnectionState.DISCONNECTED)
             return
         } catch (ex: ClosedReceiveChannelException) {
             Logger.d { "Read channel has been closed, terminating..." }
+            _connectionState.emit(ConnectionState.DISCONNECTED)
             return
         } catch (ex: MalformedPacketException) {
             Logger.e(throwable = ex) { "Malformed packet received, sending DISCONNECT" }
             send(Disconnect(reason = MalformedPacket, sessionExpiryInterval = config.sessionExpiryInterval))
             return
         }
+
         Logger.d { "Packet reader job terminated gracefully" }
+        _connectionState.emit(ConnectionState.DISCONNECTED)
     }
 
-    private fun close() {
+    private suspend fun close() {
+        _connectionState.emit(ConnectionState.DISCONNECTED)
         receiverJob?.cancel()
         socket?.close()
         sendChannel?.close()

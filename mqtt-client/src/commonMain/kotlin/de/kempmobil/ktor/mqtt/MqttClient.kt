@@ -2,15 +2,16 @@ package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
 
 public class MqttClient(private val config: MqttClientConfig) {
+
+    public val connectionState: StateFlow<ConnectionState>
+        get() = connection.connectionState
 
     private val connection = MqttConnection(config)
 
@@ -32,11 +33,11 @@ public class MqttClient(private val config: MqttClientConfig) {
      * @return the CONNACK message returned by the server
      */
     public suspend fun connect(): Connack {
+        val connack: Deferred<Connack> = awaitPacket(PacketType.CONNACK)
         connection.start()
         connection.send(createConnect())
 
-        val connack = (connection.packetsReceived.first { it is Connack }) as Connack
-        return inspectConnack(connack)
+        return inspectConnack(connack.await())
     }
 
     public suspend fun publish(publish: Publish) {
@@ -102,6 +103,13 @@ public class MqttClient(private val config: MqttClientConfig) {
             scope.launch {
                 delay(pingDuration)
                 connection.send(Pingreq)
+                val pingResponseReceived = withTimeoutOrNull(pingDuration) {
+                    connection.packetsReceived.first { it is Pingresp }
+                    true
+                }
+                if (pingResponseReceived == null) {
+                    disconnect(KeepAliveTimeout)
+                }
             }
         }
 
@@ -116,6 +124,34 @@ public class MqttClient(private val config: MqttClientConfig) {
             sessionExpiryInterval = config.sessionExpiryInterval,
             reasonString = reasonString,
         )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private suspend fun <P : Packet> awaitPacket(predicate: suspend (Packet) -> Boolean): Deferred<P> {
+        return scope.async {
+            try {
+                withTimeout(config.messageTimeout) {
+                    (connection.packetsReceived.first(predicate)) as P
+                }
+            } catch (ex: CancellationException) {
+                disconnect(ProtocolError)
+                throw TimeoutException("Didn't receive requested packet within ${config.messageTimeout}")
+            }
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private suspend fun <P : Packet> awaitPacket(type: PacketType): Deferred<P> {
+        return scope.async {
+            try {
+                withTimeout(config.messageTimeout) {
+                    (connection.packetsReceived.first { it.type == type }) as P
+                }
+            } catch (ex: CancellationException) {
+                disconnect(ProtocolError)
+                throw TimeoutException("Didn't receive packet of type $type within ${config.messageTimeout}")
+            }
+        }
     }
 
     private fun nextPacketIdentifier(): UShort {

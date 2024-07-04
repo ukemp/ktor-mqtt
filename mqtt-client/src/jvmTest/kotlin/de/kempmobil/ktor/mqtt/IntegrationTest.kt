@@ -2,8 +2,9 @@ package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.Publish
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.encodeToByteString
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
@@ -53,27 +54,41 @@ class IntegrationTest {
         mosquitto.stop()
     }
 
+//    @Test
+//    fun `connection state propagated properly`() = runTest {
+//        val client = MqttClient(host, port) {
+//            userName = testUser
+//            password = testPassword
+//        }
+//        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
+//        client.connect()
+//        assertEquals(ConnectionState.CONNECTED, client.connectionState.value)
+//        mosquitto.stop()
+//        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
+//    }
+
     @Test
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun `connect to server`() = runTest(timeout = 4.seconds) {
         Logger.i { "Connecting to MQTT container $host:$port" }
         val client = MqttClient(host, port) {
             userName = testUser
             password = testPassword
         }
-        val connack = client.connect()
-        println("Received: $connack")
-        val puback = client.publish(
-            Publish(
-                packetIdentifier = 42u,
-                topicName = "test/topic",
-                payload = "abc".encodeToByteString(),
-                qoS = QoS.EXACTLY_ONE
+        withContext(Dispatchers.Default.limitedParallelism(1)) {
+            val connack = client.connect()
+            println("Received: $connack")
+            val puback = client.publish(
+                Publish(
+                    packetIdentifier = 42u,
+                    topicName = "test/topic",
+                    payload = "abc".encodeToByteString(),
+                    qoS = QoS.EXACTLY_ONE
+                )
             )
-        )
-        println("Published: $puback")
-        client.disconnect()
+            println("Published: $puback")
+            client.disconnect()
 
-        Logger.i { "Terminating..." }
+            Logger.i { "Terminating..." }
+        }
     }
 }
