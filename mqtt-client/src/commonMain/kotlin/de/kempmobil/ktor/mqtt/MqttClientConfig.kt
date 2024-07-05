@@ -4,7 +4,6 @@ import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -13,9 +12,9 @@ import kotlin.time.Duration.Companion.seconds
 public class MqttClientConfig(
     public val host: String,
     public val port: Int,
-    public val dispatcher: CoroutineContext,
+    public val dispatcher: CoroutineDispatcher,
     public val clientId: String,
-    public val messageTimeout: Duration,
+    public val ackMessageTimeout: Duration,
     public val willMessage: WillMessage?,
     public val willOqS: QoS,
     public val retainWillMessage: Boolean,
@@ -45,7 +44,7 @@ public class MqttClientConfigBuilder(
     private var tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit)? = null
 
     public val dispatcher: CoroutineDispatcher = Dispatchers.Default
-    public val messageTimeout: Duration = 10.seconds
+    public val ackMessageTimeout: Duration = 7.seconds
     public var clientId: String = generateClientId()
     public var willOqS: QoS = QoS.AT_MOST_ONCE
     public var retainWillMessage: Boolean = false
@@ -96,7 +95,7 @@ public class MqttClientConfigBuilder(
         port = port,
         dispatcher = dispatcher,
         clientId = clientId,
-        messageTimeout = messageTimeout,
+        ackMessageTimeout = ackMessageTimeout,
         willMessage = willMessageBuilder?.build(),
         willOqS = willOqS,
         retainWillMessage = retainWillMessage,

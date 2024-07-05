@@ -139,32 +139,20 @@ public class MqttClient(private val config: MqttClientConfig) {
     ): P {
         val waitForResponse = scope.async {
             try {
-                withTimeout(config.messageTimeout) {
+                withTimeout(config.ackMessageTimeout) {
                     (connection.packetsReceived.first(predicate)) as P
                 }
             } catch (ex: CancellationException) {
                 disconnect(ProtocolError)
-                throw TimeoutException("Didn't receive requested packet within ${config.messageTimeout}")
+                throw TimeoutException("Didn't receive requested packet within ${config.ackMessageTimeout}")
             }
         }
         request()
         return waitForResponse.await()
     }
 
-    @Suppress("UNCHECKED_CAST")
     private suspend fun <P : Packet> awaitResponseOf(type: PacketType, request: suspend () -> Unit): P {
-        val waitForResponse = scope.async {
-            try {
-                withTimeout(config.messageTimeout) {
-                    (connection.packetsReceived.first { it.type == type }) as P
-                }
-            } catch (ex: CancellationException) {
-                disconnect(ProtocolError)
-                throw TimeoutException("Didn't receive packet of type $type within ${config.messageTimeout}")
-            }
-        }
-        request()
-        return waitForResponse.await()
+        return awaitResponseOf({ it.type == type }, request)
     }
 
     private fun nextPacketIdentifier(): UShort {
