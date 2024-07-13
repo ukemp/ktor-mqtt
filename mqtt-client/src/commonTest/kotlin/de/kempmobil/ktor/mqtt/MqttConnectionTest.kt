@@ -1,9 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
-import de.kempmobil.ktor.mqtt.packet.Packet
-import de.kempmobil.ktor.mqtt.packet.Publish
-import de.kempmobil.ktor.mqtt.packet.readPacket
-import de.kempmobil.ktor.mqtt.packet.write
+import de.kempmobil.ktor.mqtt.packet.*
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
@@ -13,18 +10,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.encodeToByteString
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertSame
-import kotlin.test.assertTrue
+import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
 
 class MqttConnectionTest {
 
     private val defaultHost = "localhost"
     private val defaultPort = 12345
-
-    private var closeServer: Job? = null
 
     @Test
     fun `the initial connection state is disconnected`() {
@@ -84,25 +76,28 @@ class MqttConnectionTest {
 
         connection.disconnect()
 
-        connection.state.first { it is Disconnected }
+        val state = connection.state.first()
+        assertIs<Disconnected>(state)
 
         closeServer.start() // Cleanup
     }
 
     @Test
     fun `when sending a packet it is received by server`() = runTest {
-        val packet = Publish(topicName = "test-topic", payload = "1234567890".encodeToByteString())
         val serverPackets = MutableSharedFlow<Packet>()
         val closeServer = startServer(reader = {
-            launch {
+            backgroundScope.launch {
                 serverPackets.emit(readPacket())
             }
         })
+
+        val expected = Publish(topicName = "test-topic", payload = "1234567890".encodeToByteString())
         val connection = MqttConnection()
         connection.start()
+        connection.send(expected)
 
-        connection.send(packet)
-        serverPackets.first { it == packet } // Will time out when we don't receive the right packet
+        val actual = serverPackets.first()
+        assertEquals(expected, actual)
 
         closeServer.start()
     }
@@ -113,9 +108,7 @@ class MqttConnectionTest {
         val closeServer = startServer(writer = {
             backgroundScope.launch {
                 serverPackets.collect {
-                    println("Writing $it")
                     write(it)
-                    flush()
                 }
             }
         })
@@ -123,11 +116,41 @@ class MqttConnectionTest {
         val expected = Publish(topicName = "test-topic", payload = "1234567890".encodeToByteString())
         val connection = MqttConnection()
         connection.start()
-
         serverPackets.emit(expected)
-        val actual = connection.packetsReceived.first()
 
+        val actual = connection.packetsReceived.first()
         assertEquals(expected, actual)
+
+        closeServer.start()
+    }
+
+    @Test
+    fun `when receiving a malformed packet the connection is terminated with a disconnect packet`() = runTest {
+        val dataToSend = MutableSharedFlow<ByteArray>(replay = 1)
+        val receivedPackets = MutableSharedFlow<Packet>()
+
+        val closeServer = startServer(writer = {
+            backgroundScope.launch {
+                dataToSend.collect {
+                    writeFully(it)
+                }
+            }
+        }, reader = {
+            backgroundScope.launch {
+                receivedPackets.emit(readPacket())
+            }
+        })
+
+        val connection = MqttConnection()
+        connection.start()
+        dataToSend.emit(byteArrayOf(0, 0, 0))
+
+        val packet = receivedPackets.first()
+        assertIs<Disconnect>(packet)
+
+        val state = connection.state.first()
+        assertIs<Disconnected>(state)
+
         closeServer.start()
     }
 
@@ -148,19 +171,19 @@ class MqttConnectionTest {
         val selectorManager = SelectorManager(Dispatchers.Default)
         val serverSocket = aSocket(selectorManager).tcp().bind(defaultHost, defaultPort)
 
-        val waitForSocket = async {
+        val socketAcceptor = async {
             serverSocket.accept().also { socket ->
                 if (reader != null) {
                     socket.openReadChannel().reader()
                 }
                 if (writer != null) {
-                    socket.openWriteChannel().writer()
+                    socket.openWriteChannel(autoFlush = true).writer()
                 }
             }
         }
 
         return launch(start = CoroutineStart.LAZY) {
-            waitForSocket.await().close()
+            socketAcceptor.await().close()
             serverSocket.dispose()
             selectorManager.close()
         }
