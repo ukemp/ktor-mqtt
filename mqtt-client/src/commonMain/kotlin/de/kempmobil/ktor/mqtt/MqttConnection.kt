@@ -24,9 +24,9 @@ internal class MqttConnection(
     internal val packetsReceived: SharedFlow<Packet>
         get() = _packetsReceived
 
-    private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
-    internal val connectionState: StateFlow<ConnectionState>
-        get() = _connectionState
+    private val _state = MutableStateFlow<ConnectionState>(Disconnected)
+    internal val state: StateFlow<ConnectionState>
+        get() = _state
 
     private val selectorManager = SelectorManager(config.dispatcher)
 
@@ -38,22 +38,21 @@ internal class MqttConnection(
 
     private var receiverJob: Job? = null
 
-    internal suspend fun start() {
-        try {
+    internal suspend fun start(): Result<Unit> {
+        return runCatching {
             socket = scope.async {
-                _connectionState.emit(ConnectionState.CONNECTING)
                 val socket = openSocket()
-                _connectionState.emit(ConnectionState.CONNECTED)
+                _state.emit(Connected)
                 socket
             }.await().also { socket ->
                 sendChannel = socket.openWriteChannel()
+
+                // It's important to open the read channel here, if we do it in the job below exceptions will be ignored
+                val readChannel = socket.openReadChannel()
                 receiverJob = scope.launch {
-                    socket.openReadChannel().incomingMessageLoop()
+                    readChannel.incomingMessageLoop()
                 }
             }
-        } catch (ex: Exception) {
-            _connectionState.emit(ConnectionState.DISCONNECTED)
-            throw ConnectionException("Cannot connect to ${config.host}:${config.port}", ex)
         }
     }
 
@@ -65,10 +64,22 @@ internal class MqttConnection(
 
             if (packet is Disconnect) {
                 Logger.i { "Disconnect message sent to server, terminating the connection now" }
-                this@MqttConnection.close()
+                this@MqttConnection.disconnected()
             }
             return true
         } ?: return false
+    }
+
+    internal suspend fun disconnect() {
+        socket?.let {
+            socket = null
+            it.close()
+        }
+        disconnected()
+    }
+
+    internal fun close() {
+        selectorManager.close()
     }
 
     // --- Private methods ---------------------------------------------------------------------------------------------
@@ -96,11 +107,11 @@ internal class MqttConnection(
             }
         } catch (ex: CancellationException) {
             Logger.d { "Packet reader job has been cancelled" }
-            _connectionState.emit(ConnectionState.DISCONNECTED)
+            _state.emit(Disconnected)
             return
         } catch (ex: ClosedReceiveChannelException) {
             Logger.d { "Read channel has been closed, terminating..." }
-            _connectionState.emit(ConnectionState.DISCONNECTED)
+            _state.emit(Disconnected)
             return
         } catch (ex: MalformedPacketException) {
             Logger.e(throwable = ex) { "Malformed packet received, sending DISCONNECT" }
@@ -109,15 +120,14 @@ internal class MqttConnection(
         }
 
         Logger.d { "Packet reader job terminated gracefully" }
-        _connectionState.emit(ConnectionState.DISCONNECTED)
+        _state.emit(Disconnected)
     }
 
-    private suspend fun close() {
-        _connectionState.emit(ConnectionState.DISCONNECTED)
+    private suspend fun disconnected() {
+        _state.emit(Disconnected)
         receiverJob?.cancel()
         socket?.close()
         sendChannel?.close()
-        selectorManager.close()
 
         receiverJob = null
         socket = null

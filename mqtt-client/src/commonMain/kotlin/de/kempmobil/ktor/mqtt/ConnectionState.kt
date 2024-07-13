@@ -1,8 +1,7 @@
 package de.kempmobil.ktor.mqtt
 
-public enum class ConnectionState {
+internal sealed class ConnectionState
 
-    DISCONNECTED,
-    CONNECTING,
-    CONNECTED
-}
+internal data object Disconnected : ConnectionState()
+
+internal data object Connected : ConnectionState()

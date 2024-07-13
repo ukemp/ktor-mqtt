@@ -23,7 +23,14 @@ public data class Connack(
     val serverReference: ServerReference? = null,
     val authenticationMethod: AuthenticationMethod? = null,
     val authenticationData: AuthenticationData? = null
-) : AbstractPacket(PacketType.CONNACK)
+) : AbstractPacket(PacketType.CONNACK) {
+
+    /**
+     * Determines whether this CONNACK represents a successful connection attempt.
+     */
+    public val isSuccess: Boolean
+        get() = reason.code == 0
+}
 
 internal fun BytePacketBuilder.write(connack: Connack) {
     with(connack) {

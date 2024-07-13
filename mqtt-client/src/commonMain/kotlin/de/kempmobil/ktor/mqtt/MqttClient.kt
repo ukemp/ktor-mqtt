@@ -3,15 +3,26 @@ package de.kempmobil.ktor.mqtt
 import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlin.time.Duration.Companion.seconds
 
 
 public class MqttClient(private val config: MqttClientConfig) {
 
-    public val connectionState: StateFlow<ConnectionState>
-        get() = connection.connectionState
+    private val connackSuccess = MutableStateFlow(false)
+
+//    public val connectionState: Flow<ConnectionState>
+//        get() = connection.state.combine(connackSuccess) { state: ConnectionState, success: Boolean ->
+//            when (state) {
+//                ConnectionState.CONNECTED -> {
+//                    if (success) ConnectionState.CONNECTED else ConnectionState.DISCONNECTED
+//                }
+//
+//                ConnectionState.CONNECTING -> ConnectionState.CONNECTING
+//                ConnectionState.DISCONNECTED -> ConnectionState.DISCONNECTED
+//            }
+//        }
 
     private val connection = MqttConnection(config)
 
@@ -34,17 +45,28 @@ public class MqttClient(private val config: MqttClientConfig) {
      * Tries to connect to the MQTT server and send a CONNECT message.
      *
      * @throws ConnectionException when a connection cannot be established
-     * @return the CONNACK message returned by the server
+     * @return the CONNACK message returned by the server. Callers must check the returned [Connack] instance to find
+     *         out whether the connection has actually been successfully established, as the server might return a
+     *         `Connack` with an error message (see also [Connack.isSuccess]).
      */
-    public suspend fun connect(): Connack {
-        connection.start()
+    public suspend fun connect(): Result<Connack> {
+        return connection.start()
+            .map {
+                awaitResponseOf<Connack>(PacketType.CONNACK) {
+                    connection.send(createConnect())
+                }.getOrThrow().also {
+                    inspectConnack(it)
+                }
+            }
+    }
 
-        val connect = createConnect()
-        val connack: Connack = awaitResponseOf(PacketType.CONNACK) {
-            connection.send(connect)
-        }
+    public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reasonString: String? = null) {
+        connection.send(createDisconnect(reasonCode, if (reasonString == null) null else ReasonString(reasonString)))
+    }
 
-        return inspectConnack(connack)
+    public fun close() {
+        connection.close()
+        scope.cancel()
     }
 
     public suspend fun publish(publish: Publish) {
@@ -68,11 +90,6 @@ public class MqttClient(private val config: MqttClientConfig) {
                 connection.packetsReceived.first { publish.isAssociatedPubcomp(it) }
             }
         }
-    }
-
-    public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reasonString: ReasonString? = null) {
-        connection.send(createDisconnect(reasonCode, reasonString))
-        scope.cancel()
     }
 
     // ---- Helper methods ---------------------------------------------------------------------------------------------
@@ -99,26 +116,33 @@ public class MqttClient(private val config: MqttClientConfig) {
         )
     }
 
-    private fun inspectConnack(connack: Connack): Connack {
-        connack.maximumQoS?.let {
-            _maxQos = it.qoS
-        }
-        _serverTopicAliasMaximum = connack.topicAliasMaximum
+    private suspend fun inspectConnack(connack: Connack): Connack {
+        connackSuccess.emit(connack.isSuccess)
 
-        val keepAlive = (connack.serverKeepAlive?.value ?: config.keepAliveSeconds).toInt().seconds
-        if (keepAlive.inWholeSeconds > 0) {
-            scope.launch {
-                delay(keepAlive)
-                awaitResponseOf<Pingresp>(PacketType.PINGRESP) {
-                    connection.send(Pingreq)
+        if (!connack.isSuccess) {
+            Logger.i { "Server sent CONNACK packet with ${connack.reason}, hence terminating the connection" }
+            connection.disconnect()
+        } else {
+            connack.maximumQoS?.let {
+                _maxQos = it.qoS
+            }
+            _serverTopicAliasMaximum = connack.topicAliasMaximum
+
+            val keepAlive = (connack.serverKeepAlive?.value ?: config.keepAliveSeconds).toInt().seconds
+            if (keepAlive.inWholeSeconds > 0) {
+                scope.launch {
+                    delay(keepAlive)
+                    awaitResponseOf<Pingresp>(PacketType.PINGRESP) {
+                        connection.send(Pingreq)
+                    }
                 }
             }
-        }
 
-        Logger.i {
-            "Received server parameters: max. QoS=$maxQos, " +
-                    "keep alive=$keepAlive sec., " +
-                    "server topic alias maximum=$serverTopicAliasMaximum"
+            Logger.i {
+                "Received server parameters: max. QoS=$maxQos, " +
+                        "keep alive=$keepAlive sec., " +
+                        "server topic alias maximum=$serverTopicAliasMaximum"
+            }
         }
 
         return connack
@@ -136,22 +160,22 @@ public class MqttClient(private val config: MqttClientConfig) {
     private suspend fun <P : Packet> awaitResponseOf(
         predicate: suspend (Packet) -> Boolean,
         request: suspend () -> Unit
-    ): P {
+    ): Result<P> {
         val waitForResponse = scope.async {
-            try {
-                withTimeout(config.ackMessageTimeout) {
-                    (connection.packetsReceived.first(predicate)) as P
-                }
-            } catch (ex: CancellationException) {
-                disconnect(ProtocolError)
-                throw TimeoutException("Didn't receive requested packet within ${config.ackMessageTimeout}")
+            val response = withTimeoutOrNull(config.ackMessageTimeout) {
+                (connection.packetsReceived.first(predicate)) as P
+            }
+            if (response != null) {
+                Result.success(response)
+            } else {
+                Result.failure(TimeoutException("Didn't receive requested packet within ${config.ackMessageTimeout}"))
             }
         }
         request()
         return waitForResponse.await()
     }
 
-    private suspend fun <P : Packet> awaitResponseOf(type: PacketType, request: suspend () -> Unit): P {
+    private suspend fun <P : Packet> awaitResponseOf(type: PacketType, request: suspend () -> Unit): Result<P> {
         return awaitResponseOf({ it.type == type }, request)
     }
 
