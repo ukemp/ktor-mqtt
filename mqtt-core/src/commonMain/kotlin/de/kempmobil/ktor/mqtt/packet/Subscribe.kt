@@ -10,7 +10,7 @@ public class Subscribe(
     public val filters: List<TopicFilter>,
     public val subscriptionIdentifier: SubscriptionIdentifier?,
     public val userProperties: UserProperties = UserProperties.EMPTY,
-) : PacketIdentifierPacket(PacketType.SUBSCRIBE) {
+) : AbstractPacket(PacketType.SUBSCRIBE), PacketIdentifierPacket {
 
     init {
         wellFormedWhen(filters.isNotEmpty()) { "Empty list of topic filters for SUBSCRIBE " }

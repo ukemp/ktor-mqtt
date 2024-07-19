@@ -9,7 +9,7 @@ public data class Unsubscribe(
     public override val packetIdentifier: UShort,
     public val topics: List<Topic>,
     public val userProperties: UserProperties = UserProperties.EMPTY
-) : PacketIdentifierPacket(PacketType.UNSUBSCRIBE) {
+) : AbstractPacket(PacketType.UNSUBSCRIBE), PacketIdentifierPacket {
 
     init {
         wellFormedWhen(topics.isNotEmpty()) { "Empty topic list in UNSUBSCRIBE" }

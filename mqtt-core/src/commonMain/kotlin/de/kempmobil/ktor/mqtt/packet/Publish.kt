@@ -42,10 +42,6 @@ public data class Publish(
             if (isDupMessage) bits = bits or (1 shl 3)
             return bits
         }
-
-    public inline fun <reified T : PacketIdentifierPacket> isResponse(packet: Packet): Boolean {
-        return T::class.isInstance(packet) && packetIdentifier == (packet as PacketIdentifierPacket).packetIdentifier
-    }
 }
 
 @OptIn(ExperimentalUnsignedTypes::class)

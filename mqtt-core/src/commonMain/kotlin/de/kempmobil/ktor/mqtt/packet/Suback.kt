@@ -8,7 +8,7 @@ public data class Suback(
     val reasons: List<ReasonCode>,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
-) : PacketIdentifierPacket(PacketType.SUBACK) {
+) : AbstractPacket(PacketType.SUBACK), PacketIdentifierPacket {
 
     init {
         wellFormedWhen(reasons.isNotEmpty()) { "Reason codes must not be empty in SUBACK" }

@@ -12,19 +12,34 @@ import kotlin.time.Duration.Companion.seconds
 public class MqttClient(private val config: MqttClientConfig) {
 
     private val _publishedPackets = MutableSharedFlow<Publish>()
+
+    /**
+     * Provides a flow of all packets published by the server.
+     */
     public val publishedPackets: SharedFlow<Publish>
         get() = _publishedPackets
 
     private var _maxQos = QoS.EXACTLY_ONE
+
+    /**
+     * Returns the maximum QoS level allowed by the server, defaults to [QoS.EXACTLY_ONE] as long as no CONNACK packet
+     * has been received.
+     */
     public val maxQos: QoS
         get() = _maxQos
 
     private var _serverTopicAliasMaximum: TopicAliasMaximum? = null
+
+    /**
+     * The server topic alias maximum value as contained the CONNACK message from the server.
+     */
     public val serverTopicAliasMaximum: TopicAliasMaximum?
         get() = _serverTopicAliasMaximum
 
-    private val connack = MutableStateFlow<Connack?>(null)
-
+    /**
+     * Provides the connection state of this MQTT client. When the state is [Connected] this implies that an IP
+     * connectivity has been established AND that the server responded with a success CONNACK message.
+     */
     public val connectionState: Flow<ConnectionState>
         get() = connection.connected.combine(connack) { isConnected: Boolean, connack: Connack? ->
             if (isConnected && (connack?.isSuccess == true)) {
@@ -35,6 +50,8 @@ public class MqttClient(private val config: MqttClientConfig) {
         }
 
     private val connection = MqttConnection(config)
+
+    private val connack = MutableStateFlow<Connack?>(null)
 
     private val scope = CoroutineScope(config.dispatcher)
 
@@ -57,10 +74,8 @@ public class MqttClient(private val config: MqttClientConfig) {
     /**
      * Tries to connect to the MQTT server and send a CONNECT message.
      *
-     * @throws ConnectionException when a connection cannot be established
-     * @return the CONNACK message returned by the server. Callers must check the returned [Connack] instance to find
-     *         out whether the connection has actually been successfully established, as the server might return a
-     *         `Connack` with an error message (see also [Connack.isSuccess]).
+     * @return the connection result. Note that even when the result returns a Connack packet, the client may still not
+     *         be successfully connected, as the server may send a CONNACK with an error message.
      */
     public suspend fun connect(): Result<Connack> {
         connack.emit(null)
@@ -84,7 +99,7 @@ public class MqttClient(private val config: MqttClientConfig) {
     ): Result<Suback> {
         val subscribe = createSubscribe(filters, subscriptionIdentifier, userProperties)
 
-        return awaitResponseOf({ subscribe.isResponse<Suback>(it) }, {
+        return awaitResponseOf({ it.isResponseFor<Suback>(subscribe) }, {
             connection.send(subscribe)
         })
     }
@@ -95,7 +110,7 @@ public class MqttClient(private val config: MqttClientConfig) {
     ): Result<Unsuback> {
         val unsubscribe = createUnsubscribe(topics, userProperties)
 
-        return awaitResponseOf({ unsubscribe.isResponse<Unsuback>(it) }, {
+        return awaitResponseOf({ it.isResponseFor<Unsuback>(unsubscribe) }, {
             connection.send(unsubscribe)
         })
     }
@@ -112,13 +127,13 @@ public class MqttClient(private val config: MqttClientConfig) {
             }
 
             QoS.AT_LEAST_ONCE -> {
-                receivedPackets.first { publish.isResponse<Puback>(it) }
+                receivedPackets.first { it.isResponseFor<Puback>(publish) }
             }
 
             QoS.EXACTLY_ONE -> {
-                receivedPackets.first { publish.isResponse<Pubrec>(it) }
+                receivedPackets.first { it.isResponseFor<Pubrec>(publish) }
                 connection.send(Pubrel(packetIdentifier = publish.packetIdentifier!!, Success))
-                receivedPackets.first { publish.isResponse<Pubcomp>(it) }
+                receivedPackets.first { it.isResponseFor<Pubcomp>(publish) }
             }
         }
     }

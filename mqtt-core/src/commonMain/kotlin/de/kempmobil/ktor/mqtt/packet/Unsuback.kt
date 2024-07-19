@@ -8,7 +8,7 @@ public data class Unsuback(
     val reasons: List<ReasonCode>,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY
-) : PacketIdentifierPacket(PacketType.UNSUBACK) {
+) : AbstractPacket(PacketType.UNSUBACK), PacketIdentifierPacket {
 
     init {
         wellFormedWhen(reasons.isNotEmpty()) { "Reason codes must not be empty in UNSUBACK" }

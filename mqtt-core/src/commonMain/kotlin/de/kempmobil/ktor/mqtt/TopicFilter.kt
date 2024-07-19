@@ -5,7 +5,7 @@ public data class TopicFilter(
     public val subscriptionOptions: SubscriptionOptions = SubscriptionOptions.DEFAULT
 )
 
-public fun buildFilters(init: TopicFilterBuilder.() -> Unit): List<TopicFilter> {
+public fun buildFilterList(init: TopicFilterBuilder.() -> Unit): List<TopicFilter> {
     return TopicFilterBuilder().also(init).build()
 }
 

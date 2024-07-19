@@ -12,7 +12,7 @@ public sealed class PublishResponse(
     public val reason: ReasonCode,
     public val reasonString: ReasonString? = null,
     public val userProperties: UserProperties = UserProperties.EMPTY
-) : PacketIdentifierPacket(type) {
+) : AbstractPacket(type), PacketIdentifierPacket {
 
     override fun toString(): String {
         return "${this::class.simpleName}(packetIdentifier=$packetIdentifier, reason=$reason, reasonString=$reasonString, userProperties=$userProperties)"

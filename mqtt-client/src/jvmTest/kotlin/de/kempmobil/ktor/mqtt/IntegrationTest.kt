@@ -110,6 +110,7 @@ class IntegrationTest {
 
         client.disconnect()
         val result2 = client.connect()
+        println("Reconnect result: $result2")
         assertNotNull(result2)
         assertTrue(result2.isSuccess)
 
@@ -145,7 +146,7 @@ class IntegrationTest {
             password = testPassword
         }
         client.connect()
-        val suback = client.subscribe(buildFilters {
+        val suback = client.subscribe(buildFilterList {
             +"test/topic"
             add("another/topic", qoS = QoS.EXACTLY_ONE)
         })

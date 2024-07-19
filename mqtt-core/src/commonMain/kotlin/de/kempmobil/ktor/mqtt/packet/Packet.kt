@@ -14,6 +14,20 @@ public interface Packet {
 }
 
 /**
+ * Determines whether this packet is of the specified type and its packet identifier is the same as the one of `packet`.
+ */
+public inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(packet: PacketIdentifierPacket): Boolean {
+    return T::class.isInstance(this) && packet.packetIdentifier == (this as PacketIdentifierPacket).packetIdentifier
+}
+
+/**
+ * Determines whether this packet is of the specified type and its packet identifier is the same as the one of `publish`.
+ */
+public inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publish: Publish): Boolean {
+    return T::class.isInstance(this) && publish.packetIdentifier == (this as PacketIdentifierPacket).packetIdentifier
+}
+
+/**
  * Reads a packet from this byte read channel. Blocks until the packet has been read completely
  *
  * @throws MalformedPacketException when the packet cannot be parsed
