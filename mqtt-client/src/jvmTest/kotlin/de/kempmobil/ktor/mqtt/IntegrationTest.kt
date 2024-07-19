@@ -2,6 +2,7 @@ package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.Publish
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.encodeToByteString
 import org.testcontainers.containers.GenericContainer
@@ -87,11 +88,14 @@ class IntegrationTest {
             userName = testUser
             password = testPassword
         }
-//        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
-        client.connect()
-//        assertEquals(ConnectionState.CONNECTED, client.connectionState.value)
+
+        assertEquals(Disconnected, client.connectionState.first())
+        val result = client.connect()
+
+        assertEquals(Connected(result.getOrThrow()), client.connectionState.first())
         mosquitto.stop()
-//        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
+
+        assertEquals(Disconnected, client.connectionState.first())
     }
 
     @Test
@@ -100,29 +104,26 @@ class IntegrationTest {
             userName = testUser
             password = testPassword
         }
-        val connack1 = client.connect()
-        assertNotNull(connack1)
-        assertTrue(connack1.isSuccess)
+        val result1 = client.connect()
+        assertNotNull(result1)
+        assertTrue(result1.isSuccess)
 
         client.disconnect()
-        val connack2 = client.connect()
-        assertNotNull(connack2)
-        assertTrue(connack2.isSuccess)
-//        assertEquals(ConnectionState.CONNECTED, client.connectionState.value)
+        val result2 = client.connect()
+        assertNotNull(result2)
+        assertTrue(result2.isSuccess)
 
         client.disconnect()
-//        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
     }
 
     @Test
     fun `connect to server`() = runTest(timeout = 4.seconds) {
-        Logger.i { "Connecting to MQTT container $host:$port" }
         client = MqttClient(host, port) {
             userName = testUser
             password = testPassword
         }
         val connack = client.connect()
-        println("Received: $connack")
+
         val puback = client.publish(
             Publish(
                 packetIdentifier = 42u,
@@ -135,5 +136,20 @@ class IntegrationTest {
         client.disconnect()
 
         Logger.i { "Terminating..." }
+    }
+
+    @Test
+    fun `subscribe to topic`() = runTest {
+        client = MqttClient(host, port) {
+            userName = testUser
+            password = testPassword
+        }
+        client.connect()
+        val suback = client.subscribe(buildFilters {
+            +"test/topic"
+            add("another/topic", qoS = QoS.EXACTLY_ONE)
+        })
+        println("---------------> $suback")
+        client.disconnect()
     }
 }

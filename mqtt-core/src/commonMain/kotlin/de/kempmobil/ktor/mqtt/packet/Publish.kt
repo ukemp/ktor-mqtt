@@ -43,16 +43,8 @@ public data class Publish(
             return bits
         }
 
-    public fun isAssociatedPuback(packet: Packet): Boolean {
-        return packet is Puback && packet.packetIdentifier == packetIdentifier
-    }
-
-    public fun isAssociatedPubrec(packet: Packet): Boolean {
-        return packet is Pubrec && packet.packetIdentifier == packetIdentifier
-    }
-
-    public fun isAssociatedPubcomp(packet: Packet): Boolean {
-        return packet is Pubcomp && packet.packetIdentifier == packetIdentifier
+    public inline fun <reified T : PacketIdentifierPacket> isResponse(packet: Packet): Boolean {
+        return T::class.isInstance(packet) && packetIdentifier == (packet as PacketIdentifierPacket).packetIdentifier
     }
 }
 

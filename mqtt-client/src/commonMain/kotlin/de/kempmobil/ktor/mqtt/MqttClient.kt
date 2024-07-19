@@ -3,14 +3,17 @@ package de.kempmobil.ktor.mqtt
 import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.seconds
 
 
 public class MqttClient(private val config: MqttClientConfig) {
+
+    private val _publishedPackets = MutableSharedFlow<Publish>()
+    public val publishedPackets: SharedFlow<Publish>
+        get() = _publishedPackets
 
     private var _maxQos = QoS.EXACTLY_ONE
     public val maxQos: QoS
@@ -20,19 +23,16 @@ public class MqttClient(private val config: MqttClientConfig) {
     public val serverTopicAliasMaximum: TopicAliasMaximum?
         get() = _serverTopicAliasMaximum
 
-    private val connackSuccess = MutableStateFlow(false)
+    private val connack = MutableStateFlow<Connack?>(null)
 
-//    public val connectionState: Flow<ConnectionState>
-//        get() = connection.state.combine(connackSuccess) { state: ConnectionState, success: Boolean ->
-//            when (state) {
-//                ConnectionState.CONNECTED -> {
-//                    if (success) ConnectionState.CONNECTED else ConnectionState.DISCONNECTED
-//                }
-//
-//                ConnectionState.CONNECTING -> ConnectionState.CONNECTING
-//                ConnectionState.DISCONNECTED -> ConnectionState.DISCONNECTED
-//            }
-//        }
+    public val connectionState: Flow<ConnectionState>
+        get() = connection.connected.combine(connack) { isConnected: Boolean, connack: Connack? ->
+            if (isConnected && (connack?.isSuccess == true)) {
+                Connected(connack)
+            } else {
+                Disconnected
+            }
+        }
 
     private val connection = MqttConnection(config)
 
@@ -40,11 +40,8 @@ public class MqttClient(private val config: MqttClientConfig) {
 
     private val receivedPackets = MutableSharedFlow<Packet>()
 
-    private val _publishedPackets = MutableSharedFlow<Publish>()
-    public val publishedPackets: SharedFlow<Publish>
-        get() = _publishedPackets
-
     private var packetIdentifier: UShort = 1u
+    private val packetIdentifierMutex = Mutex()
 
     private val isCleanStart: Boolean
         get() = true // TODO
@@ -52,19 +49,7 @@ public class MqttClient(private val config: MqttClientConfig) {
     init {
         scope.launch {
             connection.packetResults.collect { result ->
-                result.onSuccess {
-                    receivedPackets.emit(it)
-                    if (it is Publish) {
-                        _publishedPackets.emit(it)
-                    }
-                }.onFailure {
-                    if (it is MalformedPacketException) {
-                        Logger.w { "Received malformed packet: '${it.message}', disconnecting..." }
-                    } else {
-                        Logger.w(throwable = it) { "Unexpected error while parsing a packet, disconnecting..." }
-                    }
-                    connection.disconnect()
-                }
+                handlePacketResult(result)
             }
         }
     }
@@ -78,6 +63,8 @@ public class MqttClient(private val config: MqttClientConfig) {
      *         `Connack` with an error message (see also [Connack.isSuccess]).
      */
     public suspend fun connect(): Result<Connack> {
+        connack.emit(null)
+
         return connection.start()
             .mapCatching {
                 awaitResponseOf<Connack>(PacketType.CONNACK) {
@@ -90,14 +77,27 @@ public class MqttClient(private val config: MqttClientConfig) {
             }
     }
 
-    public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reasonString: String? = null) {
-        connection.send(createDisconnect(reasonCode, if (reasonString == null) null else ReasonString(reasonString)))
-        connection.disconnect()
+    public suspend fun subscribe(
+        filters: List<TopicFilter>,
+        subscriptionIdentifier: SubscriptionIdentifier? = null,
+        userProperties: UserProperties = UserProperties.EMPTY
+    ): Result<Suback> {
+        val subscribe = createSubscribe(filters, subscriptionIdentifier, userProperties)
+
+        return awaitResponseOf({ subscribe.isResponse<Suback>(it) }, {
+            connection.send(subscribe)
+        })
     }
 
-    public fun close() {
-        connection.close()
-        scope.cancel()
+    public suspend fun unsubscribe(
+        topics: List<Topic>,
+        userProperties: UserProperties = UserProperties.EMPTY
+    ): Result<Unsuback> {
+        val unsubscribe = createUnsubscribe(topics, userProperties)
+
+        return awaitResponseOf({ unsubscribe.isResponse<Unsuback>(it) }, {
+            connection.send(unsubscribe)
+        })
     }
 
     public suspend fun publish(publish: Publish) {
@@ -112,15 +112,25 @@ public class MqttClient(private val config: MqttClientConfig) {
             }
 
             QoS.AT_LEAST_ONCE -> {
-                receivedPackets.first { publish.isAssociatedPuback(it) }
+                receivedPackets.first { publish.isResponse<Puback>(it) }
             }
 
             QoS.EXACTLY_ONE -> {
-                receivedPackets.first { publish.isAssociatedPubrec(it) }
+                receivedPackets.first { publish.isResponse<Pubrec>(it) }
                 connection.send(Pubrel(packetIdentifier = publish.packetIdentifier!!, Success))
-                receivedPackets.first { publish.isAssociatedPubcomp(it) }
+                receivedPackets.first { publish.isResponse<Pubcomp>(it) }
             }
         }
+    }
+
+    public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reasonString: String? = null) {
+        connection.send(createDisconnect(reasonCode, if (reasonString == null) null else ReasonString(reasonString)))
+        connection.disconnect()
+    }
+
+    public fun close() {
+        connection.close()
+        scope.cancel()
     }
 
     // ---- Helper methods ---------------------------------------------------------------------------------------------
@@ -147,8 +157,37 @@ public class MqttClient(private val config: MqttClientConfig) {
         )
     }
 
+    private suspend fun createSubscribe(
+        filters: List<TopicFilter>,
+        subscriptionIdentifier: SubscriptionIdentifier?,
+        userProperties: UserProperties
+    ): Subscribe {
+        return Subscribe(
+            packetIdentifier = nextPacketIdentifier(),
+            filters = filters,
+            subscriptionIdentifier = subscriptionIdentifier,
+            userProperties = userProperties
+        )
+    }
+
+    private suspend fun createUnsubscribe(topics: List<Topic>, userProperties: UserProperties): Unsubscribe {
+        return Unsubscribe(
+            packetIdentifier = nextPacketIdentifier(),
+            topics = topics,
+            userProperties = userProperties
+        )
+    }
+
+    private fun createDisconnect(reasonCode: ReasonCode, reasonString: ReasonString?): Disconnect {
+        return Disconnect(
+            reasonCode,
+            sessionExpiryInterval = config.sessionExpiryInterval,
+            reasonString = reasonString,
+        )
+    }
+
     private suspend fun inspectConnack(connack: Connack): Connack {
-        connackSuccess.emit(connack.isSuccess)
+        this.connack.emit(connack)
 
         if (!connack.isSuccess) {
             Logger.i { "Server sent CONNACK packet with ${connack.reason}, hence terminating the connection" }
@@ -179,12 +218,34 @@ public class MqttClient(private val config: MqttClientConfig) {
         return connack
     }
 
-    private fun createDisconnect(reasonCode: ReasonCode, reasonString: ReasonString?): Disconnect {
-        return Disconnect(
-            reasonCode,
-            sessionExpiryInterval = config.sessionExpiryInterval,
-            reasonString = reasonString,
-        )
+    private suspend fun handlePacketResult(result: Result<Packet>) {
+        result.onSuccess { packet ->
+            handlePacket(packet)
+        }.onFailure { throwable ->
+            if (throwable is MalformedPacketException) {
+                Logger.w { "Received malformed packet: '${throwable.message}', disconnecting..." }
+            } else {
+                Logger.w(throwable = throwable) { "Unexpected error while parsing a packet, disconnecting..." }
+            }
+            connection.disconnect()
+        }
+    }
+
+    private suspend fun handlePacket(packet: Packet) {
+        when (packet) {
+            is Disconnect -> {
+                Logger.i { "Received DISCONNECT (${packet.reasonString.ifNull(packet.reason)}) from server, disconnecting..." }
+                connection.disconnect()
+            }
+
+            is Publish -> {
+                _publishedPackets.emit(packet)
+            }
+
+            else -> {
+                receivedPackets.emit(packet)
+            }
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -210,15 +271,18 @@ public class MqttClient(private val config: MqttClientConfig) {
         return awaitResponseOf({ it.type == type }, request)
     }
 
-    private fun nextPacketIdentifier(): UShort {
-        packetIdentifier = (packetIdentifier + 1u).toUShort()
-        if (packetIdentifier == 0u.toUShort()) {
-            packetIdentifier = 1u
+    private suspend fun nextPacketIdentifier(): UShort {
+        return packetIdentifierMutex.withLock {
+            packetIdentifier = (packetIdentifier + 1u).toUShort()
+            if (packetIdentifier == 0u.toUShort()) {
+                packetIdentifier = 1u
+            }
+            packetIdentifier
         }
-        return packetIdentifier
     }
 }
 
 public fun MqttClient(host: String, port: Int = 1883, init: MqttClientConfigBuilder.() -> Unit): MqttClient {
     return MqttClient(MqttClientConfigBuilder(host, port).also(init).build())
 }
+

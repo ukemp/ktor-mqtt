@@ -8,11 +8,11 @@ import io.ktor.utils.io.core.*
  */
 public sealed class PublishResponse(
     type: PacketType,
-    public val packetIdentifier: UShort,
+    public override val packetIdentifier: UShort,
     public val reason: ReasonCode,
     public val reasonString: ReasonString? = null,
     public val userProperties: UserProperties = UserProperties.EMPTY
-) : AbstractPacket(type) {
+) : PacketIdentifierPacket(type) {
 
     override fun toString(): String {
         return "${this::class.simpleName}(packetIdentifier=$packetIdentifier, reason=$reason, reasonString=$reasonString, userProperties=$userProperties)"

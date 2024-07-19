@@ -1,7 +1,18 @@
 package de.kempmobil.ktor.mqtt
 
-internal sealed class ConnectionState
+import de.kempmobil.ktor.mqtt.packet.Connack
 
-internal data object Disconnected : ConnectionState()
+public sealed class ConnectionState {
 
-internal data object Connected : ConnectionState()
+    public abstract val isConnected: Boolean
+}
+
+public data object Disconnected : ConnectionState() {
+
+    override val isConnected: Boolean = false
+}
+
+public data class Connected(val connack: Connack) : ConnectionState() {
+
+    override val isConnected: Boolean = true
+}

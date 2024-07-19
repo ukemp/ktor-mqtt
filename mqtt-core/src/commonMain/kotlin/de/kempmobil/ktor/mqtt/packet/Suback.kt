@@ -4,11 +4,11 @@ import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
 
 public data class Suback(
-    val packetIdentifier: UShort,
+    override val packetIdentifier: UShort,
     val reasons: List<ReasonCode>,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
-) : AbstractPacket(PacketType.SUBACK) {
+) : PacketIdentifierPacket(PacketType.SUBACK) {
 
     init {
         wellFormedWhen(reasons.isNotEmpty()) { "Reason codes must not be empty in SUBACK" }

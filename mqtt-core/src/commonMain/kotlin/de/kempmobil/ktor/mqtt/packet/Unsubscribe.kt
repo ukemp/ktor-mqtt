@@ -6,10 +6,10 @@ import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 
 public data class Unsubscribe(
-    val packetIdentifier: UShort,
-    val topics: List<Topic>,
-    val userProperties: UserProperties = UserProperties.EMPTY
-) : AbstractPacket(PacketType.UNSUBSCRIBE) {
+    public override val packetIdentifier: UShort,
+    public val topics: List<Topic>,
+    public val userProperties: UserProperties = UserProperties.EMPTY
+) : PacketIdentifierPacket(PacketType.UNSUBSCRIBE) {
 
     init {
         wellFormedWhen(topics.isNotEmpty()) { "Empty topic list in UNSUBSCRIBE" }

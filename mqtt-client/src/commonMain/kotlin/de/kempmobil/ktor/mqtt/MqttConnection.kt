@@ -23,9 +23,9 @@ internal class MqttConnection(
     internal val packetResults: SharedFlow<Result<Packet>>
         get() = _packetResults
 
-    private val _state = MutableStateFlow<ConnectionState>(Disconnected)
-    internal val state: StateFlow<ConnectionState>
-        get() = _state
+    private val _connected = MutableStateFlow(false)
+    internal val connected: StateFlow<Boolean>
+        get() = _connected
 
     private val selectorManager = SelectorManager(config.dispatcher)
 
@@ -41,7 +41,7 @@ internal class MqttConnection(
         return try {
             socket = scope.async {
                 val socket = openSocket()
-                _state.emit(Connected)
+                _connected.emit(true)
                 socket
             }.await().also { socket ->
                 sendChannel = socket.openWriteChannel()
@@ -110,7 +110,7 @@ internal class MqttConnection(
         }
 
         Logger.d { "Incoming message loop terminated" }
-        _state.emit(Disconnected)
+        disconnected()
     }
 
     private suspend fun ByteWriteChannel.doSend(packet: Packet): Result<Unit> {
@@ -122,21 +122,21 @@ internal class MqttConnection(
             Result.success(Unit)
         } catch (ex: CancellationException) {
             Logger.d { "Packet writer job has been cancelled during write operation" }
-            _state.emit(Disconnected)
+            disconnected()
             Result.failure(ex)
         } catch (ex: ClosedWriteChannelException) {
             Logger.w(throwable = ex) { "Write channel has been closed" }
-            _state.emit(Disconnected)
+            disconnected()
             Result.failure(ex)
         } catch (ex: Exception) {
             Logger.w(throwable = ex) { "Write channel error detected" }
-            _state.emit(Disconnected)
+            disconnected()
             Result.failure(ex)
         }
     }
 
     private suspend fun disconnected() {
-        _state.emit(Disconnected)
+        _connected.emit(false)
         receiverJob?.cancel()
         socket?.close()
         sendChannel?.close()

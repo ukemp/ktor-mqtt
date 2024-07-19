@@ -21,7 +21,7 @@ class MqttConnectionTest {
     @Test
     fun `the initial connection state is disconnected`() {
         val connection = MqttConnection()
-        assertSame(Disconnected, connection.state.value)
+        assertFalse(connection.connected.value)
     }
 
     @Test
@@ -30,7 +30,7 @@ class MqttConnectionTest {
         val result = connection.start()
 
         assertTrue(result.isFailure)
-        assertSame(Disconnected, connection.state.value)
+        assertFalse(connection.connected.value)
     }
 
     @Test
@@ -40,7 +40,7 @@ class MqttConnectionTest {
         val result = connection.start()
 
         assertTrue(result.isSuccess)
-        assertSame(Connected, connection.state.value)
+        assertTrue(connection.connected.value)
 
         closeServer.start()
     }
@@ -52,13 +52,13 @@ class MqttConnectionTest {
         val result = connection.start()
 
         assertTrue(result.isSuccess)
-        assertSame(Connected, connection.state.value)
+        assertTrue(connection.connected.value)
 
         closeServer.start()
 
         withContext(Dispatchers.Default) { // See runTest { } on why we need this
             withTimeout(1.seconds) {       // It takes a few millis until the connection is actually closed
-                connection.state.first { it is Disconnected }
+                connection.connected.first { !it }
             }
         }
     }
@@ -70,12 +70,11 @@ class MqttConnectionTest {
         val result = connection.start()
 
         assertTrue(result.isSuccess)
-        assertSame(Connected, connection.state.value)
+        assertTrue(connection.connected.value)
 
         connection.disconnect()
 
-        val state = connection.state.first()
-        assertIs<Disconnected>(state)
+        assertFalse(connection.connected.first())
 
         closeServer.start() // Cleanup
     }

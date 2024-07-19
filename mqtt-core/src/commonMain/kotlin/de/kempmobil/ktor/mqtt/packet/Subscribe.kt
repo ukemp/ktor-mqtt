@@ -6,11 +6,11 @@ import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 
 public class Subscribe(
-    public val packetIdentifier: UShort,
+    public override val packetIdentifier: UShort,
     public val filters: List<TopicFilter>,
     public val subscriptionIdentifier: SubscriptionIdentifier?,
     public val userProperties: UserProperties = UserProperties.EMPTY,
-) : AbstractPacket(PacketType.SUBSCRIBE) {
+) : PacketIdentifierPacket(PacketType.SUBSCRIBE) {
 
     init {
         wellFormedWhen(filters.isNotEmpty()) { "Empty list of topic filters for SUBSCRIBE " }
