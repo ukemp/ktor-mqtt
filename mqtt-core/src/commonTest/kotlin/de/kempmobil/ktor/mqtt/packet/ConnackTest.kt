@@ -1,6 +1,9 @@
 package de.kempmobil.ktor.mqtt.packet
 
-import de.kempmobil.ktor.mqtt.*
+import de.kempmobil.ktor.mqtt.ReAuthenticate
+import de.kempmobil.ktor.mqtt.ReceiveMaximum
+import de.kempmobil.ktor.mqtt.ServerKeepAlive
+import de.kempmobil.ktor.mqtt.buildUserProperties
 import io.ktor.utils.io.core.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,8 +15,8 @@ class ConnackTest {
     @Test
     fun `all bytes are written correctly`() {
         val userProperties = buildUserProperties {
-            +("prop1" to "value1")
-            +("prop2" to "value2")
+            "key1" to "value1"
+            "key2" to "value2"
         }
         val connack = Connack(
             isSessionPresent = true,

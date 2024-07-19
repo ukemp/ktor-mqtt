@@ -14,6 +14,15 @@ public data class UserProperties(public val values: List<UserProperty>) {
     }
 }
 
+/**
+ * DSL for building a [UserProperties] instance. Example:
+ * ```
+ * buildUserProperties {
+ *     "key-1" to "value-1"
+ *     "key-2" to "value-2"
+ * }
+ * ```
+ */
 public fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProperties {
     val builder = UserPropertiesBuilder()
     builder.init()
@@ -24,8 +33,8 @@ public class UserPropertiesBuilder() {
 
     private val userProperties = mutableListOf<UserProperty>()
 
-    public operator fun StringPair.unaryPlus() {
-        userProperties.add(UserProperty(this))
+    public infix fun String.to(value: String) {
+        userProperties.add(UserProperty(StringPair(this, value)))
     }
 
     public fun build(): UserProperties {

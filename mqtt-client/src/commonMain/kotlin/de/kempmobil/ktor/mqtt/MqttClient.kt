@@ -76,6 +76,7 @@ public class MqttClient(private val config: MqttClientConfig) {
      *
      * @return the connection result. Note that even when the result returns a Connack packet, the client may still not
      *         be successfully connected, as the server may send a CONNACK with an error message.
+     * @see connectionState
      */
     public suspend fun connect(): Result<Connack> {
         connack.emit(null)
@@ -240,7 +241,7 @@ public class MqttClient(private val config: MqttClientConfig) {
             if (throwable is MalformedPacketException) {
                 Logger.w { "Received malformed packet: '${throwable.message}', disconnecting..." }
             } else {
-                Logger.w(throwable = throwable) { "Unexpected error while parsing a packet, disconnecting..." }
+                Logger.e(throwable = throwable) { "Unexpected error while parsing a packet, disconnecting..." }
             }
             connection.disconnect()
         }
