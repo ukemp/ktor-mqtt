@@ -7,10 +7,7 @@ import kotlinx.io.bytestring.encodeToByteString
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
 import org.testcontainers.junit.jupiter.Container
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertNotNull
+import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
 
 class IntegrationTest {
@@ -30,7 +27,7 @@ class IntegrationTest {
     private lateinit var host: String
     private var port: Int = -1
     private val testUser = "mqtt-test-user"
-    private val testPassword = "3n63hLKRV31fHf41NF95"  // Encrypted in the resources/passwd file
+    private val testPassword = "3n63hLKRV31fHf41NF95"  // Encrypted in the resources/passwd file!
 
     @Container
     var mosquitto: GenericContainer<*> = GenericContainer(
@@ -56,17 +53,24 @@ class IntegrationTest {
     }
 
     @Test
-    fun `connect returns proper values if server does not respond`() = runTest {
+    fun `connect returns NotAuthorized when using wrong credentials`() = runTest {
         val client = MqttClient(host, port) {
             userName = testUser
             password = "invalid-password"
         }
-        var result = client.connect()
-        println("---------------> $result")
+        val result = client.connect()
 
+        assertTrue(result.isSuccess)
+        assertEquals(NotAuthorized, result.getOrThrow().reason)
+    }
+
+    @Test
+    fun `connect returns failure when server is not reachable`() = runTest {
         mosquitto.stop()
-        result = client.connect()
-        println("---------------> $result")
+        val client = MqttClient(host, port) { }
+        val result = client.connect()
+
+        assertTrue(result.isFailure)
     }
 
     @Test

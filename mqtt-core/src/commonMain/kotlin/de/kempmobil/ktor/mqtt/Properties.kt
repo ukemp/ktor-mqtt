@@ -329,6 +329,13 @@ public value class ReasonString(override val value: String) : WritableProperty<S
     override fun byteCount(): Int = value.utf8Size() + 3
 }
 
+/**
+ * Returns this reason string if it is not `null` or the reason code instead.
+ */
+public fun ReasonString?.ifNull(reasonCode: ReasonCode): String {
+    return "${reasonCode.code} ${this?.value ?: reasonCode.name}"
+}
+
 @JvmInline
 public value class ReceiveMaximum(override val value: Short) : WritableProperty<Short> {
 

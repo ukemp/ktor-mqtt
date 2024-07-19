@@ -3,12 +3,22 @@ package de.kempmobil.ktor.mqtt
 import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlin.time.Duration.Companion.seconds
 
 
 public class MqttClient(private val config: MqttClientConfig) {
+
+    private var _maxQos = QoS.EXACTLY_ONE
+    public val maxQos: QoS
+        get() = _maxQos
+
+    private var _serverTopicAliasMaximum: TopicAliasMaximum? = null
+    public val serverTopicAliasMaximum: TopicAliasMaximum?
+        get() = _serverTopicAliasMaximum
 
     private val connackSuccess = MutableStateFlow(false)
 
@@ -28,18 +38,36 @@ public class MqttClient(private val config: MqttClientConfig) {
 
     private val scope = CoroutineScope(config.dispatcher)
 
+    private val receivedPackets = MutableSharedFlow<Packet>()
+
+    private val _publishedPackets = MutableSharedFlow<Publish>()
+    public val publishedPackets: SharedFlow<Publish>
+        get() = _publishedPackets
+
     private var packetIdentifier: UShort = 1u
-
-    private var _maxQos = QoS.EXACTLY_ONE
-    public val maxQos: QoS
-        get() = _maxQos
-
-    private var _serverTopicAliasMaximum: TopicAliasMaximum? = null
-    public val serverTopicAliasMaximum: TopicAliasMaximum?
-        get() = _serverTopicAliasMaximum
 
     private val isCleanStart: Boolean
         get() = true // TODO
+
+    init {
+        scope.launch {
+            connection.packetResults.collect { result ->
+                result.onSuccess {
+                    receivedPackets.emit(it)
+                    if (it is Publish) {
+                        _publishedPackets.emit(it)
+                    }
+                }.onFailure {
+                    if (it.cause is MalformedPacketException) {
+                        Logger.w { "Received malformed packet: '${it.message}', disconnecting..." }
+                    } else {
+                        Logger.w(throwable = it) { "Unexpected error while parsing a packet, disconnecting..." }
+                    }
+                    connection.disconnect()
+                }
+            }
+        }
+    }
 
     /**
      * Tries to connect to the MQTT server and send a CONNECT message.
@@ -62,6 +90,7 @@ public class MqttClient(private val config: MqttClientConfig) {
 
     public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reasonString: String? = null) {
         connection.send(createDisconnect(reasonCode, if (reasonString == null) null else ReasonString(reasonString)))
+        connection.disconnect()
     }
 
     public fun close() {
@@ -81,13 +110,13 @@ public class MqttClient(private val config: MqttClientConfig) {
             }
 
             QoS.AT_LEAST_ONCE -> {
-                connection.packetsReceived.first { publish.isAssociatedPuback(it) }
+                receivedPackets.first { publish.isAssociatedPuback(it) }
             }
 
             QoS.EXACTLY_ONE -> {
-                connection.packetsReceived.first { publish.isAssociatedPubrec(it) }
+                receivedPackets.first { publish.isAssociatedPubrec(it) }
                 connection.send(Pubrel(packetIdentifier = publish.packetIdentifier!!, Success))
-                connection.packetsReceived.first { publish.isAssociatedPubcomp(it) }
+                receivedPackets.first { publish.isAssociatedPubcomp(it) }
             }
         }
     }
@@ -163,7 +192,7 @@ public class MqttClient(private val config: MqttClientConfig) {
     ): Result<P> {
         val waitForResponse = scope.async {
             val response = withTimeoutOrNull(config.ackMessageTimeout) {
-                (connection.packetsReceived.first(predicate)) as P
+                (receivedPackets.first(predicate) as P)
             }
             if (response != null) {
                 Result.success(response)

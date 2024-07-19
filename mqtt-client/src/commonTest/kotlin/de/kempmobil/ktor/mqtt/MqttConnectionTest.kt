@@ -46,7 +46,6 @@ class MqttConnectionTest {
     }
 
     @Test
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun `when terminating a connected session the connection state is updated`() = runTest {
         val closeServer = startServer()
         val connection = MqttConnection()
@@ -57,9 +56,8 @@ class MqttConnectionTest {
 
         closeServer.start()
 
-        // It takes a few milliseconds until the connection has been closed, hence we need to wait:
-        withContext(Dispatchers.Default.limitedParallelism(1)) {
-            withTimeout(1.seconds) {
+        withContext(Dispatchers.Default) { // See runTest { } on why we need this
+            withTimeout(1.seconds) {       // It takes a few millis until the connection is actually closed
                 connection.state.first { it is Disconnected }
             }
         }
@@ -118,8 +116,8 @@ class MqttConnectionTest {
         connection.start()
         serverPackets.emit(expected)
 
-        val actual = connection.packetsReceived.first()
-        assertEquals(expected, actual)
+        val actual = connection.packetResults.first()
+        assertEquals(expected, actual.getOrNull())
 
         closeServer.start()
     }
@@ -145,11 +143,23 @@ class MqttConnectionTest {
         connection.start()
         dataToSend.emit(byteArrayOf(0, 0, 0))
 
-        val packet = receivedPackets.first()
-        assertIs<Disconnect>(packet)
+        val result = connection.packetResults.first()
+        assertTrue(result.isFailure)
+        assertIs<MalformedPacketException>(result.exceptionOrNull())
 
-        val state = connection.state.first()
-        assertIs<Disconnected>(state)
+        closeServer.start()
+    }
+
+    @Test
+    fun `when calling send on a disconnected connection return a failure`() = runTest {
+        val closeServer = startServer()
+        val connection = MqttConnection()
+        connection.start()
+        connection.disconnect()
+
+        val result = connection.send(Pingreq)
+        assertTrue(result.isFailure)
+        assertIs<ConnectionException>(result.exceptionOrNull())
 
         closeServer.start()
     }

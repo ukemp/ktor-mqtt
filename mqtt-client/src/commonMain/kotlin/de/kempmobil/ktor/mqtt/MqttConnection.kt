@@ -1,7 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
-import de.kempmobil.ktor.mqtt.packet.Disconnect
 import de.kempmobil.ktor.mqtt.packet.Packet
 import de.kempmobil.ktor.mqtt.packet.readPacket
 import de.kempmobil.ktor.mqtt.packet.write
@@ -20,9 +19,9 @@ import kotlinx.coroutines.flow.StateFlow
 internal class MqttConnection(
     private val config: MqttClientConfig
 ) {
-    private val _packetsReceived = MutableSharedFlow<Packet>()
-    internal val packetsReceived: SharedFlow<Packet>
-        get() = _packetsReceived
+    private val _packetResults = MutableSharedFlow<Result<Packet>>()
+    internal val packetResults: SharedFlow<Result<Packet>>
+        get() = _packetResults
 
     private val _state = MutableStateFlow<ConnectionState>(Disconnected)
     internal val state: StateFlow<ConnectionState>
@@ -56,18 +55,9 @@ internal class MqttConnection(
         }
     }
 
-    internal suspend fun send(packet: Packet): Boolean {
-        sendChannel?.run {
-            Logger.v { "Sending $packet..." }
-            write(packet)
-            flush()
-
-            if (packet is Disconnect) {
-                Logger.i { "Disconnect message sent to server, terminating the connection now" }
-                this@MqttConnection.disconnected()
-            }
-            return true
-        } ?: return false
+    internal suspend fun send(packet: Packet): Result<Unit> {
+        return sendChannel?.doSend(packet)
+            ?: Result.failure(ConnectionException("Not connected to ${config.host}:${config.port}"))
     }
 
     internal suspend fun disconnect() {
@@ -97,30 +87,41 @@ internal class MqttConnection(
     }
 
     private suspend fun ByteReadChannel.incomingMessageLoop() {
-        try {
-            while (receiverJob?.isActive == true) {
-                val packet = readPacket()
-                if (packet is Disconnect) {
-                    Logger.i { "Received $packet from ${config.host}" }
-                }
-                _packetsReceived.emit(packet)
+        while (receiverJob?.isActive == true) {
+            try {
+                _packetResults.emit(Result.success(readPacket()))
+            } catch (ex: CancellationException) {
+                Logger.d { "Packet reader job has been cancelled" }
+                break
+            } catch (ex: ClosedReceiveChannelException) {
+                Logger.w(throwable = ex) { "Read channel has been closed, terminating..." }
+                break
+            } catch (ex: MalformedPacketException) {
+                _packetResults.emit(Result.failure(ex))
+                // Continue with the loop, so that the client can decide what to do
             }
-        } catch (ex: CancellationException) {
-            Logger.d { "Packet reader job has been cancelled" }
-            _state.emit(Disconnected)
-            return
-        } catch (ex: ClosedReceiveChannelException) {
-            Logger.d { "Read channel has been closed, terminating..." }
-            _state.emit(Disconnected)
-            return
-        } catch (ex: MalformedPacketException) {
-            Logger.e(throwable = ex) { "Malformed packet received, sending DISCONNECT" }
-            send(Disconnect(reason = MalformedPacket, sessionExpiryInterval = config.sessionExpiryInterval))
-            return
         }
 
-        Logger.d { "Packet reader job terminated gracefully" }
+        Logger.d { "Incoming message loop terminated" }
         _state.emit(Disconnected)
+    }
+
+    private suspend fun ByteWriteChannel.doSend(packet: Packet): Result<Unit> {
+        Logger.v { "Sending $packet..." }
+
+        return try {
+            write(packet)
+            flush()
+            Result.success(Unit)
+        } catch (ex: CancellationException) {
+            Logger.d { "Packet writer job has been cancelled during write operation" }
+            _state.emit(Disconnected)
+            Result.failure(ex)
+        } catch (ex: ClosedWriteChannelException) {
+            Logger.w(throwable = ex) { "Write channel has been closed" }
+            _state.emit(Disconnected)
+            Result.failure(ex)
+        }
     }
 
     private suspend fun disconnected() {
