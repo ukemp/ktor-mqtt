@@ -58,7 +58,7 @@ public class MqttClient(private val config: MqttClientConfig) {
                         _publishedPackets.emit(it)
                     }
                 }.onFailure {
-                    if (it.cause is MalformedPacketException) {
+                    if (it is MalformedPacketException) {
                         Logger.w { "Received malformed packet: '${it.message}', disconnecting..." }
                     } else {
                         Logger.w(throwable = it) { "Unexpected error while parsing a packet, disconnecting..." }
@@ -79,11 +79,13 @@ public class MqttClient(private val config: MqttClientConfig) {
      */
     public suspend fun connect(): Result<Connack> {
         return connection.start()
-            .map {
+            .mapCatching {
                 awaitResponseOf<Connack>(PacketType.CONNACK) {
                     connection.send(createConnect())
-                }.getOrThrow().also {
+                }.onSuccess {
                     inspectConnack(it)
+                }.getOrElse {
+                    throw ConnectionException("Cannot connect to ${config.host}:${config.port} (${it.message})")
                 }
             }
     }

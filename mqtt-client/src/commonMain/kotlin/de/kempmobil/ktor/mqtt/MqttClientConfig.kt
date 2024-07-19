@@ -43,8 +43,8 @@ public class MqttClientConfigBuilder(
     private var tlsConfigBuilder: TLSConfigBuilder? = null
     private var tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit)? = null
 
-    public val dispatcher: CoroutineDispatcher = Dispatchers.Default
-    public val ackMessageTimeout: Duration = 7.seconds
+    public var dispatcher: CoroutineDispatcher = Dispatchers.Default
+    public var ackMessageTimeout: Duration = 7.seconds
     public var clientId: String = generateClientId()
     public var willOqS: QoS = QoS.AT_MOST_ONCE
     public var retainWillMessage: Boolean = false

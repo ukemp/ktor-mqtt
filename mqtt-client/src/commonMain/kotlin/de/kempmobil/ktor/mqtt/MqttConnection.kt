@@ -38,7 +38,7 @@ internal class MqttConnection(
     private var receiverJob: Job? = null
 
     internal suspend fun start(): Result<Unit> {
-        return runCatching {
+        return try {
             socket = scope.async {
                 val socket = openSocket()
                 _state.emit(Connected)
@@ -52,6 +52,9 @@ internal class MqttConnection(
                     readChannel.incomingMessageLoop()
                 }
             }
+            Result.success(Unit)
+        } catch (ex: Exception) {
+            Result.failure(ConnectionException("Cannot connect to ${config.host}:${config.port}", ex))
         }
     }
 
@@ -97,8 +100,12 @@ internal class MqttConnection(
                 Logger.w(throwable = ex) { "Read channel has been closed, terminating..." }
                 break
             } catch (ex: MalformedPacketException) {
-                _packetResults.emit(Result.failure(ex))
                 // Continue with the loop, so that the client can decide what to do
+                _packetResults.emit(Result.failure(ex))
+            } catch (ex: Exception) {
+                // On JVM sometimes a java.net.SocketException is thrown instead of ClosedReceiveChannelException
+                Logger.w(throwable = ex) { "Read channel error detected, terminating..." }
+                break
             }
         }
 
@@ -119,6 +126,10 @@ internal class MqttConnection(
             Result.failure(ex)
         } catch (ex: ClosedWriteChannelException) {
             Logger.w(throwable = ex) { "Write channel has been closed" }
+            _state.emit(Disconnected)
+            Result.failure(ex)
+        } catch (ex: Exception) {
+            Logger.w(throwable = ex) { "Write channel error detected" }
             _state.emit(Disconnected)
             Result.failure(ex)
         }

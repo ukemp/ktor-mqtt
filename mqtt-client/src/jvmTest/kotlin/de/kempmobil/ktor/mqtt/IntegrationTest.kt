@@ -8,6 +8,7 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
 import org.testcontainers.junit.jupiter.Container
 import kotlin.test.*
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class IntegrationTest {
@@ -28,6 +29,7 @@ class IntegrationTest {
     private var port: Int = -1
     private val testUser = "mqtt-test-user"
     private val testPassword = "3n63hLKRV31fHf41NF95"  // Encrypted in the resources/passwd file!
+    private lateinit var client: MqttClient
 
     @Container
     var mosquitto: GenericContainer<*> = GenericContainer(
@@ -50,11 +52,12 @@ class IntegrationTest {
     fun tearDown() {
         Logger.i(mosquitto.logs)
         mosquitto.stop()
+        client.close()
     }
 
     @Test
     fun `connect returns NotAuthorized when using wrong credentials`() = runTest {
-        val client = MqttClient(host, port) {
+        client = MqttClient(host, port) {
             userName = testUser
             password = "invalid-password"
         }
@@ -65,17 +68,22 @@ class IntegrationTest {
     }
 
     @Test
-    fun `connect returns failure when server is not reachable`() = runTest {
+    fun `connect returns failure when server is not reachable`() = runTest(timeout = 1000.seconds) {
         mosquitto.stop()
-        val client = MqttClient(host, port) { }
+        client = MqttClient(host, port) {
+            ackMessageTimeout = 100.milliseconds
+        }
         val result = client.connect()
 
         assertTrue(result.isFailure)
+        assertIs<ConnectionException>(result.exceptionOrNull())
+
+        client.disconnect()
     }
 
     @Test
     fun `connection state propagated properly`() = runTest {
-        val client = MqttClient(host, port) {
+        client = MqttClient(host, port) {
             userName = testUser
             password = testPassword
         }
@@ -88,25 +96,28 @@ class IntegrationTest {
 
     @Test
     fun `allow reconnection after disconnect`() = runTest {
-        val client = MqttClient(host, port) {
+        client = MqttClient(host, port) {
             userName = testUser
             password = testPassword
         }
-        client.connect()
+        val connack1 = client.connect()
+        assertNotNull(connack1)
+        assertTrue(connack1.isSuccess)
+
         client.disconnect()
-        val connack = client.connect()
-        assertNotNull(connack)
+        val connack2 = client.connect()
+        assertNotNull(connack2)
+        assertTrue(connack2.isSuccess)
 //        assertEquals(ConnectionState.CONNECTED, client.connectionState.value)
 
         client.disconnect()
-        client.close()
 //        assertEquals(ConnectionState.DISCONNECTED, client.connectionState.value)
     }
 
     @Test
     fun `connect to server`() = runTest(timeout = 4.seconds) {
         Logger.i { "Connecting to MQTT container $host:$port" }
-        val client = MqttClient(host, port) {
+        client = MqttClient(host, port) {
             userName = testUser
             password = testPassword
         }
