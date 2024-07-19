@@ -19,7 +19,7 @@ class ConnackTest {
             isSessionPresent = true,
             reason = ReAuthenticate,
             receiveMaximum = ReceiveMaximum(27),
-            serverKeepAlive = ServerKeepAlive(99),
+            serverKeepAlive = ServerKeepAlive(99u),
             userProperties = userProperties
         )
 
@@ -32,7 +32,7 @@ class ConnackTest {
         assertTrue(actual.isSessionPresent)
         assertEquals(ReAuthenticate, actual.reason)
         assertEquals(27, actual.receiveMaximum?.value)
-        assertEquals(99, actual.serverKeepAlive?.value)
+        assertEquals(99u, actual.serverKeepAlive?.value)
         assertEquals(userProperties, actual.userProperties)
         assertNull(actual.sessionExpiryInterval)
         assertNull(actual.maximumQoS)
