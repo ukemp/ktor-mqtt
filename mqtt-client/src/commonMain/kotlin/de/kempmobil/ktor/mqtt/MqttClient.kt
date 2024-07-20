@@ -9,7 +9,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.seconds
 
 
-public class MqttClient(private val config: MqttClientConfig) {
+public class MqttClient internal constructor(
+    private val config: MqttClientConfig,
+    private val connection: MqttConnection
+) {
+    public constructor(config: MqttClientConfig) : this(config, MqttConnectionImpl(config))
 
     private val _publishedPackets = MutableSharedFlow<Publish>()
 
@@ -48,8 +52,6 @@ public class MqttClient(private val config: MqttClientConfig) {
                 Disconnected
             }
         }
-
-    private val connection = MqttConnection(config)
 
     private val connack = MutableStateFlow<Connack?>(null)
 
