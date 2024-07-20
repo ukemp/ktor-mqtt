@@ -6,6 +6,7 @@ import de.kempmobil.ktor.mqtt.util.writeMqttByteString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
+import kotlinx.io.bytestring.encodeToByteString
 
 public data class WillMessage(
     public val topic: Topic,
@@ -23,11 +24,35 @@ public class WillMessageBuilder(private val topic: String) {
 
     private val propertiesBuilder = WillPropertiesBuilder()
 
-    public var payload: ByteString = EMPTY_PAYLOAD
+    private var payload: ByteString = EMPTY_PAYLOAD
 
+    /**
+     * Configures the will properties.
+     */
     public fun properties(init: WillPropertiesBuilder.() -> Unit) {
         propertiesBuilder.init()
     }
+
+    /**
+     * Convenience method to define a text as payload, also sets the [PayloadFormatIndicator] of the will properties
+     * to `UTF_8`.
+     */
+    public fun payload(text: String) {
+        this.payload = text.encodeToByteString()
+        this.propertiesBuilder.payloadFormatIndicator = PayloadFormatIndicator.UTF_8
+    }
+
+    /**
+     * Defines the payload and the payload format indicator of the will properties.
+     */
+    public fun payload(
+        byteString: ByteString,
+        payloadFormatIndicator: PayloadFormatIndicator = PayloadFormatIndicator.NONE
+    ) {
+        this.payload = byteString
+        this.propertiesBuilder.payloadFormatIndicator = payloadFormatIndicator
+    }
+
 
     public fun build(): WillMessage {
         return WillMessage(Topic(topic), payload, propertiesBuilder.build())

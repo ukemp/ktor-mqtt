@@ -18,8 +18,8 @@ public data class Connect(
     val receiveMaximum: ReceiveMaximum? = null,
     val maximumPacketSize: MaximumPacketSize? = null,
     val topicAliasMaximum: TopicAliasMaximum = TopicAliasMaximum(0u),
-    val requestResponseInformation: RequestResponseInformation = RequestResponseInformation(0),
-    val requestProblemInformation: RequestProblemInformation = RequestProblemInformation(1),
+    val requestResponseInformation: RequestResponseInformation = RequestResponseInformation(false),
+    val requestProblemInformation: RequestProblemInformation = RequestProblemInformation(true),
     val userProperties: UserProperties = UserProperties.EMPTY,
     val authenticationMethod: AuthenticationMethod? = null,
     val authenticationData: AuthenticationData? = null

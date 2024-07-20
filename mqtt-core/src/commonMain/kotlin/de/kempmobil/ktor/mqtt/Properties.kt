@@ -69,7 +69,7 @@ public fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) {
 @OptIn(ExperimentalUnsignedTypes::class)
 public fun <T> ByteReadPacket.readProperty(): Property<T> {
     return when (val identifier = (readByte().toInt() and 0xFF)) {
-        1 -> PayloadFormatIndicator(readByte()) as Property<T>
+        1 -> PayloadFormatIndicator.from(readByte()) as Property<T>
         2 -> MessageExpiryInterval(readInt()) as Property<T>
         3 -> ContentType(readMqttString()) as Property<T>
         8 -> ResponseTopic(readMqttString()) as Property<T>
@@ -80,9 +80,9 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
         19 -> ServerKeepAlive(readUShort()) as Property<T>
         21 -> AuthenticationMethod(readMqttString()) as Property<T>
         22 -> AuthenticationData(readMqttByteString()) as Property<T>
-        23 -> RequestProblemInformation(readByte()) as Property<T>
+        23 -> byteToBoolean(readByte()) { RequestProblemInformation(it) } as Property<T>
         24 -> WillDelayInterval(readInt()) as Property<T>
-        25 -> RequestResponseInformation(readByte()) as Property<T>
+        25 -> byteToBoolean(readByte()) { RequestResponseInformation(it) } as Property<T>
         26 -> ResponseInformation(readMqttString()) as Property<T>
         28 -> ServerReference(readMqttString()) as Property<T>
         31 -> ReasonString(readMqttString()) as Property<T>
@@ -90,12 +90,12 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
         34 -> TopicAliasMaximum(readUShort()) as Property<T>
         35 -> TopicAlias(readUShort()) as Property<T>
         36 -> MaximumQoS(readByte()) as Property<T>
-        37 -> RetainAvailable(readByte()) as Property<T>
+        37 -> byteToBoolean(readByte()) { RetainAvailable(it) } as Property<T>
         38 -> UserProperty(readStringPair()) as Property<T>
         39 -> MaximumPacketSize(readInt()) as Property<T>
-        40 -> WildcardSubscriptionAvailable(readByte()) as Property<T>
-        41 -> SubscriptionIdentifierAvailable(readByte()) as Property<T>
-        42 -> SharedSubscriptionAvailable(readByte()) as Property<T>
+        40 -> byteToBoolean(readByte()) { WildcardSubscriptionAvailable(it) } as Property<T>
+        41 -> byteToBoolean(readByte()) { SubscriptionIdentifierAvailable(it) } as Property<T>
+        42 -> byteToBoolean(readByte()) { SharedSubscriptionAvailable(it) } as Property<T>
         else -> throw MalformedPacketException("Unknown property identifier: $identifier")
     }
 }
@@ -118,7 +118,7 @@ public fun ByteReadPacket.readProperties(): List<Property<*>> {
 
 
 @JvmInline
-public value class PayloadFormatIndicator(override val value: Byte) : WritableProperty<Byte> {
+public value class PayloadFormatIndicator private constructor(override val value: Byte) : WritableProperty<Byte> {
 
     public override val identifier: Int
         get() = 1
@@ -127,6 +127,21 @@ public value class PayloadFormatIndicator(override val value: Byte) : WritablePr
         get() = ByteWriter
 
     override fun byteCount(): Int = 2
+
+    public companion object {
+
+        public fun from(byte: Byte): PayloadFormatIndicator {
+            return when (byte) {
+                0.toByte() -> NONE
+                1.toByte() -> UTF_8
+                else -> throw MalformedPacketException("Value of $byte not allowed for payload format indicator")
+            }
+        }
+
+        public val NONE: PayloadFormatIndicator = PayloadFormatIndicator(0)
+
+        public val UTF_8: PayloadFormatIndicator = PayloadFormatIndicator(1)
+    }
 }
 
 @JvmInline
@@ -258,13 +273,13 @@ public value class AuthenticationData(override val value: ByteString) : Writable
 }
 
 @JvmInline
-public value class RequestProblemInformation(override val value: Byte) : WritableProperty<Byte> {
+public value class RequestProblemInformation(override val value: Boolean) : WritableProperty<Boolean> {
 
     public override val identifier: Int
         get() = 23
 
-    override val writeValue: BytePacketBuilder.(Byte) -> Unit
-        get() = ByteWriter
+    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+        get() = BooleanWriter
 
     override fun byteCount(): Int = 2
 }
@@ -282,13 +297,13 @@ public value class WillDelayInterval(override val value: Int) : WritableProperty
 }
 
 @JvmInline
-public value class RequestResponseInformation(override val value: Byte) : WritableProperty<Byte> {
+public value class RequestResponseInformation(override val value: Boolean) : WritableProperty<Boolean> {
 
     public override val identifier: Int
         get() = 25
 
-    override val writeValue: BytePacketBuilder.(Byte) -> Unit
-        get() = ByteWriter
+    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+        get() = BooleanWriter
 
     override fun byteCount(): Int = 2
 }
@@ -388,13 +403,13 @@ public value class MaximumQoS(override val value: Byte) : WritableProperty<Byte>
 }
 
 @JvmInline
-public value class RetainAvailable(override val value: Byte) : WritableProperty<Byte> {
+public value class RetainAvailable(override val value: Boolean) : WritableProperty<Boolean> {
 
     public override val identifier: Int
         get() = 37
 
-    override val writeValue: BytePacketBuilder.(Byte) -> Unit
-        get() = ByteWriter
+    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+        get() = BooleanWriter
 
     override fun byteCount(): Int = 2
 }
@@ -426,37 +441,37 @@ public value class MaximumPacketSize(override val value: Int) : WritableProperty
 }
 
 @JvmInline
-public value class WildcardSubscriptionAvailable(override val value: Byte) : WritableProperty<Byte> {
+public value class WildcardSubscriptionAvailable(override val value: Boolean) : WritableProperty<Boolean> {
 
     public override val identifier: Int
         get() = 40
 
-    override val writeValue: BytePacketBuilder.(Byte) -> Unit
-        get() = ByteWriter
+    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+        get() = BooleanWriter
 
     override fun byteCount(): Int = 2
 }
 
 @JvmInline
-public value class SubscriptionIdentifierAvailable(override val value: Byte) : WritableProperty<Byte> {
+public value class SubscriptionIdentifierAvailable(override val value: Boolean) : WritableProperty<Boolean> {
 
     public override val identifier: Int
         get() = 41
 
-    override val writeValue: BytePacketBuilder.(Byte) -> Unit
-        get() = ByteWriter
+    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+        get() = BooleanWriter
 
     override fun byteCount(): Int = 2
 }
 
 @JvmInline
-public value class SharedSubscriptionAvailable(override val value: Byte) : WritableProperty<Byte> {
+public value class SharedSubscriptionAvailable(override val value: Boolean) : WritableProperty<Boolean> {
 
     public override val identifier: Int
         get() = 42
 
-    override val writeValue: BytePacketBuilder.(Byte) -> Unit
-        get() = ByteWriter
+    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+        get() = BooleanWriter
 
     override fun byteCount(): Int = 2
 }
@@ -498,4 +513,16 @@ private val StringWriter: BytePacketBuilder.(String) -> Unit = {
 
 private val ByteStringWriter: BytePacketBuilder.(ByteString) -> Unit = {
     writeMqttByteString(it)  // Do NOT(!) use ByteWriteChannel.writeFully(...) as this will not write the size of the byte array
+}
+
+private val BooleanWriter: BytePacketBuilder.(Boolean) -> Unit = {
+    writeByte(if (it) 1 else 0)
+}
+
+private fun byteToBoolean(byte: Byte, constructor: (Boolean) -> Property<Boolean>): Property<Boolean> {
+    return when (byte) {
+        0.toByte() -> constructor(false)
+        1.toByte() -> constructor(true)
+        else -> throw MalformedPacketException("Value $byte not allowed, only 0 and 1 are allowed for boolean properties")
+    }
 }

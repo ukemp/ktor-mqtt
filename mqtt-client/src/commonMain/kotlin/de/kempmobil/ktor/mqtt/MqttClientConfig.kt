@@ -55,8 +55,8 @@ public class MqttClientConfigBuilder(
     public var receiveMaximum: ReceiveMaximum? = null
     public var maximumPacketSize: MaximumPacketSize? = null
     public var topicAliasMaximum: TopicAliasMaximum = TopicAliasMaximum(0u)
-    public var requestResponseInformation: RequestResponseInformation = RequestResponseInformation(0)
-    public var requestProblemInformation: RequestProblemInformation = RequestProblemInformation(1)
+    public var requestResponseInformation: Boolean = false
+    public var requestProblemInformation: Boolean = true
     public var authenticationMethod: AuthenticationMethod? = null
     public var authenticationData: AuthenticationData? = null
 
@@ -106,8 +106,8 @@ public class MqttClientConfigBuilder(
         receiveMaximum = receiveMaximum,
         maximumPacketSize = maximumPacketSize,
         topicAliasMaximum = topicAliasMaximum,
-        requestResponseInformation = requestResponseInformation,
-        requestProblemInformation = requestProblemInformation,
+        requestResponseInformation = RequestResponseInformation(requestResponseInformation),
+        requestProblemInformation = RequestProblemInformation(requestProblemInformation),
         authenticationMethod = authenticationMethod,
         authenticationData = authenticationData,
         userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
