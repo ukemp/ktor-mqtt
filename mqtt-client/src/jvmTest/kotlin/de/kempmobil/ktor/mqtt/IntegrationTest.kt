@@ -1,10 +1,8 @@
 package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
-import de.kempmobil.ktor.mqtt.packet.Publish
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import kotlinx.io.bytestring.encodeToByteString
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
 import org.testcontainers.junit.jupiter.Container
@@ -118,21 +116,21 @@ class IntegrationTest {
     }
 
     @Test
-    fun `connect to server`() = runTest(timeout = 4.seconds) {
+    fun `send publish request`() = runTest(timeout = 4.seconds) {
         client = MqttClient(host, port) {
             userName = testUser
             password = testPassword
         }
-        val connack = client.connect()
+        client.connect()
 
-        val puback = client.publish(
-            Publish(
-                packetIdentifier = 42u,
-                topicName = "test/topic",
-                payload = "abc".encodeToByteString(),
-                qoS = QoS.EXACTLY_ONE
-            )
-        )
+        val puback = client.publish(buildPublishRequest("test/topic") {
+            payload("This is a test publish packet")
+            desiredQoS = QoS.EXACTLY_ONE
+            userProperties {
+                "user" to "property"
+            }
+        })
+
         println("Published: $puback")
         client.disconnect()
 

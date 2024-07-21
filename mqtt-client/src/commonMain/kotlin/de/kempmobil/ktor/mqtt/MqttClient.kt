@@ -118,10 +118,8 @@ public class MqttClient internal constructor(
         })
     }
 
-    public suspend fun publish(publish: Publish) {
-        if (publish.qoS.value > maxQos.value) {
-            throw MalformedPacketException("QoS of $publish is larger than the server QoS of $maxQos")
-        }
+    public suspend fun publish(request: PublishRequest) {
+        val publish = createPublish(request)
         connection.send(publish)
 
         when (publish.qoS) {
@@ -193,6 +191,25 @@ public class MqttClient internal constructor(
             packetIdentifier = nextPacketIdentifier(),
             topics = topics,
             userProperties = userProperties
+        )
+    }
+
+    private suspend fun createPublish(request: PublishRequest): Publish {
+        return Publish(
+            isDupMessage = false,
+            qoS = request.desiredQoS.coerceAtMost(maxQos),
+            isRetainMessage = request.isRetainMessage,
+            packetIdentifier = nextPacketIdentifier(),
+            topicName = request.topicName,
+            payloadFormatIndicator = request.payloadFormatIndicator,
+            messageExpiryInterval = request.messageExpiryInterval,
+            topicAlias = request.topicAlias,
+            responseTopic = request.responseTopic,
+            correlationData = request.correlationData,
+            userProperties = request.userProperties,
+            subscriptionIdentifier = request.subscriptionIdentifier,
+            contentType = request.contentType,
+            payload = request.payload
         )
     }
 

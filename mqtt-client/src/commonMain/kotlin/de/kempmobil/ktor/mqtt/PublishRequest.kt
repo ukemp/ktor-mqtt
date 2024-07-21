@@ -4,22 +4,55 @@ import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 
 public data class PublishRequest(
-    val desiredQoS: QoS = QoS.AT_MOST_ONCE,
     val topicName: String,
+    val desiredQoS: QoS,
+    val payload: ByteString,
+    val isRetainMessage: Boolean,
+    val messageExpiryInterval: MessageExpiryInterval? = null,
+    val topicAlias: TopicAlias? = null,
+    val responseTopic: ResponseTopic? = null,
+    val correlationData: CorrelationData? = null,
+    val subscriptionIdentifier: SubscriptionIdentifier? = null,
+    val contentType: ContentType? = null,
+    val payloadFormatIndicator: PayloadFormatIndicator? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+)
+
+public fun buildPublishRequest(
+    topicName: String,
+    init: PublishRequestBuilder.() -> Unit
+): PublishRequest {
+    return PublishRequestBuilder(topicName).also(init).build()
+}
+
+public fun buildPublishRequest(
+    topicAlias: UShort,
+    init: PublishRequestBuilder.() -> Unit
+): PublishRequest {
+    return PublishRequestBuilder("").also {
+        it.topicAlias = topicAlias
+        it.init()
+    }.build()
+}
+
+public class PublishRequestBuilder(
+    public val topicName: String,
 ) {
+    public var desiredQoS: QoS = QoS.AT_MOST_ONCE
+
     public var isRetainMessage: Boolean = false
 
-    public var messageExpiryInterval: MessageExpiryInterval? = null
+    public var messageExpiryInterval: Int? = null
 
-    public var topicAlias: TopicAlias? = null
+    public var topicAlias: UShort? = null
 
-    public var responseTopic: ResponseTopic? = null
+    public var responseTopic: String? = null
 
-    public var correlationData: CorrelationData? = null
+    public var correlationData: ByteString? = null
 
-    public var subscriptionIdentifier: SubscriptionIdentifier? = null
+    public var subscriptionIdentifier: Int? = null
 
-    public var contentType: ContentType? = null
+    public var contentType: String? = null
 
     internal var payload: ByteString = EMPTY_PAYLOAD
 
@@ -50,6 +83,23 @@ public data class PublishRequest(
 
     public fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userProperties = UserPropertiesBuilder().also(init).build()
+    }
+
+    public fun build(): PublishRequest {
+        return PublishRequest(
+            topicName = topicName,
+            desiredQoS = desiredQoS,
+            payload = payload,
+            isRetainMessage = isRetainMessage,
+            messageExpiryInterval = messageExpiryInterval?.let { MessageExpiryInterval(it) },
+            topicAlias = topicAlias?.let { TopicAlias(it) },
+            responseTopic = responseTopic?.let { ResponseTopic(it) },
+            correlationData = correlationData?.let { CorrelationData(it) },
+            subscriptionIdentifier = subscriptionIdentifier?.let { SubscriptionIdentifier(it) },
+            contentType = contentType?.let { ContentType(it) },
+            payloadFormatIndicator = payloadFormatIndicator,
+            userProperties = userProperties
+        )
     }
 
     private companion object {

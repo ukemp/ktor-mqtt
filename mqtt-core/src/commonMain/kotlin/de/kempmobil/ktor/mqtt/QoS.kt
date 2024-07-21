@@ -6,6 +6,13 @@ public enum class QoS(public val value: Int) {
     AT_LEAST_ONCE(1),
     EXACTLY_ONE(2);
 
+    /**
+     * Ensures that this QoS is not greater than the specified [maximumQoS].
+     */
+    public fun coerceAtMost(maximumQoS: QoS): QoS {
+        return if (this.value > maximumQoS.value) maximumQoS else this
+    }
+
     internal companion object {
 
         fun from(value: Int): QoS {

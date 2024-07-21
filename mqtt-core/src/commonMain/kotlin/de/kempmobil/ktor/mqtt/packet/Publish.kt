@@ -12,7 +12,7 @@ public data class Publish(
     val isRetainMessage: Boolean = false,
     val packetIdentifier: UShort? = null,
     val topicName: String,
-    val payloadFormatIndicator: PayloadFormatIndicator = PayloadFormatIndicator.NONE,
+    val payloadFormatIndicator: PayloadFormatIndicator? = null,
     val messageExpiryInterval: MessageExpiryInterval? = null,
     val topicAlias: TopicAlias? = null,
     val responseTopic: ResponseTopic? = null,
