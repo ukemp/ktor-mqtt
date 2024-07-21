@@ -4,7 +4,7 @@ import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 
 public data class PublishRequest(
-    val topicName: String,
+    val topic: Topic,
     val desiredQoS: QoS,
     val payload: ByteString,
     val isRetainMessage: Boolean,
@@ -18,33 +18,29 @@ public data class PublishRequest(
     val userProperties: UserProperties = UserProperties.EMPTY,
 )
 
+/**
+ * Create a request to send a PUBLISH packet to the server. When `topicAlias` is not null, make sure the specified
+ * number is lower than the one sent from the server in CONNACK packet. Otherwise, the publishing will fail.
+ *
+ * @see MqttClient.serverTopicAliasMaximum
+ */
 public fun buildPublishRequest(
     topicName: String,
+    topicAlias: UShort? = null,
     init: PublishRequestBuilder.() -> Unit
 ): PublishRequest {
-    return PublishRequestBuilder(topicName).also(init).build()
-}
-
-public fun buildPublishRequest(
-    topicAlias: UShort,
-    init: PublishRequestBuilder.() -> Unit
-): PublishRequest {
-    return PublishRequestBuilder("").also {
-        it.topicAlias = topicAlias
-        it.init()
-    }.build()
+    return PublishRequestBuilder(topicName, topicAlias).also(init).build()
 }
 
 public class PublishRequestBuilder(
-    public val topicName: String,
+    private val topicName: String = "",
+    private var topicAlias: UShort? = null
 ) {
     public var desiredQoS: QoS = QoS.AT_MOST_ONCE
 
     public var isRetainMessage: Boolean = false
 
     public var messageExpiryInterval: Int? = null
-
-    public var topicAlias: UShort? = null
 
     public var responseTopic: String? = null
 
@@ -87,7 +83,7 @@ public class PublishRequestBuilder(
 
     public fun build(): PublishRequest {
         return PublishRequest(
-            topicName = topicName,
+            topic = Topic(topicName),
             desiredQoS = desiredQoS,
             payload = payload,
             isRetainMessage = isRetainMessage,

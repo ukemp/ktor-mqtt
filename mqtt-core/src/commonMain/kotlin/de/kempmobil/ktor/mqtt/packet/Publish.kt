@@ -11,7 +11,7 @@ public data class Publish(
     val qoS: QoS = QoS.AT_MOST_ONCE,
     val isRetainMessage: Boolean = false,
     val packetIdentifier: UShort? = null,
-    val topicName: String,
+    val topic: Topic,
     val payloadFormatIndicator: PayloadFormatIndicator? = null,
     val messageExpiryInterval: MessageExpiryInterval? = null,
     val topicAlias: TopicAlias? = null,
@@ -24,7 +24,7 @@ public data class Publish(
 ) : AbstractPacket(PacketType.PUBLISH) {
 
     init {
-        wellFormedWhen(topicName.isNotBlank() || topicAlias != null) {
+        wellFormedWhen(topic.isNotBlank() || topicAlias != null) {
             "Either a non empty topic name or a topic alias must be present in a PUBLISH paket"
         }
         wellFormedWhen(topicAlias == null || topicAlias.value != 0.toUShort()) {
@@ -47,7 +47,7 @@ public data class Publish(
 @OptIn(ExperimentalUnsignedTypes::class)
 internal fun BytePacketBuilder.write(publish: Publish) {
     with(publish) {
-        writeMqttString(topicName)
+        writeMqttString(topic.name)
         if (qoS.requiresPacketIdentifier) {
             writeUShort(packetIdentifier!!)
         }
@@ -83,7 +83,7 @@ internal fun ByteReadPacket.readPublish(headerFlags: Int): Publish {
         qoS = qoS,
         isRetainMessage = headerFlags.isRetainMessage,
         packetIdentifier = packetIdentifier,
-        topicName = topicName,
+        topic = Topic(topicName),
         payloadFormatIndicator = properties.singleOrNull<PayloadFormatIndicator>() ?: PayloadFormatIndicator.NONE,
         messageExpiryInterval = properties.singleOrNull<MessageExpiryInterval>(),
         topicAlias = properties.singleOrNull<TopicAlias>(),

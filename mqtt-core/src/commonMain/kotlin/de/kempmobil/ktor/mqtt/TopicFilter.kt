@@ -3,7 +3,11 @@ package de.kempmobil.ktor.mqtt
 public data class TopicFilter(
     public val filter: Topic,
     public val subscriptionOptions: SubscriptionOptions = SubscriptionOptions.DEFAULT
-)
+) {
+    init {
+        wellFormedWhen(filter.isNotBlank()) { "Empty topics are not allowed in topic filters" }
+    }
+}
 
 public fun buildFilterList(init: TopicFilterBuilder.() -> Unit): List<TopicFilter> {
     return TopicFilterBuilder().also(init).build()

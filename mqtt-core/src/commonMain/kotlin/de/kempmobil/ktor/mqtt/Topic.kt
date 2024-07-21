@@ -9,15 +9,15 @@ import kotlin.jvm.JvmInline
  * - `sport/tennis/player1/#`
  * - `sport/tennis/+` and also
  * - `/`
- *
- * But not the empty string.
  */
 @JvmInline
 public value class Topic(public val name: String) {
 
-    init {
-        wellFormedWhen(name.isNotEmpty()) { "Empty topic" }
+    public fun containsWildcard(): Boolean {
+        return name.indexOfAny(charArrayOf('#', '+')) != -1
     }
+
+    public fun isNotBlank(): Boolean = name.isNotBlank()
 
     override fun toString(): String {
         return name

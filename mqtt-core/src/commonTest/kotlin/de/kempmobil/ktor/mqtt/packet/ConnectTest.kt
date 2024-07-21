@@ -16,7 +16,7 @@ class ConnectTest {
     @Test
     fun `all bytes are written correctly`() {
         val willMessage = buildWillMessage("will-topic") {
-            payload = ByteString(byteArrayOf(1, 5, 33))
+            payload(ByteString(byteArrayOf(1, 5, 33)))
             properties {
                 willDelayInterval = 99
             }
@@ -68,7 +68,7 @@ class ConnectTest {
     @Test
     fun `reading connect packet`() {
         val willMessage = buildWillMessage("will-topic") {
-            payload = ByteString(byteArrayOf(1, 5, 33))
+            payload(ByteString(byteArrayOf(1, 5, 33)))
             properties {
                 willDelayInterval = 99
             }

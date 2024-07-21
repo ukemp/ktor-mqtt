@@ -32,12 +32,12 @@ public class MqttClient internal constructor(
     public val maxQos: QoS
         get() = _maxQos
 
-    private var _serverTopicAliasMaximum: TopicAliasMaximum? = null
+    private var _serverTopicAliasMaximum: TopicAliasMaximum = TopicAliasMaximum(0u)
 
     /**
-     * The server topic alias maximum value as contained the CONNACK message from the server.
+     * The server topic alias maximum value as contained the CONNACK message from the server (or the default value of 0)
      */
-    public val serverTopicAliasMaximum: TopicAliasMaximum?
+    public val serverTopicAliasMaximum: TopicAliasMaximum
         get() = _serverTopicAliasMaximum
 
     /**
@@ -118,23 +118,26 @@ public class MqttClient internal constructor(
         })
     }
 
-    public suspend fun publish(request: PublishRequest) {
-        val publish = createPublish(request)
-        connection.send(publish)
+    public suspend fun publish(request: PublishRequest): Result<QoS> {
+        return createPublish(request).map { publish ->
+            connection.send(publish)
 
-        when (publish.qoS) {
-            QoS.AT_MOST_ONCE -> {
-                return
-            }
+            when (publish.qoS) {
+                QoS.AT_MOST_ONCE -> {
+                    QoS.AT_MOST_ONCE
+                }
 
-            QoS.AT_LEAST_ONCE -> {
-                receivedPackets.first { it.isResponseFor<Puback>(publish) }
-            }
+                QoS.AT_LEAST_ONCE -> {
+                    receivedPackets.first { it.isResponseFor<Puback>(publish) }
+                    QoS.AT_LEAST_ONCE
+                }
 
-            QoS.EXACTLY_ONE -> {
-                receivedPackets.first { it.isResponseFor<Pubrec>(publish) }
-                connection.send(Pubrel(packetIdentifier = publish.packetIdentifier!!, Success))
-                receivedPackets.first { it.isResponseFor<Pubcomp>(publish) }
+                QoS.EXACTLY_ONE -> {
+                    receivedPackets.first { it.isResponseFor<Pubrec>(publish) }
+                    connection.send(Pubrel(packetIdentifier = publish.packetIdentifier!!, Success))
+                    receivedPackets.first { it.isResponseFor<Pubcomp>(publish) }
+                    QoS.EXACTLY_ONE
+                }
             }
         }
     }
@@ -194,23 +197,31 @@ public class MqttClient internal constructor(
         )
     }
 
-    private suspend fun createPublish(request: PublishRequest): Publish {
-        return Publish(
-            isDupMessage = false,
-            qoS = request.desiredQoS.coerceAtMost(maxQos),
-            isRetainMessage = request.isRetainMessage,
-            packetIdentifier = nextPacketIdentifier(),
-            topicName = request.topicName,
-            payloadFormatIndicator = request.payloadFormatIndicator,
-            messageExpiryInterval = request.messageExpiryInterval,
-            topicAlias = request.topicAlias,
-            responseTopic = request.responseTopic,
-            correlationData = request.correlationData,
-            userProperties = request.userProperties,
-            subscriptionIdentifier = request.subscriptionIdentifier,
-            contentType = request.contentType,
-            payload = request.payload
-        )
+    private suspend fun createPublish(request: PublishRequest): Result<Publish> {
+        return if (request.topicAlias != null && request.topicAlias.value > serverTopicAliasMaximum.value) {
+            Result.failure(TopicAliasException("Server maximum topic alias is: $serverTopicAliasMaximum, but you requested: ${request.topicAlias}"))
+        } else if (request.topic.containsWildcard()) {
+            Result.failure(IllegalArgumentException("The topic of a PUBLISH packet must not contain wildcard character: '${request.topic}"))
+        } else {
+            Result.success(
+                Publish(
+                    isDupMessage = false,
+                    qoS = request.desiredQoS.coerceAtMost(maxQos),
+                    isRetainMessage = request.isRetainMessage,
+                    packetIdentifier = nextPacketIdentifier(),
+                    topic = request.topic,
+                    payloadFormatIndicator = request.payloadFormatIndicator,
+                    messageExpiryInterval = request.messageExpiryInterval,
+                    topicAlias = request.topicAlias,
+                    responseTopic = request.responseTopic,
+                    correlationData = request.correlationData,
+                    userProperties = request.userProperties,
+                    subscriptionIdentifier = request.subscriptionIdentifier,
+                    contentType = request.contentType,
+                    payload = request.payload
+                )
+            )
+        }
     }
 
     private fun createDisconnect(reasonCode: ReasonCode, reasonString: ReasonString?): Disconnect {
@@ -231,7 +242,7 @@ public class MqttClient internal constructor(
             connack.maximumQoS?.let {
                 _maxQos = it.qoS
             }
-            _serverTopicAliasMaximum = connack.topicAliasMaximum
+            _serverTopicAliasMaximum = connack.topicAliasMaximum ?: TopicAliasMaximum(0u)
 
             val keepAlive = (connack.serverKeepAlive?.value ?: config.keepAliveSeconds).toInt().seconds
             if (keepAlive.inWholeSeconds > 0) {

@@ -11,3 +11,6 @@ public class ConnectionException(message: String? = null, cause: Throwable? = nu
 
 public class TimeoutException(message: String) :
     MqttException(message)
+
+public class TopicAliasException(message: String?) :
+    MqttException(message)
