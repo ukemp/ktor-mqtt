@@ -43,14 +43,10 @@ public class WillMessageBuilder(private val topic: String) {
     }
 
     /**
-     * Defines the payload and the payload format indicator of the will properties.
+     * Defines the payload (without setting the payload format indicator of the will properties).
      */
-    public fun payload(
-        byteString: ByteString,
-        payloadFormatIndicator: PayloadFormatIndicator = PayloadFormatIndicator.NONE
-    ) {
+    public fun payload(byteString: ByteString) {
         this.payload = byteString
-        this.propertiesBuilder.payloadFormatIndicator = payloadFormatIndicator
     }
 
 

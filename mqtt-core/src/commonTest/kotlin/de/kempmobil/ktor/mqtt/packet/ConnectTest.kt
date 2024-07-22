@@ -14,11 +14,12 @@ import kotlin.test.assertFalse
 class ConnectTest {
 
     @Test
+    @OptIn(ExperimentalUnsignedTypes::class)
     fun `all bytes are written correctly`() {
         val willMessage = buildWillMessage("will-topic") {
             payload(ByteString(byteArrayOf(1, 5, 33)))
             properties {
-                willDelayInterval = 99
+                willDelayInterval = 99u
             }
         }
 
@@ -52,7 +53,7 @@ class ConnectTest {
         assertEquals("client-id", reader.readMqttString())
         assertEquals(5, reader.readByte())             // Will message properties length (contains only 1 property)
         assertEquals(24, reader.readByte())            // Will delay interval identifier (24)
-        assertEquals(99, reader.readInt())             // Will delay interval value
+        assertEquals(99u, reader.readUInt())             // Will delay interval value
         assertEquals("will-topic", reader.readMqttString())
         assertEquals(3, reader.readShort())            // Will payload of size 3
         assertEquals(1, reader.readByte())             // Will payload byte 1
@@ -70,7 +71,12 @@ class ConnectTest {
         val willMessage = buildWillMessage("will-topic") {
             payload(ByteString(byteArrayOf(1, 5, 33)))
             properties {
-                willDelayInterval = 99
+                willDelayInterval = 99u
+
+                userProperties {
+                    "user" to "value1"
+                    "user" to "value2"
+                }
             }
         }
 
@@ -92,5 +98,7 @@ class ConnectTest {
 
         val actual = reader.readConnect()
         assertEquals(connect, actual)
+
+        println(actual)
     }
 }

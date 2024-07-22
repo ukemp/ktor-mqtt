@@ -40,7 +40,7 @@ public class PublishRequestBuilder(
 
     public var isRetainMessage: Boolean = false
 
-    public var messageExpiryInterval: Int? = null
+    public var messageExpiryInterval: UInt? = null
 
     public var responseTopic: String? = null
 
@@ -52,7 +52,7 @@ public class PublishRequestBuilder(
 
     internal var payload: ByteString = EMPTY_PAYLOAD
 
-    internal var payloadFormatIndicator: PayloadFormatIndicator = PayloadFormatIndicator.NONE
+    internal var payloadFormatIndicator: PayloadFormatIndicator? = null
 
     internal var userProperties: UserProperties = UserProperties.EMPTY
 
@@ -65,16 +65,10 @@ public class PublishRequestBuilder(
     }
 
     /**
-     * Defines the payload and the payload format indicator of the publish request. If `byteString` represents a UTF-8
-     * encoded text, you should set the payload format indicator to [PayloadFormatIndicator.UTF_8] or use [payload],
-     * which automatically converts text and sets the format indicator.
+     * Defines the payload (without setting the payload format indicator of the publish request).
      */
-    public fun payload(
-        byteString: ByteString,
-        payloadFormatIndicator: PayloadFormatIndicator = PayloadFormatIndicator.NONE
-    ) {
+    public fun payload(byteString: ByteString) {
         this.payload = byteString
-        this.payloadFormatIndicator = payloadFormatIndicator
     }
 
     public fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
