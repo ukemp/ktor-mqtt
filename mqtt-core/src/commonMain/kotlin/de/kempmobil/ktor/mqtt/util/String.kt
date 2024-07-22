@@ -18,7 +18,7 @@ internal fun BytePacketBuilder.writeMqttString(text: String) {
     }
 
     writeShort(size.toShort())
-    writeFully(text.toByteArray())
+    writeFully(text.encodeToByteArray())
 }
 
 internal fun ByteReadPacket.readMqttString(): String {

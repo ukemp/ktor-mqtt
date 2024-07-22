@@ -5,7 +5,7 @@ public data class TopicFilter(
     public val subscriptionOptions: SubscriptionOptions = SubscriptionOptions.DEFAULT
 ) {
     init {
-        wellFormedWhen(filter.isNotBlank()) { "Empty topics are not allowed in topic filters" }
+        require(filter.isNotBlank()) { "Empty topics are not allowed in topic filters" }
     }
 }
 

@@ -4,12 +4,19 @@ import io.ktor.utils.io.core.*
 
 public data class UserProperties(public val values: List<UserProperty>) {
 
+    // Note: not using a map for storing key/value pairs, as the key might appear more than once in a user property!
+
     public companion object {
 
         public val EMPTY: UserProperties = UserProperties(emptyList())
 
         public fun from(properties: List<Property<*>>): UserProperties {
-            return UserProperties(properties.filterIsInstance<UserProperty>())
+            val list = properties.filterIsInstance<UserProperty>()
+            return if (list.isEmpty()) {
+                EMPTY
+            } else {
+                return UserProperties(list)
+            }
         }
     }
 }
@@ -38,10 +45,10 @@ public class UserPropertiesBuilder() {
     }
 
     public fun build(): UserProperties {
-        return if (userProperties.isNotEmpty()) {
-            UserProperties(userProperties)
-        } else {
+        return if (userProperties.isEmpty()) {
             UserProperties.EMPTY
+        } else {
+            UserProperties(userProperties)
         }
     }
 }

@@ -4,7 +4,12 @@ import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
 
-public data class StringPair(val name: String, val value: String)
+public data class StringPair(val name: String, val value: String) {
+
+    override fun toString(): String {
+        return "$name=$value"
+    }
+}
 
 public infix fun String.to(that: String): StringPair = StringPair(this, that)
 
