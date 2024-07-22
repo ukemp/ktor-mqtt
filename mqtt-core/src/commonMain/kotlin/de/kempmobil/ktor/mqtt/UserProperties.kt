@@ -2,20 +2,45 @@ package de.kempmobil.ktor.mqtt
 
 import io.ktor.utils.io.core.*
 
-public data class UserProperties(public val values: List<UserProperty>) {
+public data class UserProperties(public val values: List<StringPair>) {
 
     // Note: not using a map for storing key/value pairs, as the key might appear more than once in a user property!
 
+    /**
+     * Returns the first occurrence of the user property with the specified name or `null` if this user property doesn't
+     * contain the specified name
+     *
+     * @see getAll
+     */
+    public operator fun get(name: String): String? {
+        return values.firstOrNull { it.name == name }?.value
+    }
+
+    /**
+     * Returns all values of the properties with the specified name.
+     */
+    public fun getAll(name: String): List<String> {
+        return values.filter { it.name == name }.map { it.value }
+    }
+
+    public fun containsKey(name: String): Boolean {
+        return values.find { it.name == name } != null
+    }
+
+    public fun containsValue(value: String): Boolean {
+        return values.find { it.value == value } != null
+    }
+
     public companion object {
 
-        public val EMPTY: UserProperties = UserProperties(emptyList())
+        public val EMPTY: UserProperties = UserProperties(values = emptyList())
 
-        public fun from(properties: List<Property<*>>): UserProperties {
+        internal fun from(properties: List<Property<*>>): UserProperties {
             val list = properties.filterIsInstance<UserProperty>()
             return if (list.isEmpty()) {
                 EMPTY
             } else {
-                return UserProperties(list)
+                return UserProperties(list.map { it.value })
             }
         }
     }
@@ -38,10 +63,10 @@ public fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProp
 
 public class UserPropertiesBuilder() {
 
-    private val userProperties = mutableListOf<UserProperty>()
+    private val userProperties = mutableListOf<StringPair>()
 
     public infix fun String.to(value: String) {
-        userProperties.add(UserProperty(StringPair(this, value)))
+        userProperties.add(StringPair(this, value))
     }
 
     public fun build(): UserProperties {
@@ -54,7 +79,7 @@ public class UserPropertiesBuilder() {
 }
 
 internal val UserProperties.asArray: Array<UserProperty>
-    get() = values.toTypedArray()
+    get() = values.map { UserProperty(it) }.toTypedArray()
 
 internal fun BytePacketBuilder.write(userProperties: UserProperties) {
     if (userProperties.values.isNotEmpty()) {

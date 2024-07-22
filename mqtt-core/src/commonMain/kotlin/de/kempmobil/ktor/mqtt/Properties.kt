@@ -46,7 +46,7 @@ internal inline fun <reified T : Property<*>> List<Property<*>>.singleOrNull(): 
     }
 }
 
-public fun <T> BytePacketBuilder.write(property: Property<T>) {
+internal fun <T> BytePacketBuilder.write(property: Property<T>) {
     with(property as WritableProperty) {
         writeByte(identifier.toByte())
         writeValue(value)
@@ -56,7 +56,7 @@ public fun <T> BytePacketBuilder.write(property: Property<T>) {
 /**
  * Writes all specified properties, which are non-null. Also prepends the byte count as a variable byte integer.
  */
-public fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) {
+internal fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) {
     val byteCount = properties.sumOf { (it as? WritableProperty)?.byteCount() ?: 0 }
     writeVariableByteInt(byteCount)
 
@@ -67,7 +67,7 @@ public fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) {
 
 @Suppress("UNCHECKED_CAST")
 @OptIn(ExperimentalUnsignedTypes::class)
-public fun <T> ByteReadPacket.readProperty(): Property<T> {
+internal fun <T> ByteReadPacket.readProperty(): Property<T> {
     return when (val identifier = (readByte().toInt() and 0xFF)) {
         1 -> PayloadFormatIndicator.from(readByte()) as Property<T>
         2 -> MessageExpiryInterval(readInt()) as Property<T>
@@ -103,7 +103,7 @@ public fun <T> ByteReadPacket.readProperty(): Property<T> {
 /**
  * Reads all properties from this packet by first reading the variable int byte count and then the properties.
  */
-public fun ByteReadPacket.readProperties(): List<Property<*>> {
+internal fun ByteReadPacket.readProperties(): List<Property<*>> {
     val byteCount = readVariableByteInt()
     var bytesRead = 0
 
@@ -345,7 +345,7 @@ public value class ReasonString(override val value: String) : WritableProperty<S
 }
 
 /**
- * Returns this reason string if it is not `null` or the reason code instead.
+ * Converts this into a string or uses the string representation of the specified reason code if this is `null`.
  */
 public fun ReasonString?.ifNull(reasonCode: ReasonCode): String {
     return "${reasonCode.code} ${this?.value ?: reasonCode.name}"
@@ -424,7 +424,7 @@ public value class UserProperty(override val value: StringPair) : WritableProper
         get() = { write(it) }
 
     override fun byteCount(): Int {
-        return value.name.utf8Size() + value.value.utf8Size() + 5 // 1 for the identifier 2 * 2 for the string lengths
+        return value.name.utf8Size() + value.value.utf8Size() + 5 // 1 for the identifier 2 + 2 for the string lengths
     }
 }
 

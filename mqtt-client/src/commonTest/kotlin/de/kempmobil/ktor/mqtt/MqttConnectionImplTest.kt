@@ -88,7 +88,7 @@ class MqttConnectionImplTest {
             }
         })
 
-        val expected = Publish(topic = "test-topic", payload = "1234567890".encodeToByteString())
+        val expected = Publish(topic = Topic("test-topic"), payload = "1234567890".encodeToByteString())
         val connection = MqttConnection()
         connection.start()
         connection.send(expected)
@@ -110,7 +110,7 @@ class MqttConnectionImplTest {
             }
         })
 
-        val expected = Publish(topic = "test-topic", payload = "1234567890".encodeToByteString())
+        val expected = Publish(topic = Topic("test-topic"), payload = "1234567890".encodeToByteString())
         val connection = MqttConnection()
         connection.start()
         serverPackets.emit(expected)
