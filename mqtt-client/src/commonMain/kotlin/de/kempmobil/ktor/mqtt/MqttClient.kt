@@ -256,8 +256,7 @@ public class MqttClient internal constructor(
 
             Logger.i {
                 "Received server parameters: max. QoS=$maxQos, " +
-                        "keep alive=$keepAlive sec., " +
-                        "server topic alias maximum=$serverTopicAliasMaximum"
+                        "keep alive=$keepAlive, server topic alias maximum=$serverTopicAliasMaximum"
             }
         }
 

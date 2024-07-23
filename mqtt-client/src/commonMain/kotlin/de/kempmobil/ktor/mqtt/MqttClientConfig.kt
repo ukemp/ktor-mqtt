@@ -34,6 +34,10 @@ public class MqttClientConfig(
     public val tlsConfig: TLSConfigBuilder?
 )
 
+public fun buildConfig(host: String, port: Int = 1883, init: MqttClientConfigBuilder.() -> Unit): MqttClientConfig {
+    return MqttClientConfigBuilder(host, port).also(init).build()
+}
+
 public class MqttClientConfigBuilder(
     public val host: String,
     public var port: Int = 1883
