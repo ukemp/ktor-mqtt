@@ -12,7 +12,6 @@ public data class PublishRequest(
     val topicAlias: TopicAlias? = null,
     val responseTopic: ResponseTopic? = null,
     val correlationData: CorrelationData? = null,
-    val subscriptionIdentifier: SubscriptionIdentifier? = null,
     val contentType: ContentType? = null,
     val payloadFormatIndicator: PayloadFormatIndicator? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
@@ -45,8 +44,6 @@ public class PublishRequestBuilder(
     public var responseTopic: String? = null
 
     public var correlationData: ByteString? = null
-
-    public var subscriptionIdentifier: Int? = null
 
     public var contentType: String? = null
 
@@ -85,7 +82,6 @@ public class PublishRequestBuilder(
             topicAlias = topicAlias?.let { TopicAlias(it) },
             responseTopic = responseTopic?.let { ResponseTopic(it) },
             correlationData = correlationData?.let { CorrelationData(it) },
-            subscriptionIdentifier = subscriptionIdentifier?.let { SubscriptionIdentifier(it) },
             contentType = contentType?.let { ContentType(it) },
             payloadFormatIndicator = payloadFormatIndicator,
             userProperties = userProperties
