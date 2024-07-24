@@ -223,7 +223,6 @@ public class MqttClient internal constructor(
                     responseTopic = request.responseTopic,
                     correlationData = request.correlationData,
                     userProperties = request.userProperties,
-                    subscriptionIdentifier = request.subscriptionIdentifier,
                     contentType = request.contentType,
                     payload = request.payload
                 )
