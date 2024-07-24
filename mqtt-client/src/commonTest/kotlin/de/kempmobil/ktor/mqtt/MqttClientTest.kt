@@ -1,8 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
-import de.kempmobil.ktor.mqtt.packet.Connack
-import de.kempmobil.ktor.mqtt.packet.Connect
-import de.kempmobil.ktor.mqtt.packet.Packet
+import de.kempmobil.ktor.mqtt.packet.*
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
@@ -41,7 +39,7 @@ class MqttClientTest {
     }
 
     @Test
-    fun `when connection fails to start return a failure result`() = runTest {
+    fun `connect fails when connection cannot be established`() = runTest {
         everySuspend { connection.start() } returns Result.failure(ConnectionException())
 
         val client = createClient(connection)
@@ -52,7 +50,7 @@ class MqttClientTest {
     }
 
     @Test
-    fun `when sending of connect packet fails return a failure result`() = runTest {
+    fun `connect fails when the connect packet is not sent successfully`() = runTest {
         val connectionState = MutableStateFlow(false)
         val results = MutableSharedFlow<Result<Packet>>()
 
@@ -72,7 +70,7 @@ class MqttClientTest {
     }
 
     @Test
-    fun `when server does not send CONNACK return a failure result`() = runTest {
+    fun `connect fails when no connack packet is received`() = runTest {
         everySuspend { connection.start() } returns Result.success(Unit)
         everySuspend { connection.send(ofType<Connect>()) } returns Result.success(Unit)
 
@@ -80,11 +78,11 @@ class MqttClientTest {
         val result = client.connect()
 
         assertTrue(result.isFailure)
-        assertIs<ConnectionException>(result.exceptionOrNull())
+        assertIs<TimeoutException>(result.exceptionOrNull())
     }
 
     @Test
-    fun `return CONNACK on successful connection attempt`() = runTest {
+    fun `connect succeeds when receiving successful connack packet`() = runTest {
         everySuspend { connection.start() } returns Result.success(Unit)
         everySuspend { connection.send(ofType<Connect>()) } returns Result.success(Unit)
 
@@ -112,7 +110,7 @@ class MqttClientTest {
     }
 
     @Test
-    fun `when CONNACK contains error message the connection state should be disconnected`() = runTest {
+    fun `connect fails when receiving unsuccessful connack packet and client disconnects`() = runTest {
         everySuspend { connection.start() } returns Result.success(Unit)
         everySuspend { connection.send(ofType<Connect>()) } returns Result.success(Unit)
         everySuspend { connection.disconnect() } returns Unit
@@ -136,6 +134,97 @@ class MqttClientTest {
         assertIs<Disconnected>(state)
 
         verifySuspend { connection.disconnect() }
+    }
+
+    // ---- SUBSCRIBE tests --------------------------------------------------------------------------------------------
+
+    @Test
+    fun `subscribe fails when the subscribe packet is not sent successfully`() = runTest {
+        everySuspend { connection.send(ofType<Subscribe>()) } returns Result.failure(ConnectionException())
+
+        val filters = buildFilterList { add("test/topic") }
+        val client = createClient(connection)
+        val result = client.subscribe(filters)
+
+        assertTrue(result.isFailure)
+        assertIs<ConnectionException>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `subscribe fails when the suback packet is not received`() = runTest {
+        everySuspend { connection.send(ofType<Subscribe>()) } returns Result.success(Unit)
+
+        val filters = buildFilterList { add("test/topic") }
+        val client = createClient(connection)
+        val result = client.subscribe(filters)
+
+        assertTrue(result.isFailure)
+        assertIs<TimeoutException>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `subscribe succeeds when receiving suback packet`() = runTest {
+        everySuspend { connection.send(ofType<Subscribe>()) } returns Result.success(Unit)
+
+        val suback = Suback(
+            packetIdentifier = 1u,
+            reasons = listOf(GrantedQoS0, TopicFilterInvalid)
+        )
+        val filters = buildFilterList {
+            add("test/topic1")
+            add("test/topic2")
+        }
+        val client = createClient(connection)
+        val result = sendPacket(suback) {
+            client.subscribe(filters)
+        }
+
+        assertTrue(result.isSuccess)
+        assertSame(suback, result.getOrNull())
+    }
+
+    // ---- UNSUBSCRIBE tests ------------------------------------------------------------------------------------------
+
+    @Test
+    fun `unsubscribe fails when the unsubscribe packet is not sent successfully`() = runTest {
+        everySuspend { connection.send(ofType<Unsubscribe>()) } returns Result.failure(ConnectionException())
+
+        val filters = listOf(Topic("test/topic"))
+        val client = createClient(connection)
+        val result = client.unsubscribe(filters)
+
+        assertTrue(result.isFailure)
+        assertIs<ConnectionException>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `unsubscribe fails when the unsuback packet is not received`() = runTest {
+        everySuspend { connection.send(ofType<Unsubscribe>()) } returns Result.success(Unit)
+
+        val filters = listOf(Topic("test/topic"))
+        val client = createClient(connection)
+        val result = client.unsubscribe(filters)
+
+        assertTrue(result.isFailure)
+        assertIs<TimeoutException>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `unsubscribe succeeds when receiving unsuback packet`() = runTest {
+        everySuspend { connection.send(ofType<Unsubscribe>()) } returns Result.success(Unit)
+
+        val unsuback = Unsuback(
+            packetIdentifier = 1u,
+            reasons = listOf(GrantedQoS0, TopicFilterInvalid)
+        )
+        val filters = listOf(Topic("test/topic"))
+        val client = createClient(connection)
+        val result = sendPacket(unsuback) {
+            client.unsubscribe(filters)
+        }
+
+        assertTrue(result.isSuccess)
+        assertSame(unsuback, result.getOrNull())
     }
 
     private fun createClient(connection: MqttConnection): MqttClient {

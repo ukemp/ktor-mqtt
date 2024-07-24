@@ -59,7 +59,7 @@ public class MqttClient internal constructor(
 
     private val receivedPackets = MutableSharedFlow<Packet>()
 
-    private var packetIdentifier: UShort = 1u
+    private var packetIdentifier: UShort = 0u
     private val packetIdentifierMutex = Mutex()
 
     private val isCleanStart: Boolean
@@ -89,12 +89,19 @@ public class MqttClient internal constructor(
                     connection.send(createConnect())
                 }.onSuccess {
                     inspectConnack(it)
-                }.getOrElse {
-                    throw ConnectionException("Cannot connect to ${config.host}:${config.port} (${it.message})")
+                }.getOrElse() {
+                    throw it
                 }
             }
     }
 
+    /**
+     * Sends a SUBSCRIBE request to the MQTT server for the list of topics contained in [filters].
+     *
+     * @return the SUBACK packet if the subscribe request was answered by the server. Note that the SUBACK may still
+     *         contain error messages for each of the subscribed topics.
+     * @see Suback.hasFailure
+     */
     public suspend fun subscribe(
         filters: List<TopicFilter>,
         subscriptionIdentifier: SubscriptionIdentifier? = null,
@@ -296,7 +303,7 @@ public class MqttClient internal constructor(
     @Suppress("UNCHECKED_CAST")
     private suspend fun <P : Packet> awaitResponseOf(
         predicate: suspend (Packet) -> Boolean,
-        request: suspend () -> Unit
+        request: suspend () -> Result<Unit>
     ): Result<P> {
         val waitForResponse = scope.async {
             val response = withTimeoutOrNull(config.ackMessageTimeout) {
@@ -308,11 +315,12 @@ public class MqttClient internal constructor(
                 Result.failure(TimeoutException("Didn't receive requested packet within ${config.ackMessageTimeout}"))
             }
         }
-        request()
+        request().onFailure { return Result.failure(it) }
+
         return waitForResponse.await()
     }
 
-    private suspend fun <P : Packet> awaitResponseOf(type: PacketType, request: suspend () -> Unit): Result<P> {
+    private suspend fun <P : Packet> awaitResponseOf(type: PacketType, request: suspend () -> Result<Unit>): Result<P> {
         return awaitResponseOf({ it.type == type }, request)
     }
 

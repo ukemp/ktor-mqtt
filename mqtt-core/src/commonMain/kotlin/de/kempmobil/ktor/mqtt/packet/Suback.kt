@@ -15,6 +15,12 @@ public data class Suback(
     }
 }
 
+/**
+ * Returns `true` when this SUBACK packet contains a reason code which not indicates a success.
+ */
+public val Suback.hasFailure: Boolean
+    get() = reasons.any { it.code > GrantedQoS2.code }
+
 @OptIn(ExperimentalUnsignedTypes::class)
 internal fun BytePacketBuilder.write(suback: Suback) {
     with(suback) {

@@ -15,6 +15,12 @@ public data class Unsuback(
     }
 }
 
+/**
+ * Returns `true` when all reason codes of this UNSUBACK are either [Success] or [NoSubscriptionExisted].
+ */
+public val Unsuback.isUnsubscribed: Boolean
+    get() = reasons.all { it.code == Success.code || it.code == NoSubscriptionExisted.code }
+
 @OptIn(ExperimentalUnsignedTypes::class)
 internal fun BytePacketBuilder.write(unsuback: Unsuback) {
     with(unsuback) {
