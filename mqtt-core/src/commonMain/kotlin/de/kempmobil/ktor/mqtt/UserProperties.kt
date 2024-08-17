@@ -1,6 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
 
 public data class UserProperties(public val values: List<StringPair>) {
 
@@ -81,7 +81,7 @@ public class UserPropertiesBuilder() {
 internal val UserProperties.asArray: Array<UserProperty>
     get() = values.map { UserProperty(it) }.toTypedArray()
 
-internal fun BytePacketBuilder.write(userProperties: UserProperties) {
+internal fun Sink.write(userProperties: UserProperties) {
     if (userProperties.values.isNotEmpty()) {
         userProperties.values.forEach { this.write(it) }
     }

@@ -2,7 +2,8 @@ package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
 
 public data class StringPair(val name: String, val value: String) {
 
@@ -13,9 +14,9 @@ public data class StringPair(val name: String, val value: String) {
 
 public infix fun String.to(that: String): StringPair = StringPair(this, that)
 
-internal fun BytePacketBuilder.write(pair: StringPair) {
+internal fun Sink.write(pair: StringPair) {
     writeMqttString(pair.name)
     writeMqttString(pair.value)
 }
 
-internal fun ByteReadPacket.readStringPair() = StringPair(readMqttString(), readMqttString())
+internal fun Source.readStringPair() = StringPair(readMqttString(), readMqttString())

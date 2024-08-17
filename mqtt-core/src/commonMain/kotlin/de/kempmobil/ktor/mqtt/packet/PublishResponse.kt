@@ -1,7 +1,10 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
+import kotlinx.io.readUShort
+import kotlinx.io.writeUShort
 
 /**
  * Base class for PUBACK, PUBREC, PUBREL and PUBCOMP.
@@ -172,8 +175,7 @@ internal val PubcompFactory = object : PublishResponseFactory<Pubcomp> {
     ) = Pubcomp(packetIdentifier, reason, reasonString, userProperties)
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun BytePacketBuilder.write(publishResponse: PublishResponse) {
+internal fun Sink.write(publishResponse: PublishResponse) {
     with(publishResponse) {
         writeUShort(packetIdentifier)
         if (reason != Success) {
@@ -186,13 +188,12 @@ internal fun BytePacketBuilder.write(publishResponse: PublishResponse) {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun <T : PublishResponse> ByteReadPacket.readPublishResponse(createResponse: PublishResponseFactory<T>): T {
+internal fun <T : PublishResponse> Source.readPublishResponse(createResponse: PublishResponseFactory<T>): T {
     val packetIdentifier = readUShort()
 
-    return if (canRead()) {
+    return if (!exhausted()) {
         val reason = ReasonCode.from(readByte())
-        val properties = if (canRead()) {
+        val properties = if (!exhausted()) {
             readProperties()
         } else {
             emptyList()

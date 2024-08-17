@@ -1,7 +1,7 @@
 package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.util.*
-import io.ktor.utils.io.core.*
+import kotlinx.io.*
 import kotlinx.io.bytestring.ByteString
 import kotlin.jvm.JvmInline
 
@@ -46,7 +46,7 @@ internal inline fun <reified T : Property<*>> List<Property<*>>.singleOrNull(): 
     }
 }
 
-internal fun <T> BytePacketBuilder.write(property: Property<T>) {
+internal fun <T> Sink.write(property: Property<T>) {
     with(property as WritableProperty) {
         writeByte(identifier.toByte())
         writeValue(value)
@@ -56,7 +56,7 @@ internal fun <T> BytePacketBuilder.write(property: Property<T>) {
 /**
  * Writes all specified properties, which are non-null. Also prepends the byte count as a variable byte integer.
  */
-internal fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) {
+internal fun Sink.writeProperties(vararg properties: Property<*>?) {
     val byteCount = properties.sumOf { (it as? WritableProperty)?.byteCount() ?: 0 }
     writeVariableByteInt(byteCount)
 
@@ -66,8 +66,7 @@ internal fun BytePacketBuilder.writeProperties(vararg properties: Property<*>?) 
 }
 
 @Suppress("UNCHECKED_CAST")
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun <T> ByteReadPacket.readProperty(): Property<T> {
+internal fun <T> Source.readProperty(): Property<T> {
     return when (val identifier = (readByte().toInt() and 0xFF)) {
         1 -> PayloadFormatIndicator.from(readByte()) as Property<T>
         2 -> MessageExpiryInterval(readUInt()) as Property<T>
@@ -103,7 +102,7 @@ internal fun <T> ByteReadPacket.readProperty(): Property<T> {
 /**
  * Reads all properties from this packet by first reading the variable int byte count and then the properties.
  */
-internal fun ByteReadPacket.readProperties(): List<Property<*>> {
+internal fun Source.readProperties(): List<Property<*>> {
     val byteCount = readVariableByteInt()
     var bytesRead = 0
 
@@ -123,7 +122,7 @@ public value class PayloadFormatIndicator private constructor(override val value
     public override val identifier: Int
         get() = 1
 
-    public override val writeValue: BytePacketBuilder.(Byte) -> Unit
+    public override val writeValue: Sink.(Byte) -> Unit
         get() = ByteWriter
 
     override fun byteCount(): Int = 2
@@ -150,7 +149,7 @@ public value class MessageExpiryInterval(override val value: UInt) : WritablePro
     public override val identifier: Int
         get() = 2
 
-    override val writeValue: BytePacketBuilder.(UInt) -> Unit
+    override val writeValue: Sink.(UInt) -> Unit
         get() = UIntWriter
 
     override fun byteCount(): Int = 5
@@ -162,7 +161,7 @@ public value class ContentType(override val value: String) : WritableProperty<St
     public override val identifier: Int
         get() = 3
 
-    override val writeValue: BytePacketBuilder.(String) -> Unit
+    override val writeValue: Sink.(String) -> Unit
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
@@ -174,7 +173,7 @@ public value class ResponseTopic(override val value: String) : WritableProperty<
     public override val identifier: Int
         get() = 8
 
-    override val writeValue: BytePacketBuilder.(String) -> Unit
+    override val writeValue: Sink.(String) -> Unit
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
@@ -186,7 +185,7 @@ public value class CorrelationData(override val value: ByteString) : WritablePro
     public override val identifier: Int
         get() = 9
 
-    override val writeValue: BytePacketBuilder.(ByteString) -> Unit
+    override val writeValue: Sink.(ByteString) -> Unit
         get() = ByteStringWriter
 
     override fun byteCount(): Int = value.size + 1
@@ -203,7 +202,7 @@ public value class SubscriptionIdentifier(override val value: Int) : WritablePro
     public override val identifier: Int
         get() = 11
 
-    override val writeValue: BytePacketBuilder.(Int) -> Unit
+    override val writeValue: Sink.(Int) -> Unit
         get() = { writeVariableByteInt(value) }
 
     override fun byteCount(): Int = value.variableByteIntSize() + 1
@@ -215,7 +214,7 @@ public value class SessionExpiryInterval(override val value: UInt) : WritablePro
     public override val identifier: Int
         get() = 17
 
-    override val writeValue: BytePacketBuilder.(UInt) -> Unit
+    override val writeValue: Sink.(UInt) -> Unit
         get() = UIntWriter
 
     override fun byteCount(): Int = 5
@@ -230,7 +229,7 @@ public value class AssignedClientIdentifier(override val value: String) : Writab
     public override val identifier: Int
         get() = 18
 
-    override val writeValue: BytePacketBuilder.(String) -> Unit
+    override val writeValue: Sink.(String) -> Unit
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
@@ -242,7 +241,7 @@ public value class ServerKeepAlive(override val value: UShort) : WritablePropert
     public override val identifier: Int
         get() = 19
 
-    override val writeValue: BytePacketBuilder.(UShort) -> Unit
+    override val writeValue: Sink.(UShort) -> Unit
         get() = UShortWriter
 
     override fun byteCount(): Int = 3
@@ -254,7 +253,7 @@ public value class AuthenticationMethod(override val value: String) : WritablePr
     public override val identifier: Int
         get() = 21
 
-    override val writeValue: BytePacketBuilder.(String) -> Unit
+    override val writeValue: Sink.(String) -> Unit
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
@@ -266,7 +265,7 @@ public value class AuthenticationData(override val value: ByteString) : Writable
     public override val identifier: Int
         get() = 22
 
-    override val writeValue: BytePacketBuilder.(ByteString) -> Unit
+    override val writeValue: Sink.(ByteString) -> Unit
         get() = ByteStringWriter
 
     override fun byteCount(): Int = value.size + 1
@@ -278,7 +277,7 @@ public value class RequestProblemInformation(override val value: Boolean) : Writ
     public override val identifier: Int
         get() = 23
 
-    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+    override val writeValue: Sink.(Boolean) -> Unit
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
@@ -290,7 +289,7 @@ public value class WillDelayInterval(override val value: UInt) : WritablePropert
     public override val identifier: Int
         get() = 24
 
-    override val writeValue: BytePacketBuilder.(UInt) -> Unit
+    override val writeValue: Sink.(UInt) -> Unit
         get() = UIntWriter
 
     override fun byteCount(): Int = 5
@@ -302,7 +301,7 @@ public value class RequestResponseInformation(override val value: Boolean) : Wri
     public override val identifier: Int
         get() = 25
 
-    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+    override val writeValue: Sink.(Boolean) -> Unit
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
@@ -314,7 +313,7 @@ public value class ResponseInformation(override val value: String) : WritablePro
     public override val identifier: Int
         get() = 26
 
-    override val writeValue: BytePacketBuilder.(String) -> Unit
+    override val writeValue: Sink.(String) -> Unit
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
@@ -326,7 +325,7 @@ public value class ServerReference(override val value: String) : WritablePropert
     public override val identifier: Int
         get() = 28
 
-    override val writeValue: BytePacketBuilder.(String) -> Unit
+    override val writeValue: Sink.(String) -> Unit
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
@@ -338,7 +337,7 @@ public value class ReasonString(override val value: String) : WritableProperty<S
     public override val identifier: Int
         get() = 31
 
-    override val writeValue: BytePacketBuilder.(String) -> Unit
+    override val writeValue: Sink.(String) -> Unit
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
@@ -357,7 +356,7 @@ public value class ReceiveMaximum(override val value: Short) : WritableProperty<
     public override val identifier: Int
         get() = 33
 
-    override val writeValue: BytePacketBuilder.(Short) -> Unit
+    override val writeValue: Sink.(Short) -> Unit
         get() = ShortWriter
 
     override fun byteCount(): Int = 3
@@ -369,7 +368,7 @@ public value class TopicAliasMaximum(override val value: UShort) : WritablePrope
     public override val identifier: Int
         get() = 34
 
-    override val writeValue: BytePacketBuilder.(UShort) -> Unit
+    override val writeValue: Sink.(UShort) -> Unit
         get() = UShortWriter
 
     override fun byteCount(): Int = 3
@@ -381,7 +380,7 @@ public value class TopicAlias(override val value: UShort) : WritableProperty<USh
     public override val identifier: Int
         get() = 35
 
-    override val writeValue: BytePacketBuilder.(UShort) -> Unit
+    override val writeValue: Sink.(UShort) -> Unit
         get() = UShortWriter
 
     override fun byteCount(): Int = 3
@@ -393,7 +392,7 @@ public value class MaximumQoS(override val value: Byte) : WritableProperty<Byte>
     public override val identifier: Int
         get() = 36
 
-    override val writeValue: BytePacketBuilder.(Byte) -> Unit
+    override val writeValue: Sink.(Byte) -> Unit
         get() = ByteWriter
 
     override fun byteCount(): Int = 2
@@ -408,7 +407,7 @@ public value class RetainAvailable(override val value: Boolean) : WritableProper
     public override val identifier: Int
         get() = 37
 
-    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+    override val writeValue: Sink.(Boolean) -> Unit
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
@@ -420,7 +419,7 @@ public value class UserProperty(override val value: StringPair) : WritableProper
     public override val identifier: Int
         get() = 38
 
-    override val writeValue: BytePacketBuilder.(StringPair) -> Unit
+    override val writeValue: Sink.(StringPair) -> Unit
         get() = { write(it) }
 
     override fun byteCount(): Int {
@@ -434,7 +433,7 @@ public value class MaximumPacketSize(override val value: UInt) : WritablePropert
     public override val identifier: Int
         get() = 39
 
-    override val writeValue: BytePacketBuilder.(UInt) -> Unit
+    override val writeValue: Sink.(UInt) -> Unit
         get() = UIntWriter
 
     override fun byteCount(): Int = 5
@@ -446,7 +445,7 @@ public value class WildcardSubscriptionAvailable(override val value: Boolean) : 
     public override val identifier: Int
         get() = 40
 
-    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+    override val writeValue: Sink.(Boolean) -> Unit
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
@@ -458,7 +457,7 @@ public value class SubscriptionIdentifierAvailable(override val value: Boolean) 
     public override val identifier: Int
         get() = 41
 
-    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+    override val writeValue: Sink.(Boolean) -> Unit
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
@@ -470,7 +469,7 @@ public value class SharedSubscriptionAvailable(override val value: Boolean) : Wr
     public override val identifier: Int
         get() = 42
 
-    override val writeValue: BytePacketBuilder.(Boolean) -> Unit
+    override val writeValue: Sink.(Boolean) -> Unit
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
@@ -482,7 +481,7 @@ private interface WritableProperty<T> : Property<T> {
 
     val identifier: Int
 
-    val writeValue: BytePacketBuilder.(T) -> Unit
+    val writeValue: Sink.(T) -> Unit
 
     /**
      * The number of bytes which are used by this property when encoded in MQTT format.
@@ -490,33 +489,31 @@ private interface WritableProperty<T> : Property<T> {
     fun byteCount(): Int
 }
 
-private val ByteWriter: BytePacketBuilder.(Byte) -> Unit = {
+private val ByteWriter: Sink.(Byte) -> Unit = {
     writeByte(it)
 }
 
-private val ShortWriter: BytePacketBuilder.(Short) -> Unit = {
+private val ShortWriter: Sink.(Short) -> Unit = {
     writeShort(it)
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-private val UShortWriter: BytePacketBuilder.(UShort) -> Unit = {
+private val UShortWriter: Sink.(UShort) -> Unit = {
     writeUShort(it)
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-private val UIntWriter: BytePacketBuilder.(UInt) -> Unit = {
+private val UIntWriter: Sink.(UInt) -> Unit = {
     writeUInt(it)
 }
 
-private val StringWriter: BytePacketBuilder.(String) -> Unit = {
+private val StringWriter: Sink.(String) -> Unit = {
     writeMqttString(it)
 }
 
-private val ByteStringWriter: BytePacketBuilder.(ByteString) -> Unit = {
+private val ByteStringWriter: Sink.(ByteString) -> Unit = {
     writeMqttByteString(it)  // Do NOT(!) use ByteWriteChannel.writeFully(...) as this will not write the size of the byte array
 }
 
-private val BooleanWriter: BytePacketBuilder.(Boolean) -> Unit = {
+private val BooleanWriter: Sink.(Boolean) -> Unit = {
     writeByte(if (it) 1 else 0)
 }
 

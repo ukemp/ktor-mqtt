@@ -3,7 +3,10 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
+import kotlinx.io.readUShort
+import kotlinx.io.writeUShort
 
 public data class Unsubscribe(
     public override val packetIdentifier: UShort,
@@ -18,8 +21,7 @@ public data class Unsubscribe(
     override val headerFlags: Int = 2
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun BytePacketBuilder.write(unsubscribe: Unsubscribe) {
+internal fun Sink.write(unsubscribe: Unsubscribe) {
     with(unsubscribe) {
         writeUShort(packetIdentifier)
         writeProperties(*userProperties.asArray)
@@ -31,12 +33,11 @@ internal fun BytePacketBuilder.write(unsubscribe: Unsubscribe) {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun ByteReadPacket.readUnsubscribe(): Unsubscribe {
+internal fun Source.readUnsubscribe(): Unsubscribe {
     val packetIdentifier = readUShort()
     val properties = readProperties()
     val topics = buildList {
-        while (canRead()) {
+        while (!exhausted()) {
             add(Topic(readMqttString()))
         }
     }

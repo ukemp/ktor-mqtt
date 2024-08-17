@@ -3,7 +3,10 @@ package de.kempmobil.ktor.mqtt.packet
 import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
+import kotlinx.io.readUShort
+import kotlinx.io.writeUShort
 
 public class Subscribe(
     public override val packetIdentifier: UShort,
@@ -19,8 +22,7 @@ public class Subscribe(
     override val headerFlags: Int = 2
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun BytePacketBuilder.write(subscribe: Subscribe) {
+internal fun Sink.write(subscribe: Subscribe) {
     with(subscribe) {
         writeUShort(subscribe.packetIdentifier)
         writeProperties(
@@ -36,12 +38,11 @@ internal fun BytePacketBuilder.write(subscribe: Subscribe) {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun ByteReadPacket.readSubscribe(): Subscribe {
+internal fun Source.readSubscribe(): Subscribe {
     val packetIdentifier = readUShort()
     val properties = readProperties()
     val filters = buildList {
-        while (canRead()) {
+        while (!exhausted()) {
             val filter = readMqttString()
             val options = readByte().toSubscriptionOptions()
             add(TopicFilter(Topic(filter), options))

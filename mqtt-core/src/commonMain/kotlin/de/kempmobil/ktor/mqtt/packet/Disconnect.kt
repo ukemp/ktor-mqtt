@@ -1,7 +1,8 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
 
 public data class Disconnect(
     val reason: ReasonCode,
@@ -11,7 +12,7 @@ public data class Disconnect(
     val serverReference: ServerReference? = null,
 ) : AbstractPacket(PacketType.DISCONNECT)
 
-internal fun BytePacketBuilder.write(disconnect: Disconnect) {
+internal fun Sink.write(disconnect: Disconnect) {
     with(disconnect) {
         writeByte(reason.code.toByte())
         writeProperties(
@@ -23,10 +24,10 @@ internal fun BytePacketBuilder.write(disconnect: Disconnect) {
     }
 }
 
-internal fun ByteReadPacket.readDisconnect(): Disconnect {
+internal fun Source.readDisconnect(): Disconnect {
     val reason = ReasonCode.from(readByte(), defaultSuccessReason = NormalDisconnection)
 
-    val properties = if (canRead()) {
+    val properties = if (!exhausted()) {
         readProperties()
     } else {
         emptyList()

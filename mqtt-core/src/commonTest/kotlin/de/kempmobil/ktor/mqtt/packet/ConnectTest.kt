@@ -7,6 +7,7 @@ import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.readVariableByteInt
 import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
+import kotlinx.io.readUInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -14,7 +15,6 @@ import kotlin.test.assertFalse
 class ConnectTest {
 
     @Test
-    @OptIn(ExperimentalUnsignedTypes::class)
     fun `all bytes are written correctly`() {
         val willMessage = buildWillMessage("will-topic") {
             payload(ByteString(byteArrayOf(1, 5, 33)))
@@ -63,7 +63,7 @@ class ConnectTest {
         assertEquals("password", reader.readMqttString())
 
         // End of stream
-        assertFalse(reader.canRead())
+        assertFalse(!reader.exhausted())
     }
 
     @Test

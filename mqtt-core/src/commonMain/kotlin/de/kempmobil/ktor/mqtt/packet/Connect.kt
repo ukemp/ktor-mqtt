@@ -4,6 +4,9 @@ import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
+import kotlinx.io.readUShort
 
 public data class Connect(
     val isCleanStart: Boolean,
@@ -39,7 +42,7 @@ public data class Connect(
 // The MQTT protocol name: "04MQTT" encoded as an MQTT string
 private val ProtocolName = byteArrayOf(0, 4, 77, 81, 84, 84)
 
-internal fun BytePacketBuilder.write(connect: Connect) {
+internal fun Sink.write(connect: Connect) {
     writeFully(ProtocolName)
     writeByte(5) // MQTT version 5
 
@@ -72,8 +75,7 @@ internal fun BytePacketBuilder.write(connect: Connect) {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun ByteReadPacket.readConnect(): Connect {
+internal fun Source.readConnect(): Connect {
     val protocolName = readMqttString()
     wellFormedWhen(protocolName == "MQTT") { "Connect packet must start with 'MQTT', but is: '$protocolName'" }
 

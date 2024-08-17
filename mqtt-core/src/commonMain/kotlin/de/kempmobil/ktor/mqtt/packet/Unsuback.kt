@@ -1,7 +1,10 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
+import kotlinx.io.readUShort
+import kotlinx.io.writeUShort
 
 public data class Unsuback(
     override val packetIdentifier: UShort,
@@ -21,8 +24,7 @@ public data class Unsuback(
 public val Unsuback.isUnsubscribed: Boolean
     get() = reasons.all { it.code == Success.code || it.code == NoSubscriptionExisted.code }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun BytePacketBuilder.write(unsuback: Unsuback) {
+internal fun Sink.write(unsuback: Unsuback) {
     with(unsuback) {
         writeUShort(packetIdentifier)
         writeProperties(reasonString, *userProperties.asArray)
@@ -35,12 +37,11 @@ internal fun BytePacketBuilder.write(unsuback: Unsuback) {
 }
 
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun ByteReadPacket.readUnsuback(): Unsuback {
+internal fun Source.readUnsuback(): Unsuback {
     val packetIdentifier = readUShort()
     val properties = readProperties()
     val reasons = buildList {
-        while (canRead()) {
+        while (!exhausted()) {
             add(ReasonCode.from(readByte()))
         }
     }

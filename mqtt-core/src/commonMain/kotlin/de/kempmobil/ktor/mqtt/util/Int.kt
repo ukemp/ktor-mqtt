@@ -2,9 +2,10 @@ package de.kempmobil.ktor.mqtt.util
 
 import de.kempmobil.ktor.mqtt.MalformedPacketException
 import io.ktor.utils.io.*
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
 
-internal fun BytePacketBuilder.writeVariableByteInt(value: Int) {
+internal fun Sink.writeVariableByteInt(value: Int) {
     var x = value
     do {
         var encodedByte = x.rem(128)
@@ -28,7 +29,7 @@ internal suspend fun ByteWriteChannel.writeVariableByteInt(value: Int) {
     } while (x > 0)
 }
 
-internal fun ByteReadPacket.readVariableByteInt(): Int {
+internal fun Source.readVariableByteInt(): Int {
     var multiplier = 1
     var value = 0
     do {

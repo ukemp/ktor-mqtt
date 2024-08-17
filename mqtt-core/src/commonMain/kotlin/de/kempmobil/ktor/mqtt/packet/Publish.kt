@@ -4,7 +4,11 @@ import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
 import kotlinx.io.bytestring.ByteString
+import kotlinx.io.readUShort
+import kotlinx.io.writeUShort
 
 public data class Publish(
     val isDupMessage: Boolean = false,
@@ -44,8 +48,7 @@ public data class Publish(
         }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun BytePacketBuilder.write(publish: Publish) {
+internal fun Sink.write(publish: Publish) {
     with(publish) {
         writeMqttString(topic.name)
         if (qoS.requiresPacketIdentifier) {
@@ -65,8 +68,7 @@ internal fun BytePacketBuilder.write(publish: Publish) {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun ByteReadPacket.readPublish(headerFlags: Int): Publish {
+internal fun Source.readPublish(headerFlags: Int): Publish {
     val qoS = headerFlags.qoS
     val topicName = readMqttString()
     val packetIdentifier = if (qoS.requiresPacketIdentifier) {

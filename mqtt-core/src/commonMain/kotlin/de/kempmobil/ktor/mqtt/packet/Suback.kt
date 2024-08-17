@@ -1,7 +1,10 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
+import kotlinx.io.readUShort
+import kotlinx.io.writeUShort
 
 public data class Suback(
     override val packetIdentifier: UShort,
@@ -21,8 +24,7 @@ public data class Suback(
 public val Suback.hasFailure: Boolean
     get() = reasons.any { it.code > GrantedQoS2.code }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun BytePacketBuilder.write(suback: Suback) {
+internal fun Sink.write(suback: Suback) {
     with(suback) {
         writeUShort(packetIdentifier)
         writeProperties(reasonString, *userProperties.asArray)
@@ -34,12 +36,11 @@ internal fun BytePacketBuilder.write(suback: Suback) {
     }
 }
 
-@OptIn(ExperimentalUnsignedTypes::class)
-internal fun ByteReadPacket.readSuback(): Suback {
+internal fun Source.readSuback(): Suback {
     val packetIdentifier = readUShort()
     val properties = readProperties()
     val reasons = buildList {
-        while (canRead()) {
+        while (!exhausted()) {
             add(ReasonCode.from(readByte(), defaultSuccessReason = GrantedQoS0))
         }
     }

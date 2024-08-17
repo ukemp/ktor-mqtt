@@ -1,7 +1,8 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
 
 public data class Auth(
     val reason: ReasonCode,
@@ -23,7 +24,7 @@ public data class Auth(
     }
 }
 
-internal fun BytePacketBuilder.write(auth: Auth) {
+internal fun Sink.write(auth: Auth) {
     with(auth) {
         writeByte(reason.code.toByte())
         writeProperties(
@@ -35,7 +36,7 @@ internal fun BytePacketBuilder.write(auth: Auth) {
     }
 }
 
-internal fun ByteReadPacket.readAuth(): Auth {
+internal fun Source.readAuth(): Auth {
     val reason = ReasonCode.from(readByte())
     val properties = readProperties()
 

@@ -1,7 +1,8 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
-import io.ktor.utils.io.core.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
 
 public data class Connack(
     val isSessionPresent: Boolean,
@@ -32,7 +33,7 @@ public data class Connack(
         get() = reason.code == 0
 }
 
-internal fun BytePacketBuilder.write(connack: Connack) {
+internal fun Sink.write(connack: Connack) {
     with(connack) {
         writeByte(if (isSessionPresent) 1 else 0)
         writeByte(reason.code.toByte())
@@ -62,7 +63,7 @@ internal fun BytePacketBuilder.write(connack: Connack) {
  * Constructs a Connack packet from this byte read packet. Expects the packet to start at the remaining length (byte 2)
  * of the fixed header of the Connack packet.
  */
-internal fun ByteReadPacket.readConnack(): Connack {
+internal fun Source.readConnack(): Connack {
     val isSessionPresent = readByte() == 1.toByte()
     val reason = ReasonCode.from(readByte())
     val properties = readProperties()
