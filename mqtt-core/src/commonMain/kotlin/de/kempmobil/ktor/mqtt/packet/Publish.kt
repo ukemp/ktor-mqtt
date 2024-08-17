@@ -86,7 +86,7 @@ internal fun Source.readPublish(headerFlags: Int): Publish {
         isRetainMessage = headerFlags.isRetainMessage,
         packetIdentifier = packetIdentifier,
         topic = Topic(topicName),
-        payloadFormatIndicator = properties.singleOrNull<PayloadFormatIndicator>() ?: PayloadFormatIndicator.NONE,
+        payloadFormatIndicator = properties.singleOrNull<PayloadFormatIndicator>(),
         messageExpiryInterval = properties.singleOrNull<MessageExpiryInterval>(),
         topicAlias = properties.singleOrNull<TopicAlias>(),
         responseTopic = properties.singleOrNull<ResponseTopic>(),
