@@ -11,9 +11,10 @@ import kotlin.time.Duration.Companion.seconds
 
 public class MqttClient internal constructor(
     private val config: MqttClientConfig,
-    private val connection: MqttConnection
+    private val connection: MqttConnection,
+    private val packetStore: PacketStore
 ) {
-    public constructor(config: MqttClientConfig) : this(config, MqttConnectionImpl(config))
+    public constructor(config: MqttClientConfig) : this(config, MqttConnectionImpl(config), InMemoryPacketStore())
 
     private val _publishedPackets = MutableSharedFlow<Publish>()
 
@@ -61,6 +62,8 @@ public class MqttClient internal constructor(
 
     private var packetIdentifier: UShort = 0u
     private val packetIdentifierMutex = Mutex()
+
+    private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
 
     private val isCleanStart: Boolean
         get() = true // TODO
@@ -127,22 +130,29 @@ public class MqttClient internal constructor(
 
     public suspend fun publish(request: PublishRequest): Result<QoS> {
         return createPublish(request).map { publish ->
-            connection.send(publish)
 
             when (publish.qoS) {
                 QoS.AT_MOST_ONCE -> {
+                    connection.send(publish)
                     QoS.AT_MOST_ONCE
                 }
 
                 QoS.AT_LEAST_ONCE -> {
+                    packetStore.store(publish)
+                    connection.send(publish)
                     receivedPackets.first { it.isResponseFor<Puback>(publish) }
+                    packetStore.acknowledge(publish)
                     QoS.AT_LEAST_ONCE
                 }
 
                 QoS.EXACTLY_ONE -> {
+                    packetStore.store(publish)
+                    connection.send(publish)
                     receivedPackets.first { it.isResponseFor<Pubrec>(publish) }
-                    connection.send(Pubrel(packetIdentifier = publish.packetIdentifier!!, Success))
+                    val pubrel = packetStore.replace(publish)
+                    connection.send(pubrel)
                     receivedPackets.first { it.isResponseFor<Pubcomp>(publish) }
+                    packetStore.acknowledge(pubrel)
                     QoS.EXACTLY_ONE
                 }
             }
@@ -208,7 +218,7 @@ public class MqttClient internal constructor(
         return if (request.topicAlias != null && request.topicAlias.value > serverTopicAliasMaximum.value) {
             Result.failure(TopicAliasException("Server maximum topic alias is: $serverTopicAliasMaximum, but you requested: ${request.topicAlias}"))
         } else if (request.topic.containsWildcard()) {
-            Result.failure(IllegalArgumentException("The topic of a PUBLISH packet must not contain wildcard character: '${request.topic}"))
+            Result.failure(IllegalArgumentException("The topic of a PUBLISH packet must not contain wildcard characters: '${request.topic}'"))
         } else {
             Result.success(
                 Publish(
@@ -283,6 +293,7 @@ public class MqttClient internal constructor(
     }
 
     private suspend fun handlePacket(packet: Packet) {
+        Logger.v { "Received new packet: $packet" }
         when (packet) {
             is Disconnect -> {
                 Logger.i { "Received DISCONNECT (${packet.reasonString.ifNull(packet.reason)}) from server, disconnecting..." }
@@ -290,7 +301,36 @@ public class MqttClient internal constructor(
             }
 
             is Publish -> {
-                _publishedPackets.emit(packet)
+                when (packet.qoS) {
+                    QoS.AT_MOST_ONCE -> {
+                        _publishedPackets.emit(packet)
+                    }
+
+                    QoS.AT_LEAST_ONCE -> {
+                        _publishedPackets.emit(packet)
+                        connection.send(Puback.from(packet))
+                    }
+
+                    QoS.EXACTLY_ONE -> {
+                        val id = packet.packetIdentifier!!
+                        if (publishReceivedPackets.containsKey(id)) {
+                            // Must resend the PUBREC packet
+                            publishReceivedPackets[id]?.let {
+                                connection.send(it)
+                            }
+                        } else {
+                            _publishedPackets.emit(packet)
+                            val pubrec = Pubrec.from(packet)
+                            publishReceivedPackets[id] = pubrec
+                            connection.send(pubrec)
+                        }
+                    }
+                }
+            }
+
+            is Pubrel -> {
+                connection.send(Pubcomp.from(packet))
+                publishReceivedPackets.remove(packet.packetIdentifier)
             }
 
             else -> {

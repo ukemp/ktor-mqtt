@@ -1,8 +1,13 @@
 package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Logger
+import de.kempmobil.ktor.mqtt.packet.Publish
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.bytestring.decodeToString
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
 import org.testcontainers.junit.jupiter.Container
@@ -123,7 +128,7 @@ class IntegrationTest {
         }
         client.connect()
 
-        val puback = client.publish(buildPublishRequest("test/topic") {
+        val qos = client.publish(buildPublishRequest("test/topic") {
             payload("This is a test publish packet")
             desiredQoS = QoS.EXACTLY_ONE
             userProperties {
@@ -131,24 +136,70 @@ class IntegrationTest {
             }
         })
 
-        println("Published: $puback")
+        println("Published: $qos")
         client.disconnect()
 
         Logger.i { "Terminating..." }
     }
 
     @Test
-    fun `subscribe to topic`() = runTest {
+    fun `can subscribe to topics with different QoS values`() = runTest {
         client = MqttClient(host, port) {
             userName = testUser
             password = testPassword
         }
         client.connect()
-        val suback = client.subscribe(buildFilterList {
-            +"test/topic"
-            add("another/topic", qoS = QoS.EXACTLY_ONE)
+        val result = client.subscribe(buildFilterList {
+            add("topic/0", qoS = QoS.AT_MOST_ONCE)
+            add("topic/1", qoS = QoS.AT_LEAST_ONCE)
+            add("topic/2", qoS = QoS.EXACTLY_ONE)
         })
-        println("---------------> $suback")
+
+        assertTrue(result.isSuccess, "Cannot subscribe to topic: $result")
+        assertEquals(listOf(GrantedQoS0, GrantedQoS1, GrantedQoS2), result.getOrThrow().reasons)
+
+        client.disconnect()
+    }
+
+    @Test
+    fun `receive message with QoS EXACTLY_ONE`() = runTest {
+        val topic = "test/topic"
+        val id = "client-under-test"
+        val payload = "text-payload"
+        var receivedMessage: Publish? = null
+
+        client = MqttClient(host, port) {
+            userName = testUser
+            password = testPassword
+            clientId = id
+        }
+        client.connect()
+        val receiverJob = CoroutineScope(Dispatchers.Default).launch {
+            receivedMessage = client.publishedPackets.first()
+        }
+
+        val suback = client.subscribe(buildFilterList {
+            add(topic, qoS = QoS.EXACTLY_ONE)
+        })
+        assertTrue(suback.isSuccess, "Cannot subscribe to '$topic': $suback")
+
+        // Use "mosquitto_pub" to send a message to our client:
+        val result = mosquitto.execInContainer(
+            "mosquitto_pub", "-h", "localhost", "-u", testUser, "-P", testPassword, "-t", topic, "-q", "2",
+            "-i", "test-publisher", "-m", payload
+        )
+
+        assertEquals(0, result.exitCode, "Exit code of 'mosquitto_pub' should be zero")
+        Thread.sleep(200)
+        receiverJob.cancel()
+
+        assertNotNull(receivedMessage)
+        assertEquals(payload, receivedMessage!!.payload.decodeToString())
+        assertTrue(
+            mosquitto.logs.contains("Received PUBCOMP from $id"),
+            "Server should have received a PUBCOMP message"
+        )
+
         client.disconnect()
     }
 }

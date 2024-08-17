@@ -231,7 +231,7 @@ class MqttClientTest {
         val config = buildConfig("mock") {
             ackMessageTimeout = 100.milliseconds
         }
-        return MqttClient(config, connection)
+        return MqttClient(config, connection, InMemoryPacketStore())
     }
 
     /**
