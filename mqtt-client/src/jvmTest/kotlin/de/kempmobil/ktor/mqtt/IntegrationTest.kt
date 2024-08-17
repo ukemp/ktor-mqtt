@@ -162,10 +162,78 @@ class IntegrationTest {
     }
 
     @Test
-    fun `receive message with QoS EXACTLY_ONE`() = runTest {
-        val topic = "test/topic"
+    fun `receive message with QoS AT_MOST_ONCE`() = runTest {
+        val topic = "test/topic/0"
         val id = "client-under-test"
-        val payload = "text-payload"
+        val payload = "text-payload-at-most-once"
+        var receivedMessage: Publish? = null
+
+        client = MqttClient(host, port) {
+            userName = testUser
+            password = testPassword
+            clientId = id
+        }
+        client.connect()
+        val receiverJob = CoroutineScope(Dispatchers.Default).launch {
+            receivedMessage = client.publishedPackets.first()
+        }
+
+        val suback = client.subscribe(buildFilterList {
+            add(topic, qoS = QoS.AT_MOST_ONCE)
+        })
+        assertTrue(suback.isSuccess, "Cannot subscribe to '$topic': $suback")
+
+        sendMessage(topic, "0", payload)
+        Thread.sleep(200)
+        receiverJob.cancel()
+
+        assertNotNull(receivedMessage)
+        assertEquals(payload, receivedMessage!!.payload.decodeToString())
+
+        client.disconnect()
+    }
+
+    @Test
+    fun `receive message with QoS AT_LEAST_ONCE`() = runTest {
+        val topic = "test/topic/1"
+        val id = "client-under-test"
+        val payload = "text-payload-at-least-once"
+        var receivedMessage: Publish? = null
+
+        client = MqttClient(host, port) {
+            userName = testUser
+            password = testPassword
+            clientId = id
+        }
+        client.connect()
+        val receiverJob = CoroutineScope(Dispatchers.Default).launch {
+            receivedMessage = client.publishedPackets.first()
+        }
+
+        val suback = client.subscribe(buildFilterList {
+            add(topic, qoS = QoS.AT_LEAST_ONCE)
+        })
+        assertTrue(suback.isSuccess, "Cannot subscribe to '$topic': $suback")
+
+        sendMessage(topic, "1", payload)
+        Thread.sleep(200)
+        receiverJob.cancel()
+
+        assertNotNull(receivedMessage)
+        assertEquals(payload, receivedMessage!!.payload.decodeToString())
+        assertTrue(
+            mosquitto.logs.contains("Received PUBACK from $id"),
+            "Server should have received a PUBACK message"
+        )
+
+        client.disconnect()
+    }
+
+    @Test
+    fun `receive message with QoS EXACTLY_ONE`() = runTest {
+        val topic = "test/topic/2"
+        val id = "client-under-test"
+        val payload = "text-payload-exactly-one"
         var receivedMessage: Publish? = null
 
         client = MqttClient(host, port) {
@@ -183,13 +251,7 @@ class IntegrationTest {
         })
         assertTrue(suback.isSuccess, "Cannot subscribe to '$topic': $suback")
 
-        // Use "mosquitto_pub" to send a message to our client:
-        val result = mosquitto.execInContainer(
-            "mosquitto_pub", "-h", "localhost", "-u", testUser, "-P", testPassword, "-t", topic, "-q", "2",
-            "-i", "test-publisher", "-m", payload
-        )
-
-        assertEquals(0, result.exitCode, "Exit code of 'mosquitto_pub' should be zero")
+        sendMessage(topic, "2", payload)
         Thread.sleep(200)
         receiverJob.cancel()
 
@@ -201,5 +263,15 @@ class IntegrationTest {
         )
 
         client.disconnect()
+    }
+
+    private fun sendMessage(topic: String, qos: String, payload: String) {
+        // Use "mosquitto_pub" to send a message to our client:
+        val result = mosquitto.execInContainer(
+            "mosquitto_pub", "-h", "localhost", "-u", testUser, "-P", testPassword, "-t", topic, "-q", qos,
+            "-i", "test-publisher", "-m", payload
+        )
+
+        assertEquals(0, result.exitCode, "Exit code of 'mosquitto_pub' should be zero")
     }
 }
