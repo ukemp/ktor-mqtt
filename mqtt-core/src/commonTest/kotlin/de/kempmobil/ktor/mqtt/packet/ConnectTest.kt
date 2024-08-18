@@ -10,6 +10,7 @@ import kotlinx.io.bytestring.encodeToByteString
 import kotlinx.io.readUInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
 class ConnectTest {
@@ -50,6 +51,26 @@ class ConnectTest {
                 AuthenticationData("123".encodeToByteString())
             )
         )
+    }
+
+    @Test
+    fun `will QoS must be zero when will message is null`() {
+        val willMessage = buildWillMessage("will/topic") {
+            payload("will payload")
+        }
+
+        // Must not fail:
+        Connect(true, null, QoS.AT_MOST_ONCE, false, 60u, "client")
+        Connect(true, willMessage, QoS.AT_MOST_ONCE, false, 60u, "client")
+        Connect(true, willMessage, QoS.AT_LEAST_ONCE, false, 60u, "client")
+        Connect(true, willMessage, QoS.EXACTLY_ONE, false, 60u, "client")
+
+        assertFailsWith<MalformedPacketException> {
+            Connect(true, null, QoS.AT_LEAST_ONCE, false, 60u, "client")
+        }
+        assertFailsWith<MalformedPacketException> {
+            Connect(true, null, QoS.EXACTLY_ONE, false, 60u, "client")
+        }
     }
 
     @Test
