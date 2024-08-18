@@ -15,6 +15,7 @@ class SubscribeTest {
                 filters = buildFilterList {
                     add("test/topic/1")
                     add("test/topic/2", QoS.EXACTLY_ONE, true, true, RetainHandling.DO_NOT_SEND)
+                    add("test/topic/3", QoS.AT_LEAST_ONCE, false, true, RetainHandling.SEND_IF_NOT_EXISTS)
                 },
                 subscriptionIdentifier = SubscriptionIdentifier(8888),
                 userProperties = buildUserProperties { "key" to "value" }
