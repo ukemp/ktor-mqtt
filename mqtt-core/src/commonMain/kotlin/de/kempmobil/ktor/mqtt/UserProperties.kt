@@ -31,6 +31,8 @@ public data class UserProperties(public val values: List<StringPair>) {
         return values.find { it.value == value } != null
     }
 
+    public fun isNotEmpty(): Boolean = values.isNotEmpty()
+
     public companion object {
 
         public val EMPTY: UserProperties = UserProperties(values = emptyList())

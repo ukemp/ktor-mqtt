@@ -11,11 +11,39 @@ import kotlinx.io.writeUShort
  */
 public sealed class PublishResponse(
     type: PacketType,
-    public override val packetIdentifier: UShort,
+    public final override val packetIdentifier: UShort,
     public val reason: ReasonCode,
     public val reasonString: ReasonString? = null,
     public val userProperties: UserProperties = UserProperties.EMPTY
 ) : AbstractPacket(type), PacketIdentifierPacket {
+
+    init {
+        wellFormedWhen(packetIdentifier != 0.toUShort()) {
+            "A zero packet identifier is not allowed for PUBACK, PUBREC , PUBREL, or PUBCOMP [MQTT-2.2.1-5]"
+        }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as PublishResponse
+
+        if (packetIdentifier != other.packetIdentifier) return false
+        if (reason != other.reason) return false
+        if (reasonString != other.reasonString) return false
+        if (userProperties != other.userProperties) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = packetIdentifier.hashCode()
+        result = 31 * result + reason.hashCode()
+        result = 31 * result + (reasonString?.hashCode() ?: 0)
+        result = 31 * result + userProperties.hashCode()
+        return result
+    }
 
     override fun toString(): String {
         return "${this::class.simpleName}(packetIdentifier=$packetIdentifier, reason=$reason, reasonString=$reasonString, userProperties=$userProperties)"
@@ -178,7 +206,7 @@ internal val PubcompFactory = object : PublishResponseFactory<Pubcomp> {
 internal fun Sink.write(publishResponse: PublishResponse) {
     with(publishResponse) {
         writeUShort(packetIdentifier)
-        if (reason != Success) {
+        if (reason != Success || reasonString != null || userProperties.isNotEmpty()) {
             writeByte(reason.code.toByte())
             writeProperties(
                 reasonString,
