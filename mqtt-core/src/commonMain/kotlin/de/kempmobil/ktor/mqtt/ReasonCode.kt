@@ -1,6 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
-public data class ReasonCode(val code: Int, val name: String) {
+public data class ReasonCode internal constructor(val code: Int, val name: String) {
 
     public override fun toString(): String {
         return "$code $name"

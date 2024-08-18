@@ -13,7 +13,7 @@ public data class Disconnect(
 ) : AbstractPacket(PacketType.DISCONNECT) {
 
     init {
-        wellFormedWhen((reason.code != 0) || (reason == NormalDisconnection)) {
+        malformedWhen(reason == Success || reason == GrantedQoS0) {
             "Only 'NormalDisconnection' is an allowed reason code for successful disconnection"
         }
     }
