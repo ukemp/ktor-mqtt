@@ -14,7 +14,8 @@ public data class Suback(
 ) : AbstractPacket(PacketType.SUBACK), PacketIdentifierPacket {
 
     init {
-        wellFormedWhen(reasons.isNotEmpty()) { "Reason codes must not be empty in SUBACK" }
+        malformedWhen(reasons.isEmpty()) { "Reason codes must not be empty in SUBACK" }
+        malformedWhen(reasons.contains(Success)) { "Reason code 'Success' is not allowed for SUBACK" }
     }
 }
 

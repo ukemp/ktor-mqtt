@@ -8,15 +8,15 @@ import kotlinx.io.Source
 import kotlinx.io.readUShort
 import kotlinx.io.writeUShort
 
-public class Subscribe(
+public data class Subscribe(
     public override val packetIdentifier: UShort,
     public val filters: List<TopicFilter>,
-    public val subscriptionIdentifier: SubscriptionIdentifier?,
+    public val subscriptionIdentifier: SubscriptionIdentifier? = null,
     public val userProperties: UserProperties = UserProperties.EMPTY,
 ) : AbstractPacket(PacketType.SUBSCRIBE), PacketIdentifierPacket {
 
     init {
-        wellFormedWhen(filters.isNotEmpty()) { "Empty list of topic filters for SUBSCRIBE " }
+        malformedWhen(filters.isEmpty()) { "SUBSCRIBE MUST contain at least one Topic Filter [MQTT-3.8.3-2]" }
     }
 
     override val headerFlags: Int = 2
@@ -30,7 +30,7 @@ internal fun Sink.write(subscribe: Subscribe) {
             *userProperties.asArray
         )
 
-        // Filter are written as payload
+        // Filters are written as payload
         filters.forEach {
             writeMqttString(it.filter.name)
             writeByte(it.subscriptionOptions.bits)
