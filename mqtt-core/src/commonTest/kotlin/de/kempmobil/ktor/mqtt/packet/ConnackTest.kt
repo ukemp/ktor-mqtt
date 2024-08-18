@@ -1,16 +1,43 @@
 package de.kempmobil.ktor.mqtt.packet
 
-import de.kempmobil.ktor.mqtt.ReAuthenticate
-import de.kempmobil.ktor.mqtt.ReceiveMaximum
-import de.kempmobil.ktor.mqtt.ServerKeepAlive
-import de.kempmobil.ktor.mqtt.buildUserProperties
+import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
+import kotlinx.coroutines.test.runTest
+import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ConnackTest {
+
+    @Test
+    fun `encode and decode returns same packet`() = runTest {
+        assertEncodeDecode(Connack(true, Success))
+        assertEncodeDecode(
+            Connack(
+                false,
+                MalformedPacket,
+                SessionExpiryInterval(1u),
+                ReceiveMaximum(42),
+                MaximumQoS(0.toByte()),
+                RetainAvailable(true),
+                MaximumPacketSize(2000u),
+                AssignedClientIdentifier("123"),
+                TopicAliasMaximum(5u),
+                ReasonString("error"),
+                buildUserProperties { "key" to "value" },
+                WildcardSubscriptionAvailable(true),
+                SubscriptionIdentifierAvailable(true),
+                SharedSubscriptionAvailable(true),
+                ServerKeepAlive(180u),
+                ResponseInformation("response-info"),
+                ServerReference("ref"),
+                AuthenticationMethod("auth"),
+                AuthenticationData("123".encodeToByteString())
+            )
+        )
+    }
 
     @Test
     fun `all bytes are written correctly`() {

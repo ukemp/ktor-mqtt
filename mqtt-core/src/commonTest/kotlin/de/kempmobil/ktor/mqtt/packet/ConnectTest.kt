@@ -1,18 +1,56 @@
 package de.kempmobil.ktor.mqtt.packet
 
-import de.kempmobil.ktor.mqtt.QoS
-import de.kempmobil.ktor.mqtt.SessionExpiryInterval
-import de.kempmobil.ktor.mqtt.buildWillMessage
+import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.readVariableByteInt
 import io.ktor.utils.io.core.*
+import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.ByteString
+import kotlinx.io.bytestring.encodeToByteString
 import kotlinx.io.readUInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
 class ConnectTest {
+
+    @Test
+    fun `encode and decode returns same packet`() = runTest {
+        val willMessage = buildWillMessage("will/topic") {
+            payload("will payload")
+        }
+        assertEncodeDecode(
+            Connect(
+                true,
+                willMessage,
+                QoS.AT_LEAST_ONCE,
+                false,
+                60u,
+                "client"
+            )
+        )
+        assertEncodeDecode(
+            Connect(
+                false,
+                willMessage,
+                QoS.EXACTLY_ONE,
+                false,
+                60u,
+                "client",
+                "username",
+                "password123",
+                SessionExpiryInterval(60u),
+                ReceiveMaximum(150),
+                MaximumPacketSize(3000u),
+                TopicAliasMaximum(200u),
+                RequestResponseInformation(true),
+                RequestProblemInformation(true),
+                buildUserProperties { "key" to "prop" },
+                AuthenticationMethod("auth"),
+                AuthenticationData("123".encodeToByteString())
+            )
+        )
+    }
 
     @Test
     fun `all bytes are written correctly`() {
