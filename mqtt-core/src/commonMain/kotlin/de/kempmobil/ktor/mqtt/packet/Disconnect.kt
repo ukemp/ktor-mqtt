@@ -10,7 +10,14 @@ public data class Disconnect(
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
     val serverReference: ServerReference? = null,
-) : AbstractPacket(PacketType.DISCONNECT)
+) : AbstractPacket(PacketType.DISCONNECT) {
+
+    init {
+        wellFormedWhen((reason.code != 0) || (reason == NormalDisconnection)) {
+            "Only 'NormalDisconnection' is an allowed reason code for successful disconnection"
+        }
+    }
+}
 
 internal fun Sink.write(disconnect: Disconnect) {
     with(disconnect) {

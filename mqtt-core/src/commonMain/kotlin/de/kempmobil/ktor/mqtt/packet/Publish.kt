@@ -29,13 +29,16 @@ public data class Publish(
 
     init {
         wellFormedWhen(topic.isNotBlank() || topicAlias != null) {
-            "Either a non empty topic name or a topic alias must be present in a PUBLISH paket"
+            "It is a Protocol Error if the Topic Name is zero length and there is no Topic Alias"
         }
         wellFormedWhen(topicAlias == null || topicAlias.value != 0.toUShort()) {
-            "A topic alias with value 0 (zero) is not permitted"
+            "A Topic Alias of 0 is not permitted [MQTT-3.3.2-8]"
         }
-        wellFormedWhen((!qoS.requiresPacketIdentifier) || packetIdentifier != null) {
-            "For $qoS a packet identifier must be present"
+        malformedWhen(qoS == QoS.AT_MOST_ONCE && packetIdentifier != null) {
+            "A PUBLISH packet MUST NOT contain a Packet Identifier if its QoS value is set to 0 [MQTT-2.2.1-2]"
+        }
+        malformedWhen(qoS.requiresPacketIdentifier && packetIdentifier == null) {
+            "A PUBLISH packet with QoS > 0 must contain a packet identifier [MQTT-2.2.1-4]"
         }
     }
 
