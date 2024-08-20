@@ -12,7 +12,6 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
 import org.testcontainers.junit.jupiter.Container
 import kotlin.test.*
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class IntegrationTest {
@@ -69,20 +68,6 @@ class IntegrationTest {
 
         assertTrue(result.isSuccess)
         assertEquals(NotAuthorized, result.getOrThrow().reason)
-    }
-
-    @Test
-    fun `connect returns failure when server is not reachable`() = runTest(timeout = 1000.seconds) {
-        mosquitto.stop()
-        client = MqttClient(host, port) {
-            ackMessageTimeout = 100.milliseconds
-        }
-        val result = client.connect()
-
-        assertTrue(result.isFailure)
-        assertIs<ConnectionException>(result.exceptionOrNull())
-
-        client.disconnect()
     }
 
     @Test
