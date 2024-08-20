@@ -139,7 +139,7 @@ internal class MqttConnectionImpl(
         _connected.emit(false)
         receiverJob?.cancel()
         socket?.close()
-        sendChannel?.close()
+        sendChannel?.flushAndClose()
 
         receiverJob = null
         socket = null
