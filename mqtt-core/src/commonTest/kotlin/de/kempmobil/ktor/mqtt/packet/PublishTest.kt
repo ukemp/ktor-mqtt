@@ -52,4 +52,19 @@ class PublishTest {
             Publish(qoS = QoS.EXACTLY_ONE, packetIdentifier = null, topic = topic, payload = payload)
         }
     }
+
+    @Test
+    fun `either topic or topic alias must be set`() {
+        assertFailsWith<MalformedPacketException> {
+            Publish(qoS = QoS.AT_MOST_ONCE, topic = Topic(""), topicAlias = null, payload = "123".encodeToByteString())
+        }
+    }
+
+    @Test
+    fun `a topic alias of zero is not allowed`() {
+        val payload = "123".encodeToByteString()
+        assertFailsWith<MalformedPacketException> {
+            Publish(qoS = QoS.AT_MOST_ONCE, topic = Topic("abc"), topicAlias = TopicAlias(0u), payload = payload)
+        }
+    }
 }

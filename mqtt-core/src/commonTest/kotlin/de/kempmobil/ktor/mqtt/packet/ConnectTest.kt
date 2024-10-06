@@ -74,6 +74,13 @@ class ConnectTest {
     }
 
     @Test
+    fun `will message cannot be null when retain will message is true`() {
+        assertFailsWith<MalformedPacketException> {
+            Connect(true, null, QoS.AT_MOST_ONCE, true, 60u, "client")
+        }
+    }
+
+    @Test
     fun `all bytes are written correctly`() {
         val willMessage = buildWillMessage("will-topic") {
             payload(ByteString(byteArrayOf(1, 5, 33)))
