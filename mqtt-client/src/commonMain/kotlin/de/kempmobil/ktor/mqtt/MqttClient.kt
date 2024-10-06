@@ -46,7 +46,7 @@ public class MqttClient internal constructor(
      * connectivity has been established AND that the server responded with a success CONNACK message.
      */
     public val connectionState: Flow<ConnectionState>
-        get() = connection.connected.combine(connack) { isConnected: Boolean, connack: Connack? ->
+        get() = connection.connected.combine(connackFlow) { isConnected: Boolean, connack: Connack? ->
             if (isConnected && (connack?.isSuccess == true)) {
                 Connected(connack)
             } else {
@@ -54,7 +54,7 @@ public class MqttClient internal constructor(
             }
         }
 
-    private val connack = MutableStateFlow<Connack?>(null)
+    private val connackFlow = MutableStateFlow<Connack?>(null)
 
     private val scope = CoroutineScope(config.dispatcher)
 
@@ -84,7 +84,7 @@ public class MqttClient internal constructor(
      * @see connectionState
      */
     public suspend fun connect(): Result<Connack> {
-        connack.emit(null)
+        connackFlow.emit(null)
 
         return connection.start()
             .mapCatching {
@@ -249,7 +249,7 @@ public class MqttClient internal constructor(
     }
 
     private suspend fun inspectConnack(connack: Connack): Connack {
-        this.connack.emit(connack)
+        connackFlow.emit(connack)
 
         if (!connack.isSuccess) {
             Logger.i { "Server sent CONNACK packet with ${connack.reason}, hence terminating the connection" }

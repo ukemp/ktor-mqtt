@@ -1,13 +1,14 @@
 [versions]
 agp = "8.2.2"
-kotlin = "2.0.0"
+kotlin = "2.0.20"
 kotlinx-coroutines = "1.7.3"
-ktor = "3.0.0-beta-2"
+ktor = "3.0.0-rc-1"
 arrow = "1.2.4"
 junit = "5.8.1"
 testcontainers = "1.19.8"
 slf4j = "2.0.13"
-mockery = "2.1.1"
+mockery = "2.3.0"
+versions = "0.51.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -42,3 +43,4 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 kotlinCocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
 org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 mockery = { id = "dev.mokkery", version.ref = "mockery" }
+versions = { id = "com.github.ben-manes.versions", version.ref = "versions" }
