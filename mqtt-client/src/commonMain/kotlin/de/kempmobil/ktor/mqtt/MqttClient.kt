@@ -24,22 +24,28 @@ public class MqttClient internal constructor(
     public val publishedPackets: SharedFlow<Publish>
         get() = _publishedPackets
 
-    private var _maxQos = QoS.EXACTLY_ONE
-
     /**
      * Returns the maximum QoS level allowed by the server, defaults to [QoS.EXACTLY_ONE] as long as no CONNACK packet
      * has been received.
      */
     public val maxQos: QoS
         get() = _maxQos
+    private var _maxQos = QoS.EXACTLY_ONE
 
-    private var _serverTopicAliasMaximum: TopicAliasMaximum = TopicAliasMaximum(0u)
+    /**
+     * The ID of this client as defined in [MqttClientConfig] or the value of the assigned client ID of the [Connack]
+     * packet, if [MqttClientConfig] contained an empty string.
+     */
+    public val clientId: String
+        get() = _clientId
+    private var _clientId = config.clientId
 
     /**
      * The server topic alias maximum value as contained the CONNACK message from the server (or the default value of 0)
      */
     public val serverTopicAliasMaximum: TopicAliasMaximum
         get() = _serverTopicAliasMaximum
+    private var _serverTopicAliasMaximum: TopicAliasMaximum = TopicAliasMaximum(0u)
 
     /**
      * Provides the connection state of this MQTT client. When the state is [Connected] this implies that an IP
@@ -223,7 +229,7 @@ public class MqttClient internal constructor(
             Result.success(
                 Publish(
                     isDupMessage = false,
-                    qoS = request.desiredQoS.coerceAtMost(maxQos),
+                    qoS = request.desiredQoS.coerceAtMost(maxQos),  // MQTT-3.2.2-11
                     isRetainMessage = request.isRetainMessage,
                     packetIdentifier = nextPacketIdentifier(),
                     topic = request.topic,
@@ -268,6 +274,11 @@ public class MqttClient internal constructor(
                         connection.send(Pingreq)
                     }
                 }
+            }
+
+            // MQTT-3.2.2-16
+            if (config.clientId.isEmpty()) {
+                connack.assignedClientIdentifier?.let { _clientId = it.value }
             }
 
             Logger.i {

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlin.random.Random
 import kotlin.test.*
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -107,6 +108,28 @@ class MqttClientTest {
         val state = client.connectionState.first()
         assertIs<Connected>(state)
         assertEquals(connack, state.connack)
+    }
+
+    @Test
+    fun `assigned client ID overrides the local client ID if empty`() = runTest {
+        // See also MQTT-3.2.2-16
+        everySuspend { connection.start() } returns Result.success(Unit)
+        everySuspend { connection.send(ofType<Connect>()) } returns Result.success(Unit)
+
+        val connack = Connack(
+            isSessionPresent = false,
+            reason = Success,
+            assignedClientIdentifier = AssignedClientIdentifier("server-client-id")
+        )
+        connectionState.emit(true)
+
+        val client = createClient(connection, "")
+        val result = sendPacket(connack) {
+            client.connect()
+        }
+
+        assertTrue(result.isSuccess)
+        assertEquals("server-client-id", client.clientId)
     }
 
     @Test
@@ -227,9 +250,10 @@ class MqttClientTest {
         assertSame(unsuback, result.getOrNull())
     }
 
-    private fun createClient(connection: MqttConnection): MqttClient {
+    private fun createClient(connection: MqttConnection, id: String? = null): MqttClient {
         val config = buildConfig("mock") {
             ackMessageTimeout = 100.milliseconds
+            clientId = id ?: generateClientId()
         }
         return MqttClient(config, connection, InMemoryPacketStore())
     }
@@ -245,6 +269,15 @@ class MqttClientTest {
             testScheduler.advanceUntilIdle()
             packetResults.emit(Result.success(packet))
             return response.await()
+        }
+    }
+
+    private fun generateClientId(): String {
+        val chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        return buildString(23) {
+            repeat(23) {
+                append(chars[Random.nextInt(chars.length)])
+            }
         }
     }
 }
