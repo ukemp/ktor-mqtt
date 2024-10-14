@@ -12,7 +12,6 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
 import org.testcontainers.junit.jupiter.Container
 import kotlin.test.*
-import kotlin.time.Duration.Companion.seconds
 
 class IntegrationTest {
 
@@ -106,10 +105,12 @@ class IntegrationTest {
     }
 
     @Test
-    fun `send publish request`() = runTest(timeout = 4.seconds) {
+    fun `send publish request`() = runTest {
+        val id = "test-publisher"
         client = MqttClient(host, port) {
             userName = testUser
             password = testPassword
+            clientId = id
         }
         client.connect()
 
@@ -123,6 +124,10 @@ class IntegrationTest {
 
         println("Published: $qos")
         client.disconnect()
+
+        val logs = mosquitto.logs
+        assertContains(logs, "Received PUBLISH from $id")
+        assertContains(logs, "Received PUBREL from $id")
 
         Logger.i { "Terminating..." }
     }
