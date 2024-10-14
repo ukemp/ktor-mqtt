@@ -60,7 +60,7 @@ class IntegrationTest {
     @Test
     fun `connect returns NotAuthorized when using wrong credentials`() = runTest {
         client = MqttClient(host, port) {
-            userName = testUser
+            username = testUser
             password = "invalid-password"
         }
         val result = client.connect()
@@ -72,7 +72,7 @@ class IntegrationTest {
     @Test
     fun `connection state propagated properly`() = runTest {
         client = MqttClient(host, port) {
-            userName = testUser
+            username = testUser
             password = testPassword
         }
 
@@ -88,7 +88,7 @@ class IntegrationTest {
     @Test
     fun `allow reconnection after disconnect`() = runTest {
         client = MqttClient(host, port) {
-            userName = testUser
+            username = testUser
             password = testPassword
         }
         val result1 = client.connect()
@@ -108,7 +108,7 @@ class IntegrationTest {
     fun `send publish request`() = runTest {
         val id = "test-publisher"
         client = MqttClient(host, port) {
-            userName = testUser
+            username = testUser
             password = testPassword
             clientId = id
         }
@@ -135,7 +135,7 @@ class IntegrationTest {
     @Test
     fun `can subscribe to topics with different QoS values`() = runTest {
         client = MqttClient(host, port) {
-            userName = testUser
+            username = testUser
             password = testPassword
         }
         client.connect()
@@ -159,7 +159,7 @@ class IntegrationTest {
         var receivedMessage: Publish? = null
 
         client = MqttClient(host, port) {
-            userName = testUser
+            username = testUser
             password = testPassword
             clientId = id
         }
@@ -191,7 +191,7 @@ class IntegrationTest {
         var receivedMessage: Publish? = null
 
         client = MqttClient(host, port) {
-            userName = testUser
+            username = testUser
             password = testPassword
             clientId = id
         }
@@ -227,7 +227,7 @@ class IntegrationTest {
         var receivedMessage: Publish? = null
 
         client = MqttClient(host, port) {
-            userName = testUser
+            username = testUser
             password = testPassword
             clientId = id
         }

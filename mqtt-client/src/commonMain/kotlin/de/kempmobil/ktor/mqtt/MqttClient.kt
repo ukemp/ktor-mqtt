@@ -185,7 +185,7 @@ public class MqttClient internal constructor(
             retainWillMessage = config.retainWillMessage,
             keepAliveSeconds = config.keepAliveSeconds,
             clientId = config.clientId,
-            userName = config.userName,
+            userName = config.username,
             password = config.password,
             sessionExpiryInterval = config.sessionExpiryInterval,
             receiveMaximum = config.receiveMaximum,

@@ -49,13 +49,9 @@ public data class UserProperties(public val values: List<StringPair>) {
 }
 
 /**
- * DSL for building a [UserProperties] instance. Example:
- * ```
- * buildUserProperties {
- *     "key-1" to "value-1"
- *     "key-2" to "value-2"
- * }
- * ```
+ * DSL for building a [UserProperties] instance.
+ *
+ * @sample dslSample
  */
 public fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProperties {
     val builder = UserPropertiesBuilder()
@@ -86,5 +82,11 @@ internal val UserProperties.asArray: Array<UserProperty>
 internal fun Sink.write(userProperties: UserProperties) {
     if (userProperties.values.isNotEmpty()) {
         userProperties.values.forEach { this.write(it) }
+    }
+}
+
+private fun dslSample() {
+    buildUserProperties {
+        "filename" to "test.txt"
     }
 }

@@ -83,7 +83,7 @@ internal class MqttConnectionImpl(
                 aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
             } else {
                 aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(dispatcher) {
-                    tlsConfig.build()
+                    tlsConfig!!.build()
                 }
             }
         }
