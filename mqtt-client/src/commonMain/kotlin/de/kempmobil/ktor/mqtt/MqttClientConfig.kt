@@ -154,11 +154,11 @@ public class MqttClientConfigBuilder(
 }
 
 private fun dslSample() {
-    buildConfig("test.mosquitto.org") {
+    buildConfig("test.mosquitto.org", 8883) {
         clientId = "test-client"
         username = "test-user"
         password = "12345678"
-        willMessage("will/topic") {
+        willMessage("topics/last-will") {
             payload("Last will message of test-client")
             properties {
                 messageExpiryInterval = 120u
@@ -166,12 +166,13 @@ private fun dslSample() {
         }
         userProperties {
             "user-key" to "value1"
-            "user-key" to "value2"
+            "user-key" to "value2"  // Properties keys may occur more than once
         }
         tcp {
             noDelay = true
             lingerSeconds = 10
         }
+        tls { }  // Enable TLS with system trust manager
     }
 }
 
