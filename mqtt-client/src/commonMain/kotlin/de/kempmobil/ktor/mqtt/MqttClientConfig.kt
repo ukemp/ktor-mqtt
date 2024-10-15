@@ -33,7 +33,7 @@ import kotlin.time.Duration.Companion.seconds
  * @property authenticationData currently not used
  * @property userProperties the user properties used in the Connect packet
  * @property tcpOptions optional block for configuring the TCP options of the connection to the server
- * @property tlsConfig the Ktor TLS configuration
+ * @property tlsConfigBuilder the Ktor TLS configuration
  */
 public interface MqttClientConfig {
     public val host: String
@@ -57,7 +57,7 @@ public interface MqttClientConfig {
     public val authenticationData: AuthenticationData?
     public val userProperties: UserProperties
     public val tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit)
-    public val tlsConfig: TLSConfigBuilder?
+    public val tlsConfigBuilder: TLSConfigBuilder?
 }
 
 /**
@@ -149,7 +149,7 @@ public class MqttClientConfigBuilder(
         authenticationData = authenticationData,
         userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
         tcpOptions = tcpOptions ?: { },
-        tlsConfig = tlsConfigBuilder
+        tlsConfigBuilder = tlsConfigBuilder
     )
 }
 
@@ -197,7 +197,7 @@ private class MqttClientConfigImpl(
     override val authenticationData: AuthenticationData? = null,
     override val userProperties: UserProperties,
     override val tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit),
-    override val tlsConfig: TLSConfigBuilder?
+    override val tlsConfigBuilder: TLSConfigBuilder?
 ) : MqttClientConfig
 
 private fun generateClientId(): String {

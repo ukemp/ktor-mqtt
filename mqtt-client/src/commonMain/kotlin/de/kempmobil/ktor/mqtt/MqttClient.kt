@@ -282,8 +282,11 @@ public class MqttClient internal constructor(
             }
 
             Logger.i {
-                "Received server parameters: max. QoS=$maxQos, " +
-                        "keep alive=$keepAlive, server topic alias maximum=$serverTopicAliasMaximum"
+                "Received server parameters: " +
+                        "maxQoS=$maxQos, " +
+                        "keepAlive=$keepAlive, " +
+                        "serverTopicAliasMaximum=${serverTopicAliasMaximum.value}, " +
+                        "assignedClientIdentifier=${connack.assignedClientIdentifier?.value ?: "''"}"
             }
         }
 

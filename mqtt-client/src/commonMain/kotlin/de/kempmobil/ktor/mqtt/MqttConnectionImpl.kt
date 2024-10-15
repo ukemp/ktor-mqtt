@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.io.EOFException
 
 internal class MqttConnectionImpl(
     private val config: MqttClientConfig
@@ -79,12 +80,11 @@ internal class MqttConnectionImpl(
 
     private suspend fun openSocket(): Socket {
         return with(config) {
-            if (tlsConfig == null) {
-                aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
+            val tlsConfig = tlsConfigBuilder?.build()
+            if (tlsConfig != null) {
+                aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(dispatcher, tlsConfig)
             } else {
-                aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(dispatcher) {
-                    tlsConfig!!.build()
-                }
+                aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
             }
         }
     }
@@ -94,16 +94,18 @@ internal class MqttConnectionImpl(
             try {
                 _packetResults.emit(Result.success(readPacket()))
             } catch (ex: CancellationException) {
-                Logger.d { "Packet reader job has been cancelled" }
+                Logger.v { "Packet reader job has been cancelled, terminating..." }
                 break
             } catch (ex: ClosedReceiveChannelException) {
-                Logger.w(throwable = ex) { "Read channel has been closed, terminating..." }
+                Logger.v { "Read channel has been closed, terminating..." }
+                break
+            } catch (ex: EOFException) {
+                Logger.v { "End of stream detected, terminating..." }
                 break
             } catch (ex: MalformedPacketException) {
                 // Continue with the loop, so that the client can decide what to do
                 _packetResults.emit(Result.failure(ex))
             } catch (ex: Exception) {
-                // On JVM sometimes a java.net.SocketException is thrown instead of ClosedReceiveChannelException
                 Logger.w(throwable = ex) { "Read channel error detected, terminating..." }
                 break
             }

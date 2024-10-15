@@ -11,7 +11,10 @@ import kotlinx.io.bytestring.decodeToString
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
 import org.testcontainers.junit.jupiter.Container
+import java.security.cert.X509Certificate
+import javax.net.ssl.X509TrustManager
 import kotlin.test.*
+
 
 class IntegrationTest {
 
@@ -29,6 +32,7 @@ class IntegrationTest {
 
     private lateinit var host: String
     private var port: Int = -1
+    private var tlsPort: Int = -1
     private val testUser = "mqtt-test-user"
     private val testPassword = "3n63hLKRV31fHf41NF95"  // Encrypted in the resources/passwd file!
     private lateinit var client: MqttClient
@@ -39,15 +43,21 @@ class IntegrationTest {
             .withFileFromClasspath("mosquitto.conf", "mosquitto.conf")
             .withFileFromClasspath("passwd", "passwd")
             .withFileFromClasspath("Dockerfile", "Dockerfile")
+            .withFileFromClasspath("ca.crt", "ca.crt")
+            .withFileFromClasspath("server.key", "server.key")
+            .withFileFromClasspath("server.crt", "server.crt")
     )
-        .withExposedPorts(1883)
+        .withExposedPorts(1883, 8883)
 
 
     @BeforeTest
     fun setup() {
         mosquitto.start()
         host = mosquitto.host
-        port = mosquitto.firstMappedPort
+        port = mosquitto.getMappedPort(1883)
+        tlsPort = mosquitto.getMappedPort(8883)
+
+        println("Mosquitto server available at $host:$port and $host:$tlsPort")
     }
 
     @AfterTest
@@ -253,6 +263,32 @@ class IntegrationTest {
         )
 
         client.disconnect()
+    }
+
+    @Test
+    fun `connection via TLS`() = runTest {
+        client = MqttClient(host, tlsPort) {
+            username = testUser
+            password = testPassword
+            tls {
+                // Don't check certificates:
+                trustManager = object : X509TrustManager {
+                    override fun getAcceptedIssuers(): Array<X509Certificate?> = arrayOf()
+                    override fun checkClientTrusted(certs: Array<X509Certificate?>?, authType: String?) {}
+                    override fun checkServerTrusted(certs: Array<X509Certificate?>?, authType: String?) {}
+                }
+            }
+        }
+
+        assertEquals(Disconnected, client.connectionState.first())
+        val result = client.connect()
+
+        assertEquals(Connected(result.getOrThrow()), client.connectionState.first())
+        mosquitto.stop()
+
+        client.disconnect()
+
+        assertEquals(Disconnected, client.connectionState.first())
     }
 
     private fun sendMessage(topic: String, qos: String, payload: String) {
