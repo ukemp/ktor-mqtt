@@ -2,7 +2,7 @@
 agp = "8.2.2"
 kotlin = "2.0.20"
 kotlinx-coroutines = "1.7.3"
-ktor = "3.0.0-rc-1"
+ktor = "3.0.0"
 arrow = "1.2.4"
 junit = "5.8.1"
 testcontainers = "1.19.8"
