@@ -35,7 +35,7 @@ class MqttConnectionImplTest {
 
     @Test
     fun `when the server is reachable return success`() = runTest {
-        val closeServer = startServer()
+        val closeServer = startServer(this)
         val connection = MqttConnection()
         val result = connection.start()
 
@@ -47,7 +47,7 @@ class MqttConnectionImplTest {
 
     @Test
     fun `when terminating a connected session the connection state is updated`() = runTest {
-        val closeServer = startServer()
+        val closeServer = startServer(this)
         val connection = MqttConnection()
         val result = connection.start()
 
@@ -65,7 +65,7 @@ class MqttConnectionImplTest {
 
     @Test
     fun `when disconnecting a connected session the connection state is updated`() = runTest {
-        val closeServer = startServer()
+        val closeServer = startServer(this)
         val connection = MqttConnection()
         val result = connection.start()
 
@@ -82,7 +82,7 @@ class MqttConnectionImplTest {
     @Test
     fun `when sending a packet it is received by server`() = runTest {
         val serverPackets = MutableSharedFlow<Packet>()
-        val closeServer = startServer(reader = {
+        val closeServer = startServer(this, reader = {
             backgroundScope.launch {
                 serverPackets.emit(readPacket())
             }
@@ -102,7 +102,7 @@ class MqttConnectionImplTest {
     @Test
     fun `when the server sends a packet the received packets are updated`() = runTest {
         val serverPackets = MutableSharedFlow<Packet>(replay = 1)
-        val closeServer = startServer(writer = {
+        val closeServer = startServer(this, writer = {
             backgroundScope.launch {
                 serverPackets.collect {
                     write(it)
@@ -126,7 +126,7 @@ class MqttConnectionImplTest {
         val dataToSend = MutableSharedFlow<ByteArray>(replay = 1)
         val receivedPackets = MutableSharedFlow<Packet>()
 
-        val closeServer = startServer(writer = {
+        val closeServer = startServer(this, writer = {
             backgroundScope.launch {
                 dataToSend.collect {
                     writeFully(it)
@@ -151,7 +151,7 @@ class MqttConnectionImplTest {
 
     @Test
     fun `when calling send on a disconnected connection return a failure`() = runTest {
-        val closeServer = startServer()
+        val closeServer = startServer(this)
         val connection = MqttConnection()
         connection.start()
         connection.disconnect()
@@ -173,14 +173,15 @@ class MqttConnectionImplTest {
     /**
      * Starts a socket server and returns an (unstarted) [Job] to stop it.
      */
-    private fun TestScope.startServer(
+    private suspend fun startServer(
+        testScope: TestScope,
         reader: (ByteReadChannel.() -> Unit)? = null,
         writer: (ByteWriteChannel.() -> Unit)? = null
     ): Job {
         val selectorManager = SelectorManager(Dispatchers.Default)
         val serverSocket = aSocket(selectorManager).tcp().bind(defaultHost, defaultPort)
 
-        val socketAcceptor = async {
+        val socketAcceptor = testScope.async {
             serverSocket.accept().also { socket ->
                 if (reader != null) {
                     socket.openReadChannel().reader()
@@ -191,7 +192,7 @@ class MqttConnectionImplTest {
             }
         }
 
-        return launch(start = CoroutineStart.LAZY) {
+        return testScope.launch(start = CoroutineStart.LAZY) {
             socketAcceptor.await().close()
             serverSocket.dispose()
             selectorManager.close()
