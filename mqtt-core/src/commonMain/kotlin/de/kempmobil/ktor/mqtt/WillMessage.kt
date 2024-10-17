@@ -1,9 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
-import de.kempmobil.ktor.mqtt.util.readMqttByteString
-import de.kempmobil.ktor.mqtt.util.readMqttString
-import de.kempmobil.ktor.mqtt.util.writeMqttByteString
-import de.kempmobil.ktor.mqtt.util.writeMqttString
+import de.kempmobil.ktor.mqtt.util.*
 import kotlinx.io.Sink
 import kotlinx.io.Source
 import kotlinx.io.bytestring.ByteString
@@ -21,6 +18,7 @@ public fun buildWillMessage(topic: String, init: WillMessageBuilder.() -> Unit):
     return builder.build()
 }
 
+@MqttDslMarker
 public class WillMessageBuilder(private val topic: String) {
 
     private val propertiesBuilder = WillPropertiesBuilder()

@@ -1,6 +1,9 @@
 package de.kempmobil.ktor.mqtt
 
+import de.kempmobil.ktor.mqtt.util.MqttDslMarker
 import kotlinx.io.bytestring.ByteString
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.ZERO
 
 public data class WillProperties(
     public val willDelayInterval: WillDelayInterval,
@@ -33,10 +36,12 @@ public fun buildWillProperties(init: WillPropertiesBuilder.() -> Unit): WillProp
     return builder.build()
 }
 
+
+@MqttDslMarker
 public class WillPropertiesBuilder(
-    public var willDelayInterval: UInt = 0u,
+    public var willDelayInterval: Duration = ZERO,
     public var payloadFormatIndicator: PayloadFormatIndicator? = null,
-    public var messageExpiryInterval: UInt? = null,
+    public var messageExpiryInterval: Duration? = null,
     public var contentType: String? = null,
     public var responseTopic: String? = null,
     public var correlationData: ByteString? = null
@@ -49,9 +54,9 @@ public class WillPropertiesBuilder(
 
     public fun build(): WillProperties {
         return WillProperties(
-            willDelayInterval = WillDelayInterval(willDelayInterval),
+            willDelayInterval = WillDelayInterval(willDelayInterval.inWholeSeconds.toUInt()),
             payloadFormatIndicator = payloadFormatIndicator,
-            messageExpiryInterval = messageExpiryInterval?.let { MessageExpiryInterval(it) },
+            messageExpiryInterval = messageExpiryInterval?.let { MessageExpiryInterval(it.inWholeSeconds.toUInt()) },
             contentType = contentType?.let { ContentType(it) },
             responseTopic = responseTopic?.let { ResponseTopic(it) },
             correlationData = correlationData?.let { CorrelationData(it) },

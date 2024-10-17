@@ -1,5 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
+import de.kempmobil.ktor.mqtt.util.MqttDslMarker
 import kotlinx.io.Sink
 
 public data class UserProperties(public val values: List<StringPair>) {
@@ -59,6 +60,7 @@ public fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProp
     return builder.build()
 }
 
+@MqttDslMarker
 public class UserPropertiesBuilder() {
 
     private val userProperties = mutableListOf<StringPair>()

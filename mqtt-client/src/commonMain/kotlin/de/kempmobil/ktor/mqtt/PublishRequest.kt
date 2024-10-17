@@ -1,7 +1,9 @@
 package de.kempmobil.ktor.mqtt
 
+import de.kempmobil.ktor.mqtt.util.MqttDslMarker
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
+import kotlin.time.Duration
 
 public data class PublishRequest(
     val topic: Topic,
@@ -31,6 +33,7 @@ public fun buildPublishRequest(
     return PublishRequestBuilder(topicName, topicAlias).also(init).build()
 }
 
+@MqttDslMarker
 public class PublishRequestBuilder(
     private val topicName: String = "",
     private var topicAlias: UShort? = null
@@ -39,7 +42,7 @@ public class PublishRequestBuilder(
 
     public var isRetainMessage: Boolean = false
 
-    public var messageExpiryInterval: UInt? = null
+    public var messageExpiryInterval: Duration? = null
 
     public var responseTopic: String? = null
 
@@ -78,7 +81,7 @@ public class PublishRequestBuilder(
             desiredQoS = desiredQoS,
             payload = payload,
             isRetainMessage = isRetainMessage,
-            messageExpiryInterval = messageExpiryInterval?.let { MessageExpiryInterval(it) },
+            messageExpiryInterval = messageExpiryInterval?.let { MessageExpiryInterval(it.inWholeSeconds.toUInt()) },
             topicAlias = topicAlias?.let { TopicAlias(it) },
             responseTopic = responseTopic?.let { ResponseTopic(it) },
             correlationData = correlationData?.let { CorrelationData(it) },

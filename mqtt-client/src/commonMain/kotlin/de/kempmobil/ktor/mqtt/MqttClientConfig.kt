@@ -1,11 +1,14 @@
 package de.kempmobil.ktor.mqtt
 
+import de.kempmobil.ktor.mqtt.util.MqttDslMarker
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.io.bytestring.ByteString
 import kotlin.random.Random
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -71,6 +74,7 @@ public fun buildConfig(host: String, port: Int = 1883, init: MqttClientConfigBui
     return MqttClientConfigBuilder(host, port).also(init).build()
 }
 
+@MqttDslMarker
 public class MqttClientConfigBuilder(
     public val host: String,
     public var port: Int = 1883
@@ -88,14 +92,14 @@ public class MqttClientConfigBuilder(
     public var keepAliveSeconds: UShort = 0u
     public var username: String? = null
     public var password: String? = null
-    public var sessionExpiryInterval: SessionExpiryInterval? = null
-    public var receiveMaximum: ReceiveMaximum? = null
-    public var maximumPacketSize: MaximumPacketSize? = null
-    public var topicAliasMaximum: TopicAliasMaximum = TopicAliasMaximum(0u)
+    public var sessionExpiryInterval: Duration? = null
+    public var receiveMaximum: Short? = null
+    public var maximumPacketSize: UInt? = null
+    public var topicAliasMaximum: UShort = 0u
     public var requestResponseInformation: Boolean = false
     public var requestProblemInformation: Boolean = true
-    public var authenticationMethod: AuthenticationMethod? = null
-    public var authenticationData: AuthenticationData? = null
+    public var authenticationMethod: String? = null
+    public var authenticationData: ByteString? = null
 
     /**
      * Build user properties used in the CONNECT packet of this client.
@@ -139,14 +143,14 @@ public class MqttClientConfigBuilder(
         keepAliveSeconds = keepAliveSeconds,
         username = username,
         password = password,
-        sessionExpiryInterval = sessionExpiryInterval,
-        receiveMaximum = receiveMaximum,
-        maximumPacketSize = maximumPacketSize,
-        topicAliasMaximum = topicAliasMaximum,
+        sessionExpiryInterval = sessionExpiryInterval?.let { SessionExpiryInterval(it.inWholeSeconds.toUInt()) },
+        receiveMaximum = receiveMaximum?.let { ReceiveMaximum(it) },
+        maximumPacketSize = maximumPacketSize?.let { MaximumPacketSize(it) },
+        topicAliasMaximum = TopicAliasMaximum(topicAliasMaximum),
         requestResponseInformation = RequestResponseInformation(requestResponseInformation),
         requestProblemInformation = RequestProblemInformation(requestProblemInformation),
-        authenticationMethod = authenticationMethod,
-        authenticationData = authenticationData,
+        authenticationMethod = authenticationMethod?.let { AuthenticationMethod(it) },
+        authenticationData = authenticationData?.let { AuthenticationData(it) },
         userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
         tcpOptions = tcpOptions ?: { },
         tlsConfigBuilder = tlsConfigBuilder
@@ -161,7 +165,7 @@ private fun dslSample() {
         willMessage("topics/last-will") {
             payload("Last will message of test-client")
             properties {
-                messageExpiryInterval = 120u
+                messageExpiryInterval = 7.days
             }
         }
         userProperties {

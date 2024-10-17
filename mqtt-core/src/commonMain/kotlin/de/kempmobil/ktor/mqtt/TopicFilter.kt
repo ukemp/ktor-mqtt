@@ -1,5 +1,7 @@
 package de.kempmobil.ktor.mqtt
 
+import de.kempmobil.ktor.mqtt.util.MqttDslMarker
+
 public data class TopicFilter(
     public val filter: Topic,
     public val subscriptionOptions: SubscriptionOptions = SubscriptionOptions.DEFAULT
@@ -13,6 +15,7 @@ public fun buildFilterList(init: TopicFilterBuilder.() -> Unit): List<TopicFilte
     return TopicFilterBuilder().also(init).build()
 }
 
+@MqttDslMarker
 public class TopicFilterBuilder {
 
     private val filters = mutableListOf<TopicFilter>()

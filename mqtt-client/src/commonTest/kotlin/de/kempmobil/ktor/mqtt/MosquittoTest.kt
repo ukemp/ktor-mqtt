@@ -1,10 +1,10 @@
 package de.kempmobil.ktor.mqtt
 
+import co.touchlab.kermit.Logger
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import kotlin.test.AfterTest
-import kotlin.test.Ignore
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import kotlin.test.*
 
 @Ignore
 class MosquittoTest {
@@ -31,14 +31,14 @@ class MosquittoTest {
             tls { }
         }
         val result = client.connect()
-        assertEquals(true, result.isSuccess)
+        assertTrue(result.isSuccess)
     }
 
     @Test
     fun `publishing a sample packet`() = runTest {
         client = MqttClient(host) { }
         val result = client.connect()
-        assertEquals(true, result.isSuccess)
+        assertTrue(result.isSuccess)
 
         val qos = client.publish(buildPublishRequest("test/topic") {
             payload("This is a test publish packet")
@@ -47,7 +47,29 @@ class MosquittoTest {
                 "user" to "property"
             }
         })
-        assertEquals(true, qos.isSuccess)
+        assertTrue(qos.isSuccess)
         assertEquals(QoS.EXACTLY_ONE, qos.getOrThrow())
+    }
+
+    @Test
+    fun `subscribe to all`() = runTest {
+        Logger.setLogWriters()
+        client = MqttClient(host, 1884) {
+            username = "ro"
+            password = "readonly"
+        }
+        val connected = client.connect()
+        assertTrue(connected.isSuccess)
+
+        val subscribed = client.subscribe(listOf(TopicFilter(Topic("#"))))
+        assertTrue(subscribed.isSuccess)
+
+        var count = 0
+        val packets = client.publishedPackets.takeWhile {
+            count++
+            count <= 50_000
+        }.toList()
+        val topics = packets.map { it.topic }.toSet()
+        println("Packets: ${packets.size}, topics: ${topics.size}")
     }
 }

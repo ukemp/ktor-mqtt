@@ -12,6 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.time.Duration.Companion.days
 
 class ConnectTest {
 
@@ -85,7 +86,7 @@ class ConnectTest {
         val willMessage = buildWillMessage("will-topic") {
             payload(ByteString(byteArrayOf(1, 5, 33)))
             properties {
-                willDelayInterval = 99u
+                willDelayInterval = 1.days
             }
         }
 
@@ -119,7 +120,7 @@ class ConnectTest {
         assertEquals("client-id", reader.readMqttString())
         assertEquals(5, reader.readByte())             // Will message properties length (contains only 1 property)
         assertEquals(24, reader.readByte())            // Will delay interval identifier (24)
-        assertEquals(99u, reader.readUInt())             // Will delay interval value
+        assertEquals(1.days.inWholeSeconds.toUInt(), reader.readUInt())             // Will delay interval value
         assertEquals("will-topic", reader.readMqttString())
         assertEquals(3, reader.readShort())            // Will payload of size 3
         assertEquals(1, reader.readByte())             // Will payload byte 1
@@ -137,7 +138,7 @@ class ConnectTest {
         val willMessage = buildWillMessage("will-topic") {
             payload(ByteString(byteArrayOf(1, 5, 33)))
             properties {
-                willDelayInterval = 99u
+                willDelayInterval = 1.days
 
                 userProperties {
                     "user" to "value1"
