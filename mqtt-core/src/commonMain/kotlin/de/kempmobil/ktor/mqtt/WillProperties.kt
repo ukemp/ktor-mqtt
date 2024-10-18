@@ -36,8 +36,21 @@ public fun buildWillProperties(init: WillPropertiesBuilder.() -> Unit): WillProp
     return builder.build()
 }
 
-
+/**
+ * DSL for building will properties.
+ *
+ * @property willDelayInterval the Server delays publishing the Client’s Will Message until the Will Delay Interval has
+ *           passed or the Session ends, whichever happens first; defaults to 0
+ * @property payloadFormatIndicator specifies the format of the will message payload
+ * @property messageExpiryInterval the lifetime of the will message and is sent as the publication expiry interval when
+ *           the Server publishes the Will Message
+ * @property contentType string describing the content of the Will Message
+ * @property responseTopic topic name for a response message
+ * @property correlationData used by the sender of the Request Message to identify which request the Response Message is
+ *           for when it is received
+ */
 @MqttDslMarker
+@Suppress("MemberVisibilityCanBePrivate")
 public class WillPropertiesBuilder(
     public var willDelayInterval: Duration = ZERO,
     public var payloadFormatIndicator: PayloadFormatIndicator? = null,
@@ -48,6 +61,9 @@ public class WillPropertiesBuilder(
 ) {
     private val userPropertiesBuilder = UserPropertiesBuilder()
 
+    /**
+     * Creates the user properties of this will properties.
+     */
     public fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userPropertiesBuilder.init()
     }

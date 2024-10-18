@@ -7,35 +7,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.io.bytestring.ByteString
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
 
 /**
  * Mqtt client configuration, see [buildConfig]
- *
- * @property host name of the MQTT server to connect to
- * @property port port of the MQTT server to connect to
- * @property dispatcher the coroutine dispatcher to use for background tasks
- * @property clientId the ID of this client, use an empty string to receive a client ID from the server
- * @property ackMessageTimeout the time to wait for an acknowledgment message from the server, defaults to 7 seconds
- * @property willMessage the MQTT last will message or `null` if non should be used
- * @property willOqS the QoS of the last will message
- * @property retainWillMessage the value of bit 5 (will retain) in the connect message of this client
- * @property keepAliveSeconds the value of keep alive in the connect message of this client
- * @property username the username for authenticating this client
- * @property password the password of the user
- * @property sessionExpiryInterval the value of the session expiry interval of the connect message of this client
- * @property receiveMaximum the receive maximum of this client for QoS 1 or 2
- * @property maximumPacketSize the maximum packet size this client is willing to accept
- * @property topicAliasMaximum indicates the highest value that the Client will accept as a Topic Alias sent by the server
- * @property requestResponseInformation request the server to return Response Information in the CONNACK
- * @property requestProblemInformation use this value to indicate whether the reason string or user properties are sent in the case of failures
- * @property authenticationMethod currently not used
- * @property authenticationData currently not used
- * @property userProperties the user properties used in the Connect packet
- * @property tcpOptions optional block for configuring the TCP options of the connection to the server
- * @property tlsConfigBuilder the Ktor TLS configuration
  */
 public interface MqttClientConfig {
     public val host: String
@@ -73,7 +49,26 @@ public fun buildConfig(host: String, port: Int = 1883, init: MqttClientConfigBui
     return MqttClientConfigBuilder(host, port).also(init).build()
 }
 
+/**
+ * Mqtt client config builder
+ *
+ * @property dispatcher the coroutine dispatcher to use for background tasks
+ * @property ackMessageTimeout the time to wait for an acknowledgment message from the server, defaults to 7 seconds
+ * @property clientId the ID of this client, defaults to an empty string
+ * @property keepAliveSeconds the value of keep alive in the connect message of this client, defaults to 0
+ * @property username the username for authenticating this client
+ * @property password the password of the user
+ * @property sessionExpiryInterval the value of the session expiry interval of the connect message of this client
+ * @property receiveMaximum limits the number of QoS 1 and QoS 2 publications that this client is willing to process concurrently
+ * @property maximumPacketSize the maximum packet size this client is willing to accept
+ * @property topicAliasMaximum indicates the highest value that the Client will accept as a Topic Alias sent by the server, default: 0
+ * @property requestResponseInformation request the server to return Response Information in the CONNACK, default `false`
+ * @property requestProblemInformation use this value to indicate whether the reason string or user properties are sent in the case of failures, default: `true`
+ * @property authenticationMethod currently not used
+ * @property authenticationData currently not used
+ */
 @MqttDslMarker
+@Suppress("MemberVisibilityCanBePrivate")
 public class MqttClientConfigBuilder(
     public val host: String,
     public var port: Int = 1883
@@ -86,8 +81,6 @@ public class MqttClientConfigBuilder(
     public var dispatcher: CoroutineDispatcher = Dispatchers.Default
     public var ackMessageTimeout: Duration = 7.seconds
     public var clientId: String = ""
-    public var willOqS: QoS = QoS.AT_MOST_ONCE
-    public var retainWillMessage: Boolean = false
     public var keepAliveSeconds: UShort = 0u
     public var username: String? = null
     public var password: String? = null
@@ -102,6 +95,8 @@ public class MqttClientConfigBuilder(
 
     /**
      * Build user properties used in the CONNECT packet of this client.
+     *
+     * @sample createUserPropertiesDsl
      */
     public fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userPropertiesBuilder = UserPropertiesBuilder().also(init)
@@ -109,6 +104,8 @@ public class MqttClientConfigBuilder(
 
     /**
      * Build the last will message for this client.
+     *
+     * @param topic the topic name of the last will message of this client
      */
     public fun willMessage(topic: String, init: WillMessageBuilder.() -> Unit) {
         willMessageBuilder = WillMessageBuilder(topic).also(init)
@@ -137,8 +134,8 @@ public class MqttClientConfigBuilder(
         clientId = clientId,
         ackMessageTimeout = ackMessageTimeout,
         willMessage = willMessageBuilder?.build(),
-        willOqS = willOqS,
-        retainWillMessage = retainWillMessage,
+        willOqS = willMessageBuilder?.willOqS ?: QoS.AT_MOST_ONCE,
+        retainWillMessage = willMessageBuilder?.retainWillMessage ?: false,
         keepAliveSeconds = keepAliveSeconds,
         username = username,
         password = password,
@@ -154,29 +151,6 @@ public class MqttClientConfigBuilder(
         tcpOptions = tcpOptions ?: { },
         tlsConfigBuilder = tlsConfigBuilder
     )
-}
-
-private fun dslSample() {
-    buildConfig("test.mosquitto.org", 8883) {
-        clientId = "test-client"
-        username = "test-user"
-        password = "12345678"
-        willMessage("topics/last-will") {
-            payload("Last will message of test-client")
-            properties {
-                messageExpiryInterval = 7.days
-            }
-        }
-        userProperties {
-            "user-key" to "value1"
-            "user-key" to "value2"  // Properties keys may occur more than once
-        }
-        tcp {
-            noDelay = true
-            lingerSeconds = 10
-        }
-        tls { }  // Enable TLS with system trust manager
-    }
 }
 
 private class MqttClientConfigImpl(
