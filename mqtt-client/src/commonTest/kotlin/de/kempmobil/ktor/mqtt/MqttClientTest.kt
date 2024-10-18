@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import kotlin.random.Random
 import kotlin.test.*
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -253,7 +252,7 @@ class MqttClientTest {
     private fun createClient(connection: MqttConnection, id: String? = null): MqttClient {
         val config = buildConfig("mock") {
             ackMessageTimeout = 100.milliseconds
-            clientId = id ?: generateClientId()
+            clientId = id ?: ""
         }
         return MqttClient(config, connection, InMemoryPacketStore())
     }
@@ -269,15 +268,6 @@ class MqttClientTest {
             testScheduler.advanceUntilIdle()
             packetResults.emit(Result.success(packet))
             return response.await()
-        }
-    }
-
-    private fun generateClientId(): String {
-        val chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        return buildString(23) {
-            repeat(23) {
-                append(chars[Random.nextInt(chars.length)])
-            }
         }
     }
 }

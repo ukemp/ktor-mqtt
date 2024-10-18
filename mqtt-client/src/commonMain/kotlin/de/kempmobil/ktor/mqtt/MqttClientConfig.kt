@@ -6,7 +6,6 @@ import io.ktor.network.tls.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.io.bytestring.ByteString
-import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
@@ -19,7 +18,7 @@ import kotlin.time.Duration.Companion.seconds
  * @property port port of the MQTT server to connect to
  * @property dispatcher the coroutine dispatcher to use for background tasks
  * @property clientId the ID of this client, use an empty string to receive a client ID from the server
- * @property ackMessageTimeout the time to wait for an acknowledge message from the server, defaults to 7 seconds
+ * @property ackMessageTimeout the time to wait for an acknowledgment message from the server, defaults to 7 seconds
  * @property willMessage the MQTT last will message or `null` if non should be used
  * @property willOqS the QoS of the last will message
  * @property retainWillMessage the value of bit 5 (will retain) in the connect message of this client
@@ -86,7 +85,7 @@ public class MqttClientConfigBuilder(
 
     public var dispatcher: CoroutineDispatcher = Dispatchers.Default
     public var ackMessageTimeout: Duration = 7.seconds
-    public var clientId: String = generateClientId()
+    public var clientId: String = ""
     public var willOqS: QoS = QoS.AT_MOST_ONCE
     public var retainWillMessage: Boolean = false
     public var keepAliveSeconds: UShort = 0u
@@ -204,12 +203,3 @@ private class MqttClientConfigImpl(
     override val tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit),
     override val tlsConfigBuilder: TLSConfigBuilder?
 ) : MqttClientConfig
-
-private fun generateClientId(): String {
-    val chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    return buildString(23) {
-        repeat(23) {
-            append(chars[Random.nextInt(chars.length)])
-        }
-    }
-}
