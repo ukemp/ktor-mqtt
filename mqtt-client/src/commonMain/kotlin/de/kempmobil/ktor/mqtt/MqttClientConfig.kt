@@ -14,8 +14,7 @@ import kotlin.time.Duration.Companion.seconds
  * Mqtt client configuration, see [buildConfig]
  */
 public interface MqttClientConfig {
-    public val host: String
-    public val port: Int
+    public val engine: MqttEngine
     public val dispatcher: CoroutineDispatcher
     public val clientId: String
     public val ackMessageTimeout: Duration
@@ -34,8 +33,6 @@ public interface MqttClientConfig {
     public val authenticationMethod: AuthenticationMethod?
     public val authenticationData: AuthenticationData?
     public val userProperties: UserProperties
-    public val tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit)
-    public val tlsConfigBuilder: TLSConfigBuilder?
 }
 
 /**
@@ -45,8 +42,11 @@ public interface MqttClientConfig {
  * @param port the port to connect to, defaults to 1883
  * @sample dslSample
  */
-public fun buildConfig(host: String, port: Int = 1883, init: MqttClientConfigBuilder.() -> Unit): MqttClientConfig {
-    return MqttClientConfigBuilder(host, port).also(init).build()
+public fun <T : MqttEngineConfig> buildConfig(
+    connectionFactory: MqttEngineFactory<T>,
+    init: MqttClientConfigBuilder<T>.() -> Unit
+): MqttClientConfig {
+    return MqttClientConfigBuilder(connectionFactory).also(init).build()
 }
 
 /**
@@ -69,14 +69,12 @@ public fun buildConfig(host: String, port: Int = 1883, init: MqttClientConfigBui
  */
 @MqttDslMarker
 @Suppress("MemberVisibilityCanBePrivate")
-public class MqttClientConfigBuilder(
-    public val host: String,
-    public var port: Int = 1883
+public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
+    private val connectionFactory: MqttEngineFactory<T>
 ) {
     private var userPropertiesBuilder: UserPropertiesBuilder? = null
     private var willMessageBuilder: WillMessageBuilder? = null
-    private var tlsConfigBuilder: TLSConfigBuilder? = null
-    private var tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit)? = null
+    private var engine: MqttEngine? = null
 
     public var dispatcher: CoroutineDispatcher = Dispatchers.Default
     public var ackMessageTimeout: Duration = 7.seconds
@@ -92,6 +90,10 @@ public class MqttClientConfigBuilder(
     public var requestProblemInformation: Boolean = true
     public var authenticationMethod: String? = null
     public var authenticationData: ByteString? = null
+
+    public fun connectTo(host: String, port: Int = 1883, init: T.() -> Unit) {
+        engine = connectionFactory.create(host, port, init)
+    }
 
     /**
      * Build user properties used in the CONNECT packet of this client.
@@ -111,51 +113,36 @@ public class MqttClientConfigBuilder(
         willMessageBuilder = WillMessageBuilder(topic).also(init)
     }
 
-    /**
-     * Add TLS configuration for this client. Just use `tls { }` to enable TLS support.
-     */
-    public fun tls(init: TLSConfigBuilder.() -> Unit) {
-        tlsConfigBuilder = TLSConfigBuilder().also(init)
+    public fun build(): MqttClientConfig {
+        if (engine == null) {
+            throw IllegalStateException("Missing connection, have you forgotten to call 'connectTo(host, port) { }'?")
+        }
+        return MqttClientConfigImpl(
+            engine = engine!!,
+            dispatcher = dispatcher,
+            clientId = clientId,
+            ackMessageTimeout = ackMessageTimeout,
+            willMessage = willMessageBuilder?.build(),
+            willOqS = willMessageBuilder?.willOqS ?: QoS.AT_MOST_ONCE,
+            retainWillMessage = willMessageBuilder?.retainWillMessage ?: false,
+            keepAliveSeconds = keepAliveSeconds,
+            username = username,
+            password = password,
+            sessionExpiryInterval = sessionExpiryInterval?.let { SessionExpiryInterval(it.inWholeSeconds.toUInt()) },
+            receiveMaximum = receiveMaximum?.let { ReceiveMaximum(it) },
+            maximumPacketSize = maximumPacketSize?.let { MaximumPacketSize(it) },
+            topicAliasMaximum = TopicAliasMaximum(topicAliasMaximum),
+            requestResponseInformation = RequestResponseInformation(requestResponseInformation),
+            requestProblemInformation = RequestProblemInformation(requestProblemInformation),
+            authenticationMethod = authenticationMethod?.let { AuthenticationMethod(it) },
+            authenticationData = authenticationData?.let { AuthenticationData(it) },
+            userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
+        )
     }
-
-    /**
-     * Configure the TCP options for this client
-     *
-     * @see SocketOptions.TCPClientSocketOptions
-     */
-    public fun tcp(init: SocketOptions.TCPClientSocketOptions.() -> Unit) {
-        tcpOptions = init
-    }
-
-    public fun build(): MqttClientConfig = MqttClientConfigImpl(
-        host = host,
-        port = port,
-        dispatcher = dispatcher,
-        clientId = clientId,
-        ackMessageTimeout = ackMessageTimeout,
-        willMessage = willMessageBuilder?.build(),
-        willOqS = willMessageBuilder?.willOqS ?: QoS.AT_MOST_ONCE,
-        retainWillMessage = willMessageBuilder?.retainWillMessage ?: false,
-        keepAliveSeconds = keepAliveSeconds,
-        username = username,
-        password = password,
-        sessionExpiryInterval = sessionExpiryInterval?.let { SessionExpiryInterval(it.inWholeSeconds.toUInt()) },
-        receiveMaximum = receiveMaximum?.let { ReceiveMaximum(it) },
-        maximumPacketSize = maximumPacketSize?.let { MaximumPacketSize(it) },
-        topicAliasMaximum = TopicAliasMaximum(topicAliasMaximum),
-        requestResponseInformation = RequestResponseInformation(requestResponseInformation),
-        requestProblemInformation = RequestProblemInformation(requestProblemInformation),
-        authenticationMethod = authenticationMethod?.let { AuthenticationMethod(it) },
-        authenticationData = authenticationData?.let { AuthenticationData(it) },
-        userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
-        tcpOptions = tcpOptions ?: { },
-        tlsConfigBuilder = tlsConfigBuilder
-    )
 }
 
 private class MqttClientConfigImpl(
-    override val host: String,
-    override val port: Int,
+    override val engine: MqttEngine,
     override val dispatcher: CoroutineDispatcher,
     override val clientId: String,
     override val ackMessageTimeout: Duration,
@@ -174,6 +161,4 @@ private class MqttClientConfigImpl(
     override val authenticationMethod: AuthenticationMethod? = null,
     override val authenticationData: AuthenticationData? = null,
     override val userProperties: UserProperties,
-    override val tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit),
-    override val tlsConfigBuilder: TLSConfigBuilder?
 ) : MqttClientConfig

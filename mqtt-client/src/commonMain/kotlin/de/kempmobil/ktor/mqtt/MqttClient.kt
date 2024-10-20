@@ -12,10 +12,11 @@ import kotlin.time.Duration.Companion.seconds
 
 public class MqttClient internal constructor(
     private val config: MqttClientConfig,
-    private val connection: MqttConnection,
+    private val engine: MqttEngine,
     private val packetStore: PacketStore
 ) {
-    public constructor(config: MqttClientConfig) : this(config, MqttConnectionImpl(config), InMemoryPacketStore())
+    public constructor(config: MqttClientConfig) :
+            this(config, config.engine, InMemoryPacketStore())
 
     private val _publishedPackets = MutableSharedFlow<Publish>()
 
@@ -53,7 +54,7 @@ public class MqttClient internal constructor(
      * connectivity has been established AND that the server responded with a success CONNACK message.
      */
     public val connectionState: Flow<ConnectionState>
-        get() = connection.connected.combine(connackFlow) { isConnected: Boolean, connack: Connack? ->
+        get() = engine.connected.combine(connackFlow) { isConnected: Boolean, connack: Connack? ->
             if (isConnected && (connack?.isSuccess == true)) {
                 Connected(connack)
             } else {
@@ -77,7 +78,7 @@ public class MqttClient internal constructor(
 
     init {
         scope.launch {
-            connection.packetResults.collect { result ->
+            engine.packetResults.collect { result ->
                 handlePacketResult(result)
             }
         }
@@ -93,10 +94,10 @@ public class MqttClient internal constructor(
     public suspend fun connect(): Result<Connack> {
         connackFlow.emit(null)
 
-        return connection.start()
+        return engine.start()
             .mapCatching {
                 awaitResponseOf<Connack>(PacketType.CONNACK) {
-                    connection.send(createConnect())
+                    engine.send(createConnect())
                 }.onSuccess {
                     inspectConnack(it)
                 }.getOrElse() {
@@ -120,7 +121,7 @@ public class MqttClient internal constructor(
         val subscribe = createSubscribe(filters, subscriptionIdentifier, userProperties)
 
         return awaitResponseOf({ it.isResponseFor<Suback>(subscribe) }, {
-            connection.send(subscribe)
+            engine.send(subscribe)
         })
     }
 
@@ -131,7 +132,7 @@ public class MqttClient internal constructor(
         val unsubscribe = createUnsubscribe(topics, userProperties)
 
         return awaitResponseOf({ it.isResponseFor<Unsuback>(unsubscribe) }, {
-            connection.send(unsubscribe)
+            engine.send(unsubscribe)
         })
     }
 
@@ -140,13 +141,13 @@ public class MqttClient internal constructor(
 
             when (publish.qoS) {
                 QoS.AT_MOST_ONCE -> {
-                    connection.send(publish)
+                    engine.send(publish)
                     QoS.AT_MOST_ONCE
                 }
 
                 QoS.AT_LEAST_ONCE -> {
                     packetStore.store(publish)
-                    connection.send(publish)
+                    engine.send(publish)
                     receivedPackets.first { it.isResponseFor<Puback>(publish) }
                     packetStore.acknowledge(publish)
                     QoS.AT_LEAST_ONCE
@@ -154,10 +155,10 @@ public class MqttClient internal constructor(
 
                 QoS.EXACTLY_ONE -> {
                     packetStore.store(publish)
-                    connection.send(publish)
+                    engine.send(publish)
                     receivedPackets.first { it.isResponseFor<Pubrec>(publish) }
                     val pubrel = packetStore.replace(publish)
-                    connection.send(pubrel)
+                    engine.send(pubrel)
                     receivedPackets.first { it.isResponseFor<Pubcomp>(publish) }
                     packetStore.acknowledge(pubrel)
                     QoS.EXACTLY_ONE
@@ -167,12 +168,12 @@ public class MqttClient internal constructor(
     }
 
     public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reasonString: String? = null) {
-        connection.send(createDisconnect(reasonCode, if (reasonString == null) null else ReasonString(reasonString)))
-        connection.disconnect()
+        engine.send(createDisconnect(reasonCode, if (reasonString == null) null else ReasonString(reasonString)))
+        engine.disconnect()
     }
 
     public fun close() {
-        connection.close()
+        engine.close()
         scope.cancel()
     }
 
@@ -260,7 +261,7 @@ public class MqttClient internal constructor(
 
         if (!connack.isSuccess) {
             Logger.i { "Server sent CONNACK packet with ${connack.reason}, hence terminating the connection" }
-            connection.disconnect()
+            engine.disconnect()
         } else {
             connack.maximumQoS?.let {
                 _maxQos = it.qoS
@@ -272,7 +273,7 @@ public class MqttClient internal constructor(
                 scope.launch {
                     delay(keepAlive)
                     awaitResponseOf<Pingresp>(PacketType.PINGRESP) {
-                        connection.send(Pingreq)
+                        engine.send(Pingreq)
                     }
                 }
             }
@@ -303,7 +304,7 @@ public class MqttClient internal constructor(
             } else {
                 Logger.e(throwable = throwable) { "Unexpected error while parsing a packet, disconnecting..." }
             }
-            connection.disconnect()
+            engine.disconnect()
         }
     }
 
@@ -312,7 +313,7 @@ public class MqttClient internal constructor(
         when (packet) {
             is Disconnect -> {
                 Logger.i { "Received DISCONNECT (${packet.reasonString.ifNull(packet.reason)}) from server, disconnecting..." }
-                connection.disconnect()
+                engine.disconnect()
             }
 
             is Publish -> {
@@ -323,7 +324,7 @@ public class MqttClient internal constructor(
 
                     QoS.AT_LEAST_ONCE -> {
                         _publishedPackets.emit(packet)
-                        connection.send(Puback.from(packet))
+                        engine.send(Puback.from(packet))
                     }
 
                     QoS.EXACTLY_ONE -> {
@@ -331,20 +332,20 @@ public class MqttClient internal constructor(
                         if (publishReceivedPackets.containsKey(id)) {
                             // Must resend the PUBREC packet
                             publishReceivedPackets[id]?.let {
-                                connection.send(it)
+                                engine.send(it)
                             }
                         } else {
                             _publishedPackets.emit(packet)
                             val pubrec = Pubrec.from(packet)
                             publishReceivedPackets[id] = pubrec
-                            connection.send(pubrec)
+                            engine.send(pubrec)
                         }
                     }
                 }
             }
 
             is Pubrel -> {
-                connection.send(Pubcomp.from(packet))
+                engine.send(Pubcomp.from(packet))
                 publishReceivedPackets.remove(packet.packetIdentifier)
             }
 
@@ -392,16 +393,22 @@ public class MqttClient internal constructor(
 /**
  * Creates a new MQTT client.
  *
- * @param host the server name to connect to
- * @param port the server port used to connect, defaults to 1883
  * @sample createClientDsl
  */
-public fun MqttClient(host: String, port: Int = 1883, init: MqttClientConfigBuilder.() -> Unit): MqttClient {
-    return MqttClient(MqttClientConfigBuilder(host, port).also(init).build())
+public fun MqttClient(init: MqttClientConfigBuilder<DefaultEngineConfig>.() -> Unit): MqttClient {
+    return MqttClient(MqttClientConfigBuilder(DefaultConfig).also(init).build())
 }
 
 private fun createClientDsl() {
-    val client = MqttClient("test.mosquitto.org", 8886) {
+    val client = MqttClient {
+        connectTo("test.mosquitto.org", 8886) {
+            tls { }  // Enable TLS using the system's trust manager
+            tcp {
+                noDelay = true
+                lingerSeconds = 10
+            }
+        }
+
         clientId = "test-client"
         username = "ro"
         password = "readonly"
@@ -419,11 +426,6 @@ private fun createClientDsl() {
             "user-key" to "value1"
             "user-key" to "value2"  // Property keys may occur more than once!
         }
-        tcp {
-            noDelay = true
-            lingerSeconds = 10
-        }
-        tls { }  // Enable TLS using the system's trust manager
     }
 }
 

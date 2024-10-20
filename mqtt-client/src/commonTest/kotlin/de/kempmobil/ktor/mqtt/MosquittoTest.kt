@@ -9,7 +9,7 @@ import kotlin.test.*
 @Ignore
 class MosquittoTest {
 
-    private val host = "test.mosquitto.org"
+    private val mosquitto = "test.mosquitto.org"
 
     private lateinit var client: MqttClient
 
@@ -20,15 +20,19 @@ class MosquittoTest {
 
     @Test
     fun `test unencrypted connection`() = runTest {
-        client = MqttClient(host) { }
+        client = MqttClient {
+            connectTo(mosquitto) { }
+        }
         val result = client.connect()
         assertEquals(true, result.isSuccess)
     }
 
     @Test
     fun `test TLS connection`() = runTest {
-        client = MqttClient(host, 8886) {
-            tls { }
+        client = MqttClient {
+            connectTo(mosquitto, 8886) {
+                tls { }
+            }
         }
         val result = client.connect()
         assertTrue(result.isSuccess)
@@ -36,7 +40,9 @@ class MosquittoTest {
 
     @Test
     fun `publishing a sample packet`() = runTest {
-        client = MqttClient(host) { }
+        client = MqttClient {
+            connectTo(mosquitto) { }
+        }
         val result = client.connect()
         assertTrue(result.isSuccess)
 
@@ -54,7 +60,8 @@ class MosquittoTest {
     @Test
     fun `subscribe to all`() = runTest {
         Logger.setLogWriters()
-        client = MqttClient(host, 1884) {
+        client = MqttClient {
+            connectTo(mosquitto, 1884) { }
             username = "ro"
             password = "readonly"
         }

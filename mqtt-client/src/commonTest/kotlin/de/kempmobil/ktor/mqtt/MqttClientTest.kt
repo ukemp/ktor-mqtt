@@ -20,7 +20,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class MqttClientTest {
 
-    private lateinit var connection: MqttConnection
+    private lateinit var connection: MqttEngine
 
     private lateinit var connectionState: MutableStateFlow<Boolean>
 
@@ -54,7 +54,7 @@ class MqttClientTest {
         val connectionState = MutableStateFlow(false)
         val results = MutableSharedFlow<Result<Packet>>()
 
-        val connection = mock<MqttConnection> {
+        val connection = mock<MqttEngine> {
             every { connected } returns connectionState
             every { packetResults } returns results
         }
@@ -249,8 +249,9 @@ class MqttClientTest {
         assertSame(unsuback, result.getOrNull())
     }
 
-    private fun createClient(connection: MqttConnection, id: String? = null): MqttClient {
-        val config = buildConfig("mock") {
+    private fun createClient(connection: MqttEngine, id: String? = null): MqttClient {
+        val config = buildConfig(DefaultConfig) {
+            connectTo("dummy") { }
             ackMessageTimeout = 100.milliseconds
             clientId = id ?: ""
         }

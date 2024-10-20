@@ -67,10 +67,7 @@ class IntegrationTest {
 
     @Test
     fun `connect returns NotAuthorized when using wrong credentials`() = runTest {
-        client = MqttClient(host, port) {
-            username = testUser
-            password = "invalid-password"
-        }
+        client = createClient(pwd = "invalid-password")
         val result = client.connect()
 
         assertTrue(result.isSuccess)
@@ -79,10 +76,7 @@ class IntegrationTest {
 
     @Test
     fun `connection state propagated properly`() = runTest {
-        client = MqttClient(host, port) {
-            username = testUser
-            password = testPassword
-        }
+        client = createClient()
 
         assertEquals(Disconnected, client.connectionState.first())
         val result = client.connect()
@@ -95,10 +89,7 @@ class IntegrationTest {
 
     @Test
     fun `allow reconnection after disconnect`() = runTest {
-        client = MqttClient(host, port) {
-            username = testUser
-            password = testPassword
-        }
+        client = createClient()
         val result1 = client.connect()
         assertNotNull(result1)
         assertTrue(result1.isSuccess)
@@ -115,11 +106,7 @@ class IntegrationTest {
     @Test
     fun `send publish request`() = runTest {
         val id = "test-publisher"
-        client = MqttClient(host, port) {
-            username = testUser
-            password = testPassword
-            clientId = id
-        }
+        client = createClient(id = id)
         client.connect()
 
         val qos = client.publish(buildPublishRequest("test/topic") {
@@ -142,10 +129,7 @@ class IntegrationTest {
 
     @Test
     fun `can subscribe to topics with different QoS values`() = runTest {
-        client = MqttClient(host, port) {
-            username = testUser
-            password = testPassword
-        }
+        client = createClient()
         client.connect()
         val result = client.subscribe(buildFilterList {
             add("topic/0", qoS = QoS.AT_MOST_ONCE)
@@ -166,11 +150,7 @@ class IntegrationTest {
         val payload = "text-payload-at-most-once"
         var receivedMessage: Publish? = null
 
-        client = MqttClient(host, port) {
-            username = testUser
-            password = testPassword
-            clientId = id
-        }
+        client = createClient(id = id)
         client.connect()
         val receiverJob = CoroutineScope(Dispatchers.Default).launch {
             receivedMessage = client.publishedPackets.first()
@@ -198,11 +178,7 @@ class IntegrationTest {
         val payload = "text-payload-at-least-once"
         var receivedMessage: Publish? = null
 
-        client = MqttClient(host, port) {
-            username = testUser
-            password = testPassword
-            clientId = id
-        }
+        client = createClient(id = id)
         client.connect()
         val receiverJob = CoroutineScope(Dispatchers.Default).launch {
             receivedMessage = client.publishedPackets.first()
@@ -234,11 +210,7 @@ class IntegrationTest {
         val payload = "text-payload-exactly-one"
         var receivedMessage: Publish? = null
 
-        client = MqttClient(host, port) {
-            username = testUser
-            password = testPassword
-            clientId = id
-        }
+        client = createClient(id = id)
         client.connect()
         val receiverJob = CoroutineScope(Dispatchers.Default).launch {
             receivedMessage = client.publishedPackets.first()
@@ -289,6 +261,15 @@ class IntegrationTest {
 //
 //        assertEquals(Disconnected, client.connectionState.first())
 //    }
+
+    private fun createClient(user: String = testUser, pwd: String = testPassword, id: String = ""): MqttClient {
+        return MqttClient {
+            connectTo(host, port) { }
+            username = user
+            password = pwd
+            clientId = id
+        }
+    }
 
     private fun sendMessage(topic: String, qos: String, payload: String) {
         // Use "mosquitto_pub" to send a message to our client:
