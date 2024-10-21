@@ -4,9 +4,12 @@ import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
-@Ignore
+//@Ignore
 class MosquittoTest {
 
     private val mosquitto = "test.mosquitto.org"

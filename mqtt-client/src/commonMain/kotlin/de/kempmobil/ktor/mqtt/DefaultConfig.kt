@@ -13,7 +13,7 @@ internal object DefaultConfig : MqttEngineFactory<DefaultEngineConfig> {
 }
 
 public class DefaultEngineConfig(host: String, port: Int) : MqttEngineConfig(host, port) {
-    public val dispatcher: CoroutineDispatcher = Dispatchers.Default
+    public var dispatcher: CoroutineDispatcher = Dispatchers.Default
     internal var tlsConfigBuilder: TLSConfigBuilder? = null
     internal var tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit) = { }
 

@@ -2,8 +2,7 @@ package de.kempmobil.ktor.mqtt
 
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
-import io.ktor.network.sockets.*
-import io.ktor.network.tls.*
+import io.ktor.client.plugins.websocket.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
@@ -16,28 +15,16 @@ internal object WebSocketConfig : MqttEngineFactory<WebSocketEngineConfig> {
 
 public class WebSocketEngineConfig(host: String, port: Int) : MqttEngineConfig(host, port) {
 
-    public val dispatcher: CoroutineDispatcher = Dispatchers.Default
+    public var dispatcher: CoroutineDispatcher = Dispatchers.Default
 
-    public var client: HttpClient = HttpClient(CIO)
-
-    internal var tlsConfigBuilder: TLSConfigBuilder? = null
-
-    internal var tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit) = { }
-
-
-    /**
-     * Add TLS configuration for this client. Just use `tls { }` to enable TLS support.
-     */
-    public fun tls(init: TLSConfigBuilder.() -> Unit) {
-        tlsConfigBuilder = TLSConfigBuilder().also(init)
+    public var clientFactory: () -> HttpClient = {
+        HttpClient(CIO) {
+            install(WebSockets)
+        }
     }
 
     /**
-     * Configure the TCP options for this client
-     *
-     * @see SocketOptions.TCPClientSocketOptions
+     * When `true` use WSS (a.k.a TLS) as the web socket protocol, else don't use encryption.
      */
-    public fun tcp(init: SocketOptions.TCPClientSocketOptions.() -> Unit) {
-        tcpOptions = init
-    }
+    public var useWss: Boolean = false
 }

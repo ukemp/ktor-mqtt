@@ -8,4 +8,4 @@ public interface MqttEngineFactory<out T : MqttEngineConfig> {
 }
 
 @MqttDslMarker
-public open class MqttEngineConfig(public var host: String, public var port: Int = 1883)
+public open class MqttEngineConfig(public val host: String, public val port: Int = 1883)

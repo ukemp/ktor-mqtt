@@ -1,5 +1,8 @@
 package de.kempmobil.ktor.mqtt
 
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.websocket.*
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
@@ -16,7 +19,11 @@ public fun MqttWebSocketClient(init: MqttClientConfigBuilder<WebSocketEngineConf
 private fun createClientDsl() {
     val client = MqttWebSocketClient {
         connectTo("test.mosquitto.org", 8091) {
-            tls { }  // Enable TLS using the system's trust manager
+            clientFactory = {
+                HttpClient(CIO) {
+                    install(WebSockets)
+                }
+            }
         }
 
         clientId = "test-client"
