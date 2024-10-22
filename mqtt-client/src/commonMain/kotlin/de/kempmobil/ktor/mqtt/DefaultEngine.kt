@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.io.EOFException
 
-internal class DefaultMqttEngine(private val config: DefaultEngineConfig) : MqttEngine {
+internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngine {
 
     private val _packetResults = MutableSharedFlow<Result<Packet>>()
     override val packetResults: SharedFlow<Result<Packet>>

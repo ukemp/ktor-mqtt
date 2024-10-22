@@ -6,10 +6,10 @@ import io.ktor.client.plugins.websocket.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
-internal object WebSocketConfig : MqttEngineFactory<WebSocketEngineConfig> {
+internal object WebSocketEngineFactory : MqttEngineFactory<WebSocketEngineConfig> {
 
     override fun create(host: String, port: Int, block: WebSocketEngineConfig.() -> Unit): MqttEngine {
-        return WebSocketMqttEngine(WebSocketEngineConfig(host, port).apply(block))
+        return WebSocketEngine(WebSocketEngineConfig(host, port).apply(block))
     }
 }
 

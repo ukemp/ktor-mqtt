@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.io.Buffer
 
-internal class WebSocketMqttEngine(private val config: WebSocketEngineConfig) : MqttEngine {
+internal class WebSocketEngine(private val config: WebSocketEngineConfig) : MqttEngine {
 
     private val client: HttpClient = config.clientFactory()
 
@@ -87,13 +87,13 @@ internal class WebSocketMqttEngine(private val config: WebSocketEngineConfig) : 
     private suspend fun DefaultClientWebSocketSession.incomingMessagesLoop() {
         while (receiverJob?.isActive == true) {
             try {
-                Logger.d { "${this@WebSocketMqttEngine} waiting for incoming frames..." }
+                Logger.d { "${this@WebSocketEngine} waiting for incoming frames..." }
 
                 for (frame in incoming) {
                     when (frame) {
                         // Note that in non-raw mode, we should never receive Close, Ping or Pong frames
                         is Frame.Binary -> {
-                            Logger.d { "${this@WebSocketMqttEngine} received data frame of size: ${frame.data.size}" }
+                            Logger.d { "${this@WebSocketEngine} received data frame of size: ${frame.data.size}" }
                             with(Buffer()) {
                                 writeFully(frame.readBytes())
                                 _packetResults.emit(Result.success(readPacket()))
@@ -101,23 +101,23 @@ internal class WebSocketMqttEngine(private val config: WebSocketEngineConfig) : 
                         }
 
                         else -> {
-                            Logger.e { "${this@WebSocketMqttEngine} received unexpected frame: $frame" }
+                            Logger.e { "${this@WebSocketEngine} received unexpected frame: $frame" }
                         }
                     }
                 }
-                Logger.d { "${this@WebSocketMqttEngine} frames terminated, cancelling incoming message queue" }
+                Logger.d { "${this@WebSocketEngine} frames terminated, cancelling incoming message queue" }
 
                 // When we come here, the connection has been terminated, hence do some cleanup
                 disconnect()
 
             } catch (ex: CancellationException) {
-                Logger.d { "Incoming message queue of ${this@WebSocketMqttEngine} has been cancelled" }
+                Logger.d { "Incoming message queue of ${this@WebSocketEngine} has been cancelled" }
                 disconnect()
             } catch (ex: MalformedPacketException) {
                 // Continue with the loop, so that the client can decide what to do
                 _packetResults.emit(Result.failure(ex))
             } catch (ex: Exception) {
-                Logger.e(throwable = ex) { "${this@WebSocketMqttEngine} error while receiving messages: " + ex::class }
+                Logger.e(throwable = ex) { "${this@WebSocketEngine} error while receiving messages: " + ex::class }
             }
         }
     }

@@ -13,7 +13,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 @Suppress("FunctionName")
 public fun MqttWebSocketClient(init: MqttClientConfigBuilder<WebSocketEngineConfig>.() -> Unit): MqttClient {
-    return MqttClient(MqttClientConfigBuilder(WebSocketConfig).also(init).build())
+    return MqttClient(MqttClientConfigBuilder(WebSocketEngineFactory).also(init).build())
 }
 
 private fun createClientDsl() {

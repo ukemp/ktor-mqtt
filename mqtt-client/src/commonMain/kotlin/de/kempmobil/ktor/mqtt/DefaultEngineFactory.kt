@@ -5,10 +5,10 @@ import io.ktor.network.tls.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
-internal object DefaultConfig : MqttEngineFactory<DefaultEngineConfig> {
+internal object DefaultEngineFactory : MqttEngineFactory<DefaultEngineConfig> {
 
     override fun create(host: String, port: Int, block: DefaultEngineConfig.() -> Unit): MqttEngine {
-        return DefaultMqttEngine(DefaultEngineConfig(host, port).apply(block))
+        return DefaultEngine(DefaultEngineConfig(host, port).apply(block))
     }
 }
 

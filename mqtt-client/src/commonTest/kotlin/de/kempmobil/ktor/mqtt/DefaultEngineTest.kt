@@ -13,7 +13,7 @@ import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
 
-class DefaultMqttEngineTest {
+class DefaultEngineTest {
 
     private val defaultHost = "localhost"
     private val defaultPort = 12345
@@ -166,8 +166,8 @@ class DefaultMqttEngineTest {
     // ---- Helper functions -------------------------------------------------------------------------------------------
 
     @Suppress("TestFunctionName")
-    private fun MqttConnection(host: String = defaultHost, port: Int = defaultPort): DefaultMqttEngine {
-        return DefaultMqttEngine(DefaultEngineConfig(host, port))
+    private fun MqttConnection(host: String = defaultHost, port: Int = defaultPort): DefaultEngine {
+        return DefaultEngine(DefaultEngineConfig(host, port))
     }
 
     /**

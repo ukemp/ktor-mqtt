@@ -396,7 +396,7 @@ public class MqttClient internal constructor(
  * @sample createClientDsl
  */
 public fun MqttClient(init: MqttClientConfigBuilder<DefaultEngineConfig>.() -> Unit): MqttClient {
-    return MqttClient(MqttClientConfigBuilder(DefaultConfig).also(init).build())
+    return MqttClient(MqttClientConfigBuilder(DefaultEngineFactory).also(init).build())
 }
 
 private fun createClientDsl() {
