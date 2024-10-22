@@ -1,33 +1,32 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
 class PublishResponseTest {
 
     @Test
-    fun `encode and decode returns same packet`() = runTest {
-        assertEncodeDecode(Puback(42u, Success))
-        assertEncodeDecode(Pubrec(42u, Success))
-        assertEncodeDecode(Pubrel(42u, Success))
-        assertEncodeDecode(Pubcomp(42u, Success))
+    fun `encode and decode returns same packet`() {
+        assertEncodeDecodeOf(Puback(42u, Success))
+        assertEncodeDecodeOf(Pubrec(42u, Success))
+        assertEncodeDecodeOf(Pubrel(42u, Success))
+        assertEncodeDecodeOf(Pubcomp(42u, Success))
 
-        assertEncodeDecode(Puback(42u, NoMatchingSubscribers))
-        assertEncodeDecode(Pubrec(42u, NoMatchingSubscribers))
-        assertEncodeDecode(Pubrel(42u, NoMatchingSubscribers))
-        assertEncodeDecode(Pubcomp(42u, NoMatchingSubscribers))
+        assertEncodeDecodeOf(Puback(42u, NoMatchingSubscribers))
+        assertEncodeDecodeOf(Pubrec(42u, NoMatchingSubscribers))
+        assertEncodeDecodeOf(Pubrel(42u, NoMatchingSubscribers))
+        assertEncodeDecodeOf(Pubcomp(42u, NoMatchingSubscribers))
 
-        assertEncodeDecode(Puback(42u, Success, ReasonString("reason"), buildUserProperties { "key" to "value" }))
-        assertEncodeDecode(Pubrec(42u, Success, ReasonString("reason"), buildUserProperties { "key" to "value" }))
-        assertEncodeDecode(Pubrel(42u, Success, ReasonString("reason"), buildUserProperties { "key" to "value" }))
-        assertEncodeDecode(Pubcomp(42u, Success, ReasonString("reason"), buildUserProperties { "key" to "value" }))
+        assertEncodeDecodeOf(Puback(42u, Success, ReasonString("reason"), buildUserProperties { "key" to "value" }))
+        assertEncodeDecodeOf(Pubrec(42u, Success, ReasonString("reason"), buildUserProperties { "key" to "value" }))
+        assertEncodeDecodeOf(Pubrel(42u, Success, ReasonString("reason"), buildUserProperties { "key" to "value" }))
+        assertEncodeDecodeOf(Pubcomp(42u, Success, ReasonString("reason"), buildUserProperties { "key" to "value" }))
 
-        assertEncodeDecode(Puback(42u, Success, null, buildUserProperties { "key" to "value" }))
-        assertEncodeDecode(Pubrec(42u, Success, null, buildUserProperties { "key" to "value" }))
-        assertEncodeDecode(Pubrel(42u, Success, null, buildUserProperties { "key" to "value" }))
-        assertEncodeDecode(Pubcomp(42u, Success, null, buildUserProperties { "key" to "value" }))
+        assertEncodeDecodeOf(Puback(42u, Success, null, buildUserProperties { "key" to "value" }))
+        assertEncodeDecodeOf(Pubrec(42u, Success, null, buildUserProperties { "key" to "value" }))
+        assertEncodeDecodeOf(Pubrel(42u, Success, null, buildUserProperties { "key" to "value" }))
+        assertEncodeDecodeOf(Pubcomp(42u, Success, null, buildUserProperties { "key" to "value" }))
     }
 
     @Test

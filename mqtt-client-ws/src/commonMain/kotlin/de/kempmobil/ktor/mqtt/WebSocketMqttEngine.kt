@@ -91,7 +91,7 @@ internal class WebSocketMqttEngine(private val config: WebSocketEngineConfig) : 
                         // Note that in non-raw mode, we should never receive Close, Ping or Pong frames
                         is Frame.Binary -> {
                             Logger.d { "${this@WebSocketMqttEngine} received data frame of size: ${frame.data.size}" }
-                            Buffer().apply {
+                            with(Buffer()) {
                                 writeFully(frame.readBytes())
                                 _packetResults.emit(Result.success(readPacket()))
                             }
@@ -123,7 +123,7 @@ internal class WebSocketMqttEngine(private val config: WebSocketEngineConfig) : 
         Logger.v { "Sending $packet..." }
 
         return try {
-            Buffer().apply {
+            with(Buffer()) {
                 write(packet)
                 outgoing.send(Frame.Binary(fin = true, packet = this))
             }

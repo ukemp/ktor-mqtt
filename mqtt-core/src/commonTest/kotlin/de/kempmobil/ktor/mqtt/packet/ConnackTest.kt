@@ -2,7 +2,6 @@ package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
 import io.ktor.utils.io.core.*
-import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,9 +11,9 @@ import kotlin.test.assertTrue
 class ConnackTest {
 
     @Test
-    fun `encode and decode returns same packet`() = runTest {
-        assertEncodeDecode(Connack(true, Success))
-        assertEncodeDecode(
+    fun `encode and decode returns same packet`() {
+        assertEncodeDecodeOf(Connack(true, Success))
+        assertEncodeDecodeOf(
             Connack(
                 false,
                 MalformedPacket,
