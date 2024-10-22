@@ -27,4 +27,9 @@ public class WebSocketEngineConfig(host: String, port: Int) : MqttEngineConfig(h
      * When `true` use WSS (a.k.a TLS) as the web socket protocol, else don't use encryption.
      */
     public var useWss: Boolean = false
+
+    /**
+     * The websocket path to connect to, defaults to "".
+     */
+    public var path: String = ""
 }

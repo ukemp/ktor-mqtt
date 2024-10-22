@@ -5,6 +5,7 @@ import de.kempmobil.ktor.mqtt.packet.Packet
 import de.kempmobil.ktor.mqtt.packet.readPacket
 import de.kempmobil.ktor.mqtt.packet.write
 import io.ktor.client.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
 import io.ktor.utils.io.core.*
@@ -37,8 +38,8 @@ internal class WebSocketMqttEngine(private val config: WebSocketEngineConfig) : 
     private var wsSession: DefaultClientWebSocketSession? = null
 
     init {
-        if (!client.engine.supportedCapabilities.contains(WebSocketCapability)) {
-            throw IllegalStateException("${client.engine} doesn't support web sockets, did you forget to call 'install(WebSockets)'?")
+        if (client.pluginOrNull(WebSockets) == null) {
+            throw IllegalStateException("No WebSockets plugin installed in ${client.engine::class.simpleName}, consider using 'install(WebSockets)'")
         }
     }
 
@@ -47,11 +48,13 @@ internal class WebSocketMqttEngine(private val config: WebSocketEngineConfig) : 
             wsSession = client.webSocketSession(
                 method = HttpMethod.Get,
                 host = config.host,
-                port = config.port
+                port = config.port,
+                path = config.path
             ) {
                 url.protocol = if (config.useWss) URLProtocol.WSS else URLProtocol.WS
                 headers[HttpHeaders.SecWebSocketProtocol] = "mqtt"
             }.also {
+                _connected.emit(true)
                 receiverJob = scope.launch {
                     it.incomingMessagesLoop()
                 }
@@ -70,10 +73,11 @@ internal class WebSocketMqttEngine(private val config: WebSocketEngineConfig) : 
     override suspend fun disconnect() {
         wsSession?.close()
         receiverJob?.cancel()
+        _connected.emit(false)
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        client.close()
     }
 
     override fun toString(): String {
@@ -86,7 +90,6 @@ internal class WebSocketMqttEngine(private val config: WebSocketEngineConfig) : 
                 Logger.d { "${this@WebSocketMqttEngine} waiting for incoming frames..." }
 
                 for (frame in incoming) {
-                    println("Received a $frame")
                     when (frame) {
                         // Note that in non-raw mode, we should never receive Close, Ping or Pong frames
                         is Frame.Binary -> {

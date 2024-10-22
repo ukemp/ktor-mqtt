@@ -75,6 +75,10 @@ internal class DefaultMqttEngine(private val config: DefaultEngineConfig) : Mqtt
         selectorManager.close()
     }
 
+    override fun toString(): String {
+        return "DefaultMqttEngine[${config.host}:${config.port}]"
+    }
+
     // --- Private methods ---------------------------------------------------------------------------------------------
 
     private suspend fun openSocket(): Socket {
