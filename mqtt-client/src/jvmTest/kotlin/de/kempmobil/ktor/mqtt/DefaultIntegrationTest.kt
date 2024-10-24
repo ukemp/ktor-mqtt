@@ -1,38 +1,21 @@
 package de.kempmobil.ktor.mqtt
 
-import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.Publish
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.decodeToString
-import org.junit.AfterClass
-import org.junit.BeforeClass
 import kotlin.test.*
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.measureTime
 
-class IntegrationTest {
+class DefaultIntegrationTest : IntegrationTestBase() {
 
     private lateinit var client: MqttClient
-
-    companion object {
-
-        lateinit var mosquitto: MosquittoContainer
-
-        @JvmStatic
-        @BeforeClass
-        fun startServer() {
-            mosquitto = MosquittoContainer().also { it.start() }
-        }
-
-        @JvmStatic
-        @AfterClass
-        fun stopServer() {
-            Logger.i(mosquitto.logs)
-            mosquitto.stop()
-        }
-    }
 
     @AfterTest
     fun tearDown() = runTest {
@@ -184,28 +167,35 @@ class IntegrationTest {
         )
     }
 
-//    @Test
-//    fun `connection via TLS`() = runTest {
-//        client = MqttClient {
-//            connectTo(mosquitto.host, mosquitto.tlsPort) {
-//                tls {
-//                    // Don't check certificates:
-//                    trustManager = object : X509TrustManager {
-//                        override fun getAcceptedIssuers(): Array<X509Certificate?> = arrayOf()
-//                        override fun checkClientTrusted(certs: Array<X509Certificate?>?, authType: String?) {}
-//                        override fun checkServerTrusted(certs: Array<X509Certificate?>?, authType: String?) {}
-//                    }
-//                }
-//            }
-//            username = MosquittoContainer.user
-//            password = MosquittoContainer.password
-//        }
-//
-//        assertEquals(Disconnected, client.connectionState.first())
-//        val result = client.connect()
-//
-//        assertEquals(Connected(result.getOrThrow()), client.connectionState.first())
-//    }
+    @Test
+    fun `can receive 1000 messages in highest QoS`() = runTest(timeout = 2.seconds) {
+        val messages = 1000
+
+        val duration = measureTime {
+            val topic = "test/topic/2"
+            var count = 0
+
+            client = createClient()
+            assertTrue(client.connect().isSuccess)
+
+            val counterJob = backgroundScope.launch {
+                client.publishedPackets.takeWhile {
+                    ++count < messages
+                }.collect()
+            }
+
+            val suback = client.subscribe(buildFilterList {
+                add(topic, qoS = QoS.EXACTLY_ONE)
+            })
+            assertTrue(suback.isSuccess, "Cannot subscribe to '$topic': $suback")
+
+            mosquitto.publish(topic, "2", "payload", messages)
+            counterJob.join()
+
+            assertEquals(messages, count)
+        }
+        println("Collected $messages message in just $duration")
+    }
 
     private fun createClient(
         user: String = MosquittoContainer.user,

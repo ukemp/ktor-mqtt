@@ -61,14 +61,23 @@ class MosquittoContainer {
      * @param topic the name of the topic to publish to
      * @param qos the QoS, either "0", "1" or "2"
      * @param payload the payload to publish
+     * @param repeats when greater 0, adds a `--repeat ${repeats}` to the publish command and hence repeats the publish
+     *        messages the specified number of times (without a delay)
      */
-    fun publish(topic: String, qos: String, payload: String) {
-        val commands = arrayOf(
+    fun publish(topic: String, qos: String, payload: String, repeats: Int = 0) {
+        val commands = mutableListOf(
             "mosquitto_pub", "-h", "localhost", "-u", user, "-P", password, "-t", topic, "-q", qos, "-i",
             "test-publisher", "-m", payload
         )
-        val result = mosquitto.execInContainer(*commands)
+        if (repeats > 0) {
+            commands.add("--repeat")
+            commands.add(repeats.toString())
+        }
+        val result = mosquitto.execInContainer(*(commands.toTypedArray()))
 
+        if (result?.exitCode != 0) {
+            System.err.println(result?.stderr)
+        }
         assertEquals(0, result?.exitCode, "Exit code of '${commands.joinToString(separator = " ")}' should be zero")
     }
 
