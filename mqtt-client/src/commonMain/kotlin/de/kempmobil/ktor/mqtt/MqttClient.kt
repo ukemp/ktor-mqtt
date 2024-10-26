@@ -222,18 +222,19 @@ public class MqttClient internal constructor(
         )
     }
 
-    private suspend fun createPublish(request: PublishRequest): Result<Publish> {
+    private suspend fun createPublish(request: PublishRequest, isDupMessage: Boolean = false): Result<Publish> {
         return if (request.topicAlias != null && request.topicAlias.value > serverTopicAliasMaximum.value) {
             Result.failure(TopicAliasException("Server maximum topic alias is: $serverTopicAliasMaximum, but you requested: ${request.topicAlias}"))
         } else if (request.topic.containsWildcard()) {
             Result.failure(IllegalArgumentException("The topic of a PUBLISH packet must not contain wildcard characters: '${request.topic}'"))
         } else {
+            val actualQoS = request.desiredQoS.coerceAtMost(maxQos)  // MQTT-3.2.2-11
             Result.success(
                 Publish(
-                    isDupMessage = false,
-                    qoS = request.desiredQoS.coerceAtMost(maxQos),  // MQTT-3.2.2-11
+                    isDupMessage = if (actualQoS == QoS.AT_MOST_ONCE) false else isDupMessage,  // MQTT-3.3.1-2
+                    qoS = actualQoS,
                     isRetainMessage = request.isRetainMessage,
-                    packetIdentifier = nextPacketIdentifier(),
+                    packetIdentifier = if (actualQoS == QoS.AT_MOST_ONCE) null else nextPacketIdentifier(),
                     topic = request.topic,
                     payloadFormatIndicator = request.payloadFormatIndicator,
                     messageExpiryInterval = request.messageExpiryInterval,
