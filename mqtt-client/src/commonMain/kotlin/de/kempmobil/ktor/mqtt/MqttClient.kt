@@ -229,6 +229,9 @@ public class MqttClient internal constructor(
             Result.failure(IllegalArgumentException("The topic of a PUBLISH packet must not contain wildcard characters: '${request.topic}'"))
         } else {
             val actualQoS = request.desiredQoS.coerceAtMost(maxQos)  // MQTT-3.2.2-11
+            if (actualQoS != request.desiredQoS) {
+                Logger.i { "Publish QoS for ${request.topic} was ${request.desiredQoS} but was downgraded to $actualQoS due to server requirements" }
+            }
             Result.success(
                 Publish(
                     isDupMessage = if (actualQoS == QoS.AT_MOST_ONCE) false else isDupMessage,  // MQTT-3.3.1-2

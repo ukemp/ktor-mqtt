@@ -26,38 +26,77 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     @Test
     fun `connect returns NotAuthorized when using wrong credentials`() = runTest {
         client = createClient(pwd = "invalid-password")
-        val result = client.connect()
+        val connected = client.connect()
 
-        assertTrue(result.isSuccess)
-        assertEquals(NotAuthorized, result.getOrThrow().reason)
+        assertTrue(connected.isSuccess)
+        assertEquals(NotAuthorized, connected.getOrThrow().reason)
+    }
+
+    @Test
+    fun `connect without credentials`() = runTest {
+        client = createClient(user = null, pwd = null, port = mosquitto.defaultPortNoAuth)
+        val connected = client.connect()
+
+        assertTrue(connected.isSuccess)
+    }
+
+    @Test
+    fun `connect with credentials`() = runTest {
+        client = createClient()
+        val connected = client.connect()
+
+        assertTrue(connected.isSuccess)
     }
 
     @Test
     fun `allow reconnection after disconnect`() = runTest {
         client = createClient()
-        val result1 = client.connect()
-        assertNotNull(result1)
-        assertTrue(result1.isSuccess)
+        val connected1 = client.connect()
+        assertTrue(connected1.isSuccess)
 
         client.disconnect()
-        val result2 = client.connect()
-        assertNotNull(result2)
-        assertTrue(result2.isSuccess)
+        Thread.sleep(10)
+        val connected2 = client.connect()
+        assertTrue(connected2.isSuccess)
     }
 
     @Test
-    fun `send publish request`() = runTest {
-        val id = "publisher-test"
+    fun `send publish request with QoS 0`() = runTest {
+        val id = "publisher-test-0"
         client = createClient(id = id)
         client.connect()
 
-        val qos = client.publish(buildPublishRequest("test/topic") {
-            payload("This is a test publish packet")
-            desiredQoS = QoS.EXACTLY_ONE
-            userProperties {
-                "user" to "property"
-            }
-        })
+        val qos = client.publish(PublishRequest("test/topic/0", QoS.AT_MOST_ONCE))
+        assertTrue(qos.isSuccess)
+
+        client.disconnect()
+
+        val logs = mosquitto.logs
+        assertContains(logs, "Received PUBLISH from $id")
+    }
+
+    @Test
+    fun `send publish request with QoS 1`() = runTest {
+        val id = "publisher-test-1"
+        client = createClient(id = id)
+        client.connect()
+
+        val qos = client.publish(PublishRequest("test/topic/1", QoS.AT_LEAST_ONCE))
+        assertTrue(qos.isSuccess)
+
+        client.disconnect()
+
+        val logs = mosquitto.logs
+        assertContains(logs, "Received PUBLISH from $id")
+    }
+
+    @Test
+    fun `send publish request with QoS 2`() = runTest {
+        val id = "publisher-test-2"
+        client = createClient(id = id)
+        client.connect()
+
+        val qos = client.publish(PublishRequest("test/topic/2", QoS.EXACTLY_ONE))
         assertTrue(qos.isSuccess)
 
         client.disconnect()
@@ -82,7 +121,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `receive message with QoS AT_MOST_ONCE`() = runTest {
+    fun `receive message with QoS 0`() = runTest {
         val topic = "test/topic/0"
         val id = "client-under-test"
         val payload = "text-payload-at-most-once"
@@ -107,7 +146,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `receive message with QoS AT_LEAST_ONCE`() = runTest {
+    fun `receive message with QoS 1`() = runTest {
         val topic = "test/topic/1"
         val id = "client-under-test"
         val payload = "text-payload-at-least-once"
@@ -136,7 +175,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `receive message with QoS EXACTLY_ONE`() = runTest {
+    fun `receive message with QoS 2`() = runTest {
         val topic = "test/topic/2"
         val id = "client-under-test"
         val payload = "text-payload-exactly-one"
@@ -165,11 +204,11 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `can receive 1000 messages in highest QoS`() = runTest(timeout = 2.seconds) {
+    fun `can receive 1000 messages with QoS 2`() = runTest(timeout = 2.seconds) {
         val messages = 1000
 
         val duration = measureTime {
-            val topic = "test/topic/2"
+            val topic = "test/performance/2"
             var count = 0
 
             client = createClient()
@@ -195,15 +234,27 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     private fun createClient(
-        user: String = MosquittoContainer.user,
-        pwd: String = MosquittoContainer.password,
-        id: String = ""
+        user: String? = MosquittoContainer.user,
+        pwd: String? = MosquittoContainer.password,
+        id: String = "",
+        port: Int = mosquitto.defaultPort
     ): MqttClient {
         return MqttClient {
-            connectTo(mosquitto.host, mosquitto.defaultPort) { }
+            connectTo(mosquitto.host, port) { }
             username = user
             password = pwd
             clientId = id
+        }
+    }
+
+    @Suppress("TestFunctionName")
+    private fun PublishRequest(topic: String, qoS: QoS): PublishRequest {
+        return buildPublishRequest(topic) {
+            payload("This is a test publish packet")
+            desiredQoS = qoS
+            userProperties {
+                "user" to "property"
+            }
         }
     }
 }

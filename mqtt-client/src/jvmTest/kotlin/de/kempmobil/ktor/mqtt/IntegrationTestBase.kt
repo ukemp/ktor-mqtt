@@ -4,7 +4,7 @@ import co.touchlab.kermit.Logger
 import org.junit.AfterClass
 import org.junit.BeforeClass
 
-abstract class IntegrationTestBase {
+public abstract class IntegrationTestBase {
 
     companion object {
 

@@ -26,20 +26,28 @@ class MosquittoContainer {
             .withFileFromClasspath("server.key", "server.key")
             .withFileFromClasspath("server.crt", "server.crt")
     )
-        .withExposedPorts(1883, 8883, 8080, 8443)
+        .withExposedPorts(1883, 1884, 8883, 8080, 8443)
 
     val host: String
         get() = mosquitto.host
 
+    /** Default Mosquitto port with `allow_anonymous false`. */
     val defaultPort: Int
+        get() = mosquitto.getMappedPort(1884)
+
+    /** Mosquitto port with `allow_anonymous true`. */
+    val defaultPortNoAuth: Int
         get() = mosquitto.getMappedPort(1883)
 
+    /** Mosquitto port requiring TLS (self-signed certificate) with `allow_anonymous false`. */
     val tlsPort: Int
         get() = mosquitto.getMappedPort(8883)
 
+    /** Mosquitto websocket port with `allow_anonymous false`. */
     val wsPort: Int
         get() = mosquitto.getMappedPort(8080)
 
+    /** Mosquitto websocket port requiring TLS (self-signed certificate) with `allow_anonymous false`. */
     val wssPort: Int
         get() = mosquitto.getMappedPort(8443)
 
