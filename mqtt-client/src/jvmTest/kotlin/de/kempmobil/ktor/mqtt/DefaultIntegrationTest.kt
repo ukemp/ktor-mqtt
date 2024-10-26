@@ -100,8 +100,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         assertTrue(suback.isSuccess, "Cannot subscribe to '$topic': $suback")
 
         mosquitto.publish(topic, "0", payload)
-        Thread.sleep(200)
-        receiverJob.cancel()
+        receiverJob.join()
 
         assertNotNull(receivedMessage)
         assertEquals(payload, receivedMessage!!.payload.decodeToString())
@@ -126,8 +125,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         assertTrue(suback.isSuccess, "Cannot subscribe to '$topic': $suback")
 
         mosquitto.publish(topic, "1", payload)
-        Thread.sleep(200)
-        receiverJob.cancel()
+        receiverJob.join()
 
         assertNotNull(receivedMessage)
         assertEquals(payload, receivedMessage!!.payload.decodeToString())
@@ -156,8 +154,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         assertTrue(suback.isSuccess, "Cannot subscribe to '$topic': $suback")
 
         mosquitto.publish(topic, "2", payload)
-        Thread.sleep(200)
-        receiverJob.cancel()
+        receiverJob.join()
 
         assertNotNull(receivedMessage)
         assertEquals(payload, receivedMessage!!.payload.decodeToString())

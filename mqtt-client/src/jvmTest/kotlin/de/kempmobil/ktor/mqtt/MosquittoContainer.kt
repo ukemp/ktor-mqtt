@@ -61,7 +61,7 @@ class MosquittoContainer {
      * @param topic the name of the topic to publish to
      * @param qos the QoS, either "0", "1" or "2"
      * @param payload the payload to publish
-     * @param repeats when greater 0, adds a `--repeat ${repeats}` to the publish command and hence repeats the publish
+     * @param repeats when greater 0, adds `--repeat ${repeats}` to the publish command and hence repeats the publish
      *        messages the specified number of times (without a delay)
      */
     fun publish(topic: String, qos: String, payload: String, repeats: Int = 0) {
