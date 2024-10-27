@@ -27,27 +27,26 @@ kotlin {
     }
 
     sourceSets {
-        commonMain {
+        jvmTest {
             dependencies {
                 implementation(project(":mqtt-core"))
                 implementation(project(":mqtt-client"))
-                implementation(libs.kermit)
+                implementation(project(":mqtt-client-ws"))
                 implementation(libs.ktor.client.core)
-                implementation(libs.ktor.client.websockets)
-                implementation(libs.ktor.client.cio)
                 implementation(libs.ktor.network)
                 implementation(libs.ktor.network.tls)
                 implementation(libs.kotlinx.datetime)
-                implementation(libs.kotlinx.io)
                 implementation(libs.kotlinx.coroutines.core)
-            }
-        }
-        commonTest {
-            dependencies {
-                implementation(libs.kotlin.test)
                 implementation(libs.kotlinx.coroutines.test)
-                implementation(libs.kotlinx.coroutines.core)
-                implementation(libs.ktor.client.logging)
+                implementation(libs.kotlinx.io)
+                implementation(libs.kermit)
+                implementation(libs.kotlin.test)
+                implementation(libs.junit.api)
+                implementation(libs.junit.engine)
+                implementation(libs.testcontainers)
+                implementation(libs.testcontainers.junit)
+                implementation(libs.slf4j.api)
+                implementation(libs.slf4j.simple)
             }
         }
     }
