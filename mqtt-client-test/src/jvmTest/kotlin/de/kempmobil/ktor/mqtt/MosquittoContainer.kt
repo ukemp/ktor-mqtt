@@ -56,6 +56,12 @@ class MosquittoContainer {
 
     fun start() {
         mosquitto.start()
+
+        println("Listing all exposed container ports:")
+        println("------------------------------------")
+        mosquitto.containerInfo.networkSettings.ports.bindings.forEach {
+            println("Exposed port=${it.key}, bindings=${it.value.toList()}")
+        }
     }
 
     fun stop() {
