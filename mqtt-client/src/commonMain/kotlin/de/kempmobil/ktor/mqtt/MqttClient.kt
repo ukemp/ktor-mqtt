@@ -395,22 +395,32 @@ public class MqttClient internal constructor(
 }
 
 /**
- * Creates a new MQTT client.
+ * Creates a new MQTT client, connecting to the specified host on the specified port.
+ *
+ * To enable TLS on the connection, use the following code snippet:
+ * ```
+ * MqttClient("test.mosquitto.org", 8886) {
+ *     connection {
+ *         tls { }
+ *     }
+ *     ...
+ * }
+ * ```
  *
  * @sample createClientDsl
  */
-public fun MqttClient(init: MqttClientConfigBuilder<DefaultEngineConfig>.() -> Unit): MqttClient {
-    return MqttClient(MqttClientConfigBuilder(DefaultEngineFactory).also(init).build())
+public fun MqttClient(
+    host: String,
+    port: Int,
+    init: MqttClientConfigBuilder<DefaultEngineConfig>.() -> Unit
+): MqttClient {
+    return MqttClient(MqttClientConfigBuilder(DefaultEngineFactory(host, port)).also(init).build())
 }
 
 private fun createClientDsl() {
-    val client = MqttClient {
-        connectTo("test.mosquitto.org", 8886) {
+    val client = MqttClient("test.mosquitto.org", 8886) {
+        connection {
             tls { }  // Enable TLS using the system's trust manager
-            tcp {
-                noDelay = true
-                lingerSeconds = 10
-            }
         }
 
         clientId = "test-client"

@@ -250,8 +250,8 @@ class MqttClientTest {
     }
 
     private fun createClient(connection: MqttEngine, id: String? = null): MqttClient {
-        val config = buildConfig(DefaultEngineFactory) {
-            connectTo("dummy") { }
+        val config = buildConfig(DefaultEngineFactory("", 0)) {
+            connection { }
             ackMessageTimeout = 100.milliseconds
             clientId = id ?: ""
         }

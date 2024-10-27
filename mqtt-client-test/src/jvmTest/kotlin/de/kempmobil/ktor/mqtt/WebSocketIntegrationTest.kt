@@ -4,6 +4,7 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.plugins.websocket.*
+import io.ktor.http.*
 import kotlinx.coroutines.test.runTest
 import java.security.cert.X509Certificate
 import javax.net.ssl.X509TrustManager
@@ -29,7 +30,7 @@ class WebSocketIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `ws connection with credentials`() = runTest {
-        client = createClient(mosquitto.wsPort)
+        client = createClient("http://${mosquitto.host}:${mosquitto.wsPort}")
         val connected = client.connect()
 
         assertTrue(connected.isSuccess)
@@ -37,27 +38,22 @@ class WebSocketIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `wss connection with credentials`() = runTest {
-        client = createClient(mosquitto.wssPort)
+        client = createClient("wss://${mosquitto.host}:${mosquitto.wssPort}")
         val connected = client.connect()
 
         assertTrue(connected.isSuccess)
     }
 
-    private fun createClient(port: Int): MqttClient {
-        val isWss = port == mosquitto.wssPort
-
-        return MqttWebSocketClient {
-            connectTo(mosquitto.host, port) {
-                clientFactory = {
-                    useWss = isWss
+    private fun createClient(url: String): MqttClient {
+        return MqttClient(Url(url)) {
+            connection {
+                http = {
                     HttpClient(CIO) {
                         install(WebSockets)
                         install(Logging)
-                        if (isWss) {
-                            engine {
-                                https {
-                                    trustManager = NoTrustManager
-                                }
+                        engine {
+                            https {
+                                trustManager = NoTrustManager
                             }
                         }
                     }

@@ -22,7 +22,7 @@ import kotlinx.io.Buffer
 
 internal class WebSocketEngine(private val config: WebSocketEngineConfig) : MqttEngine {
 
-    private val client: HttpClient = config.clientFactory()
+    private val client: HttpClient = config.http()
 
     private val _packetResults = MutableSharedFlow<Result<Packet>>()
     override val packetResults: SharedFlow<Result<Packet>>
@@ -45,13 +45,22 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
 
     override suspend fun start(): Result<Unit> {
         return try {
+            if (!config.url.user.isNullOrBlank() || !config.url.password.isNullOrBlank()) {
+                Logger.w { "Username/password encoded in URL cannot be used in websocket connections" }
+            }
             wsSession = client.webSocketSession(
                 method = HttpMethod.Get,
-                host = config.host,
-                port = config.port,
-                path = config.path
+                host = config.url.host,
+                port = config.url.port,
+                path = config.url.encodedPath
             ) {
-                url.protocol = if (config.useWss) URLProtocol.WSS else URLProtocol.WS
+                url.protocol = when (val protocol = config.url.protocol) {
+                    URLProtocol.WS, URLProtocol.HTTP -> URLProtocol.WS
+                    URLProtocol.WSS, URLProtocol.HTTPS -> URLProtocol.WSS
+                    else -> {
+                        throw IllegalArgumentException("Unexpected web socket protocol: $protocol (use http(s) or ws(s))")
+                    }
+                }
                 headers[HttpHeaders.SecWebSocketProtocol] = "mqtt"
             }.also {
                 _connected.emit(true)
@@ -61,13 +70,13 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
             }
             Result.success(Unit)
         } catch (ex: Exception) {
-            Result.failure(ConnectionException("Cannot connect to ${config.host}:${config.port}", ex))
+            Result.failure(ConnectionException("Cannot connect to ${config.url}", ex))
         }
     }
 
     override suspend fun send(packet: Packet): Result<Unit> {
         return wsSession?.doSend(packet)
-            ?: Result.failure(ConnectionException("Not connected to ${config.host}:${config.port}"))
+            ?: Result.failure(ConnectionException("Not connected to ${config.url}"))
     }
 
     override suspend fun disconnect() {
@@ -81,7 +90,7 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
     }
 
     override fun toString(): String {
-        return "WebSocketMqttEngine[${config.host}:${config.port}]"
+        return "WebSocketMqttEngine[${config.url}]"
     }
 
     private suspend fun DefaultClientWebSocketSession.incomingMessagesLoop() {

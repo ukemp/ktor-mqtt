@@ -20,8 +20,8 @@ class TlsIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `connection via TLS`() = runTest {
-        client = MqttClient {
-            connectTo(mosquitto.host, mosquitto.tlsPort) {
+        client = MqttClient(mosquitto.host, mosquitto.tlsPort) {
+            connection {
                 tls {
                     // Don't check certificates:
                     trustManager = object : X509TrustManager {

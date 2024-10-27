@@ -91,8 +91,8 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     public var authenticationMethod: String? = null
     public var authenticationData: ByteString? = null
 
-    public fun connectTo(host: String, port: Int = 1883, init: T.() -> Unit) {
-        engine = connectionFactory.create(host, port, init)
+    public fun connection(init: T.() -> Unit) {
+        engine = connectionFactory.create(init)
     }
 
     /**
@@ -115,7 +115,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
 
     public fun build(): MqttClientConfig {
         if (engine == null) {
-            throw IllegalStateException("Missing connection, have you forgotten to call 'connectTo(host, port) { }'?")
+            engine = connectionFactory.create { }
         }
         return MqttClientConfigImpl(
             engine = engine!!,

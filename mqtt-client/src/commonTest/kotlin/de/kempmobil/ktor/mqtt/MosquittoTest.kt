@@ -20,17 +20,15 @@ class MosquittoTest {
 
     @Test
     fun `test unencrypted connection`() = runTest {
-        client = MqttClient {
-            connectTo(mosquitto) { }
-        }
+        client = MqttClient(mosquitto, 1883) { }
         val result = client.connect()
         assertEquals(true, result.isSuccess)
     }
 
     @Test
     fun `test TLS connection`() = runTest {
-        client = MqttClient {
-            connectTo(mosquitto, 8886) {
+        client = MqttClient(mosquitto, 8886) {
+            connection {
                 tls { }
             }
         }
@@ -40,9 +38,7 @@ class MosquittoTest {
 
     @Test
     fun `publishing a sample packet`() = runTest {
-        client = MqttClient {
-            connectTo(mosquitto) { }
-        }
+        client = MqttClient(mosquitto, 1883) { }
         val result = client.connect()
         assertTrue(result.isSuccess)
 
@@ -60,8 +56,7 @@ class MosquittoTest {
     @Test
     fun `subscribe to all`() = runTest {
         Logger.setLogWriters()
-        client = MqttClient {
-            connectTo(mosquitto, 1884) { }
+        client = MqttClient(mosquitto, 1884) {
             username = "ro"
             password = "readonly"
         }

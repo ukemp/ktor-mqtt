@@ -239,8 +239,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         id: String = "",
         port: Int = mosquitto.defaultPort
     ): MqttClient {
-        return MqttClient {
-            connectTo(mosquitto.host, port) { }
+        return MqttClient(mosquitto.host, port) {
             username = user
             password = pwd
             clientId = id

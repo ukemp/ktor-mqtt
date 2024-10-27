@@ -2,21 +2,18 @@ package de.kempmobil.ktor.mqtt
 
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 
-internal object DefaultEngineFactory : MqttEngineFactory<DefaultEngineConfig> {
+internal class DefaultEngineFactory(private val host: String, private val port: Int) :
+    MqttEngineFactory<DefaultEngineConfig> {
 
-    override fun create(host: String, port: Int, block: DefaultEngineConfig.() -> Unit): MqttEngine {
+    override fun create(block: DefaultEngineConfig.() -> Unit): MqttEngine {
         return DefaultEngine(DefaultEngineConfig(host, port).apply(block))
     }
 }
 
-public class DefaultEngineConfig(host: String, port: Int) : MqttEngineConfig(host, port) {
-    public var dispatcher: CoroutineDispatcher = Dispatchers.Default
+public class DefaultEngineConfig(public val host: String, public val port: Int) : MqttEngineConfig() {
     internal var tlsConfigBuilder: TLSConfigBuilder? = null
     internal var tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit) = { }
-
 
     /**
      * Add TLS configuration for this client. Just use `tls { }` to enable TLS support.
