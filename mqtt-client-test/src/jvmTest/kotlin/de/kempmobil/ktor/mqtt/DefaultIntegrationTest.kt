@@ -66,7 +66,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         client = createClient(id = id)
         client.connect()
 
-        val qos = client.publish(PublishRequest("test/topic/0", QoS.AT_MOST_ONCE))
+        val qos = client.publish(simplePublishRequest("test/topic/0", QoS.AT_MOST_ONCE))
         assertTrue(qos.isSuccess)
 
         client.disconnect()
@@ -81,7 +81,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         client = createClient(id = id)
         client.connect()
 
-        val qos = client.publish(PublishRequest("test/topic/1", QoS.AT_LEAST_ONCE))
+        val qos = client.publish(simplePublishRequest("test/topic/1", QoS.AT_LEAST_ONCE))
         assertTrue(qos.isSuccess)
 
         client.disconnect()
@@ -96,7 +96,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         client = createClient(id = id)
         client.connect()
 
-        val qos = client.publish(PublishRequest("test/topic/2", QoS.EXACTLY_ONE))
+        val qos = client.publish(simplePublishRequest("test/topic/2", QoS.EXACTLY_ONE))
         assertTrue(qos.isSuccess)
 
         client.disconnect()
@@ -246,9 +246,8 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         }
     }
 
-    @Suppress("TestFunctionName")
-    private fun PublishRequest(topic: String, qoS: QoS): PublishRequest {
-        return buildPublishRequest(topic) {
+    private fun simplePublishRequest(topic: String, qoS: QoS): PublishRequest {
+        return PublishRequest(topic) {
             payload("This is a test publish packet")
             desiredQoS = qoS
             userProperties {

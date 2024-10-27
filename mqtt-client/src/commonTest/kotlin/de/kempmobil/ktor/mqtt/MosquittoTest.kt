@@ -42,7 +42,7 @@ class MosquittoTest {
         val result = client.connect()
         assertTrue(result.isSuccess)
 
-        val qos = client.publish(buildPublishRequest("test/topic") {
+        val qos = client.publish(PublishRequest("test/topic") {
             payload("This is a test publish packet")
             desiredQoS = QoS.EXACTLY_ONE
             userProperties {

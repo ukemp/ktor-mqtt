@@ -25,39 +25,70 @@ public data class PublishRequest(
  *
  * @see MqttClient.serverTopicAliasMaximum
  */
-public fun buildPublishRequest(
+public fun PublishRequest(
     topicName: String,
     topicAlias: UShort? = null,
     init: PublishRequestBuilder.() -> Unit
 ): PublishRequest {
-    return PublishRequestBuilder(topicName, topicAlias).also(init).build()
+    val topic = Topic(topicName)
+    if (topic.containsWildcard()) {
+        throw IllegalArgumentException("Topic Name in PUBLISH packet contains wildcard characters [MQTT-3.3.2-2]: '$topicName'")
+    }
+    return PublishRequestBuilder(topic, topicAlias).also(init).build()
 }
 
 @MqttDslMarker
+@Suppress("MemberVisibilityCanBePrivate")
 public class PublishRequestBuilder(
-    private val topicName: String = "",
+    private val topic: Topic,
     private var topicAlias: UShort? = null
 ) {
+    /**
+     * The desired quality of service level for this publish message. The actual QoS is bound by [MqttClient.maxQos]
+     */
     public var desiredQoS: QoS = QoS.AT_MOST_ONCE
 
+    /**
+     * Defines the retain flag in the publish header.
+     */
     public var isRetainMessage: Boolean = false
 
+    /**
+     * Defines the lifetime of the Application Message.
+     */
     public var messageExpiryInterval: Duration? = null
 
+    /**
+     * Used as the Topic Name for a response message.
+     */
     public var responseTopic: String? = null
 
+    /**
+     * The Correlation Data is used by the sender of the Request Message to identify which request the Response Message
+     * is for when it is received.
+     */
     public var correlationData: ByteString? = null
 
+    /**
+     * A string describing the content of the Application Message.
+     */
     public var contentType: String? = null
 
-    internal var payload: ByteString = EMPTY_PAYLOAD
+    /**
+     * Defines the [PayloadFormatIndicator], when `null` a value of `0x00` will be used.
+     *
+     * @see payload()
+     */
+    public var payloadFormatIndicator: PayloadFormatIndicator? = null
 
-    internal var payloadFormatIndicator: PayloadFormatIndicator? = null
+    internal var payload: ByteString = EMPTY_PAYLOAD
 
     internal var userProperties: UserProperties = UserProperties.EMPTY
 
     /**
-     * Convenience method to define text as payload, also sets the [PayloadFormatIndicator] to `UTF_8`.
+     * Define text as payload and sets the [PayloadFormatIndicator] to `UTF_8`.
+     *
+     * When the payload is not defined, an empty payload will be used.
      */
     public fun payload(text: String) {
         this.payload = text.encodeToByteString()
@@ -65,7 +96,9 @@ public class PublishRequestBuilder(
     }
 
     /**
-     * Defines the payload (without setting the payload format indicator of the publish request).
+     * Defines the payload and uses a [PayloadFormatIndicator] of `0x00` (i.e., unspecified bytes).
+     *
+     * When the payload is not defined, an empty payload will be used.
      */
     public fun payload(byteString: ByteString) {
         this.payload = byteString
@@ -77,7 +110,7 @@ public class PublishRequestBuilder(
 
     public fun build(): PublishRequest {
         return PublishRequest(
-            topic = Topic(topicName),
+            topic = topic,
             desiredQoS = desiredQoS,
             payload = payload,
             isRetainMessage = isRetainMessage,
