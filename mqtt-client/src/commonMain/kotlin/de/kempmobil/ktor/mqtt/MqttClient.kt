@@ -245,6 +245,7 @@ public class MqttClient internal constructor(
                     responseTopic = request.responseTopic,
                     correlationData = request.correlationData,
                     userProperties = request.userProperties,
+                    subscriptionIdentifier = null, // A PUBLISH packet sent from a Client to a Server MUST NOT contain a Subscription Identifier [MQTT-3.3.4-6]
                     contentType = request.contentType,
                     payload = request.payload
                 )
