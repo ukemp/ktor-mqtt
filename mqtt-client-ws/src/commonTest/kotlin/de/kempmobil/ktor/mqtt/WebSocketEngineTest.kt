@@ -3,6 +3,7 @@ package de.kempmobil.ktor.mqtt
 import de.kempmobil.ktor.mqtt.packet.Packet
 import de.kempmobil.ktor.mqtt.packet.Publish
 import de.kempmobil.ktor.mqtt.packet.readPacket
+import de.kempmobil.ktor.mqtt.packet.write
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -86,23 +87,39 @@ class WebSocketEngineTest {
 
     @Test
     fun `when sending a packet it is received by server`() = runTest {
-        val serverPackets = MutableSharedFlow<Packet>()
-        val closeServer = startServer(this, session = createEchoSession(serverPackets))
+        val receivedPackets = MutableSharedFlow<Packet>()
+        val closeServer = startServer(this, session = receiverSession(receivedPackets))
 
         val expected = Publish(topic = Topic("test-topic"), payload = "1234567890".encodeToByteString())
         val engine = MqttEngine()
         engine.start()
         engine.send(expected)
 
-        val actual = serverPackets.first()
+        val actual = receivedPackets.first()
         assertEquals(expected, actual)
+
+        closeServer.start()
+    }
+
+    @Test
+    fun `when the server sends a packet the received packets are updated`() = runTest {
+        val packetsToSend = MutableSharedFlow<Packet>(replay = 1)
+        val closeServer = startServer(this, session = senderSession(packetsToSend))
+
+        val expected = Publish(topic = Topic("test-topic"), payload = "1234567890".encodeToByteString())
+        val engine = MqttEngine()
+        engine.start()
+        packetsToSend.emit(expected)
+
+        val actual = engine.packetResults.first()
+        assertEquals(expected, actual.getOrNull())
 
         closeServer.start()
     }
 
     @Suppress("TestFunctionName")
     private fun MqttEngine(): MqttEngine {
-        return WebSocketEngine(WebSocketEngineConfig(Url("http://$defaultHost:$defaultPort/mqtt")))
+        return WebSocketEngine(WebSocketEngineConfig(Url("http://$defaultHost:$defaultPort")))
     }
 
     private fun startServer(
@@ -112,7 +129,7 @@ class WebSocketEngineTest {
         val server = embeddedServer(CIO, port = defaultPort) {
             install(WebSockets)
             routing {
-                webSocket("/mqtt") {
+                webSocket("/") {
                     if (session != null) {
                         session()
                     }
@@ -125,16 +142,28 @@ class WebSocketEngineTest {
         }
     }
 
-    private fun createEchoSession(receivedPackets: MutableSharedFlow<Packet>): suspend DefaultWebSocketServerSession.() -> Unit {
+    private fun receiverSession(receivedPackets: MutableSharedFlow<Packet>): suspend DefaultWebSocketServerSession.() -> Unit {
         val func: (suspend DefaultWebSocketServerSession.() -> Unit) = {
             for (frame in incoming) {
-                if (frame is Frame.Binary) {
+                if (frame.frameType == FrameType.BINARY) {
                     with(Buffer()) {
                         writeFully(frame.readBytes())
                         receivedPackets.emit(readPacket())
                     }
                 } else {
                     throw IllegalStateException("Received a non-binary frame")
+                }
+            }
+        }
+        return func
+    }
+
+    private fun senderSession(packets: MutableSharedFlow<Packet>): suspend DefaultWebSocketServerSession.() -> Unit {
+        val func: (suspend DefaultWebSocketServerSession.() -> Unit) = {
+            packets.collect { packet ->
+                with(Buffer()) {
+                    write(packet)
+                    outgoing.send(Frame.Binary(fin = true, packet = this))
                 }
             }
         }
