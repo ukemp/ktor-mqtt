@@ -46,7 +46,13 @@ kotlin {
                 implementation(libs.kotlin.test)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.ktor.client.cio)
                 implementation(libs.ktor.client.logging)
+                implementation(libs.ktor.server.core)
+                implementation(libs.ktor.server.cio)
+                implementation(libs.ktor.server.websockets)
+                implementation(libs.slf4j.api)
+                implementation(libs.slf4j.simple)
             }
         }
     }

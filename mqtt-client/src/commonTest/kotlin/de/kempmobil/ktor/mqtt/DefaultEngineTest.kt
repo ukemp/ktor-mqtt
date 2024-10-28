@@ -58,7 +58,7 @@ class DefaultEngineTest {
 
         withContext(Dispatchers.Default) { // See runTest { } on why we need this
             withTimeout(1.seconds) {       // It takes a few millis until the connection is actually closed
-                engine.connected.first { !it }
+                engine.connected.first { isConnected -> !isConnected }
             }
         }
     }
