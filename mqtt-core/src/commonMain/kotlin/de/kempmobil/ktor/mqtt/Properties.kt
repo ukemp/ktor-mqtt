@@ -463,6 +463,12 @@ public value class SubscriptionIdentifierAvailable(override val value: Boolean) 
     override fun byteCount(): Int = 2
 }
 
+/**
+ * Returns `true` when this is either `null` or its value is `true`. (From the MQTT specification: "If not present, then
+ * Subscription Identifiers are supported")
+ */
+public fun SubscriptionIdentifierAvailable?.isAvailable(): Boolean = this == null || this.value
+
 @JvmInline
 public value class SharedSubscriptionAvailable(override val value: Boolean) : WritableProperty<Boolean> {
 

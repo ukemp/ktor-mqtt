@@ -50,6 +50,13 @@ public class MqttClient internal constructor(
     private var _serverTopicAliasMaximum: TopicAliasMaximum = TopicAliasMaximum(0u)
 
     /**
+     * The value of 'Subscription Identifiers Available' from the CONNACK message of the server.
+     */
+    public val subscriptionIdentifierAvailable: Boolean
+        get() = _subscriptionIdentifierAvailable
+    private var _subscriptionIdentifierAvailable = true
+
+    /**
      * Provides the connection state of this MQTT client. When the state is [Connected] this implies that an IP
      * connectivity has been established AND that the server responded with a success CONNACK message.
      */
@@ -109,16 +116,29 @@ public class MqttClient internal constructor(
     /**
      * Sends a SUBSCRIBE request to the MQTT server for the list of topics contained in [filters].
      *
+     * @param filters the filters to subscribe to
+     * @param subscriptionIdentifier an optional subscription identifier for this subscribe request. Note that a
+     *        non-null value will be ignored, when the server does not support subscription identifiers.
      * @return the SUBACK packet if the subscribe request was answered by the server. Note that the SUBACK may still
      *         contain error messages for each of the subscribed topics.
      * @see Suback.hasFailure
+     * @see subscriptionIdentifierAvailable
      */
     public suspend fun subscribe(
         filters: List<TopicFilter>,
         subscriptionIdentifier: SubscriptionIdentifier? = null,
         userProperties: UserProperties = UserProperties.EMPTY
     ): Result<Suback> {
-        val subscribe = createSubscribe(filters, subscriptionIdentifier, userProperties)
+        val identifier = if ((subscriptionIdentifier != null) && !subscriptionIdentifierAvailable) {
+            Logger.w(
+                throwable = IllegalArgumentException("Ignoring $subscriptionIdentifier"),
+                messageString = "Ignoring subscription identifier, as the server doesn't support it"
+            )
+            null
+        } else {
+            subscriptionIdentifier
+        }
+        val subscribe = createSubscribe(filters, identifier, userProperties)
 
         return awaitResponseOf({ it.isResponseFor<Suback>(subscribe) }, {
             engine.send(subscribe)
@@ -288,12 +308,15 @@ public class MqttClient internal constructor(
                 connack.assignedClientIdentifier?.let { _clientId = it.value }
             }
 
+            _subscriptionIdentifierAvailable = connack.subscriptionIdentifierAvailable.isAvailable()
+
             Logger.i {
                 "Received server parameters: " +
                         "maxQoS=$maxQos, " +
                         "keepAlive=$keepAlive, " +
                         "serverTopicAliasMaximum=${serverTopicAliasMaximum.value}, " +
-                        "assignedClientIdentifier=${connack.assignedClientIdentifier?.value ?: "''"}"
+                        "assignedClientIdentifier=${connack.assignedClientIdentifier?.value ?: "''"}, " +
+                        "subscriptionIdentifierAvailable=$_subscriptionIdentifierAvailable"
             }
         }
 
