@@ -1,11 +1,8 @@
 package de.kempmobil.ktor.mqtt.util
 
 import de.kempmobil.ktor.mqtt.MalformedPacketException
-import kotlinx.io.Sink
-import kotlinx.io.Source
+import kotlinx.io.*
 import kotlinx.io.bytestring.ByteString
-import kotlinx.io.readByteString
-import kotlinx.io.write
 
 private const val MAX_BYTES_SIZE = 65_535
 
@@ -27,6 +24,6 @@ internal fun Sink.writeMqttByteString(bytes: ByteString) {
  * Reads a byte string from the specified packet, reading the bytes size first.
  */
 internal fun Source.readMqttByteString(): ByteString {
-    val size = readShort().toInt()
+    val size = readUShort().toInt()
     return readByteString(size)
 }

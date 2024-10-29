@@ -1,9 +1,12 @@
 package de.kempmobil.ktor.mqtt.util
 
+import de.kempmobil.ktor.mqtt.MalformedPacketException
 import io.ktor.utils.io.core.*
+import kotlinx.io.Buffer
 import kotlinx.io.bytestring.ByteString
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class ByteStringTest {
 
@@ -38,5 +41,26 @@ class ByteStringTest {
         assertEquals(5, actual[4])
         assertEquals(6, actual[5])
         assertEquals(7, actual[6])
+    }
+
+    @Test
+    fun `fail with MalformedPacketException when byte string is too large`() {
+        val tooLarge = ByteString(ByteArray(65_536))
+
+        assertFailsWith<MalformedPacketException> { Buffer().writeMqttByteString(tooLarge) }
+    }
+
+    @Test
+    fun `encode and decode a large byte string`() {
+        val bytes = ByteArray(65_535)
+        bytes[42] = 17
+        val expected = ByteString(bytes)
+
+        with(Buffer()) {
+            writeMqttByteString(expected)
+            val actual = readMqttByteString()
+            assertEquals(expected, actual)
+            assertEquals(17, actual[42])
+        }
     }
 }
