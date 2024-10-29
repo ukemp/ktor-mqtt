@@ -1,6 +1,7 @@
 package de.kempmobil.ktor.mqtt.util
 
-import io.ktor.utils.io.core.*
+import kotlinx.io.Buffer
+import kotlinx.io.readByteString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -20,15 +21,14 @@ class IntTest {
     @Test
     fun `encode a MQTT Int`() {
         sample.forEach { data ->
-            val reader = buildPacket {
+            with(Buffer()) {
                 writeVariableByteInt(data.first)
-            }
-            val actual = ByteArray(data.second.size)
-            reader.readFully(actual)
+                val actual = readByteString(data.second.size)
 
-            assertEquals(data.second.size, actual.size)
-            data.second.forEachIndexed { index, byte ->
-                assertEquals(byte, actual[index])
+                assertEquals(data.second.size, actual.size)
+                data.second.forEachIndexed { index, byte ->
+                    assertEquals(byte, actual[index])
+                }
             }
         }
     }
@@ -36,11 +36,11 @@ class IntTest {
     @Test
     fun `decode a MQTT Int`() {
         sample.forEach { data ->
-            val reader = buildPacket {
-                writeFully(data.second)
+            with(Buffer()) {
+                write(data.second)
+                val actual = readVariableByteInt()
+                assertEquals(data.first, actual)
             }
-            val actual = reader.readVariableByteInt()
-            assertEquals(data.first, actual)
         }
     }
 

@@ -1,9 +1,9 @@
 package de.kempmobil.ktor.mqtt.util
 
 import de.kempmobil.ktor.mqtt.MalformedPacketException
-import io.ktor.utils.io.core.*
-import kotlinx.io.Sink
-import kotlinx.io.Source
+import kotlinx.io.*
+import kotlinx.io.bytestring.decodeToString
+import kotlinx.io.bytestring.encodeToByteString
 
 private const val MAX_TEXT_SIZE = 65_535
 
@@ -16,18 +16,17 @@ private const val MAX_TEXT_SIZE = 65_535
 internal fun Sink.writeMqttString(text: String) {
     val size = text.utf8Size()
     if (size > MAX_TEXT_SIZE) {
-        throw MalformedPacketException("Text '${text.substring(0..100)}...' is too long: $size (max allowed size: ${MAX_TEXT_SIZE})")
+        throw MalformedPacketException("Text '${text.substring(0..100)}...' is too large: $size (max allowed size: ${MAX_TEXT_SIZE})")
     }
 
-    writeShort(size.toShort())
-    writeFully(text.encodeToByteArray())
+    writeUShort(size.toUShort())
+    write(text.encodeToByteString())
 }
 
 internal fun Source.readMqttString(): String {
-    val bytes = ByteArray(readShort().toInt())
-    readFully(bytes)
+    val bytes = readByteString(readUShort().toInt())
 
-    return String(bytes)
+    return bytes.decodeToString()
 }
 
 internal fun String.utf8Size(beginIndex: Int = 0, endIndex: Int = length): Int {

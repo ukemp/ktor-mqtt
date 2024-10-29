@@ -4,11 +4,8 @@ import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.util.readMqttString
 import de.kempmobil.ktor.mqtt.util.writeMqttString
 import io.ktor.utils.io.core.*
-import kotlinx.io.Sink
-import kotlinx.io.Source
+import kotlinx.io.*
 import kotlinx.io.bytestring.ByteString
-import kotlinx.io.readUShort
-import kotlinx.io.writeUShort
 
 public data class Publish(
     val isDupMessage: Boolean = false,
@@ -67,7 +64,7 @@ internal fun Sink.write(publish: Publish) {
             subscriptionIdentifier,
             contentType
         )
-        writeFully(payload.toByteArray())
+        write(payload)
     }
 }
 
@@ -80,8 +77,7 @@ internal fun Source.readPublish(headerFlags: Int): Publish {
         null
     }
     val properties = readProperties()
-    val payload = ByteArray(remaining.toInt())
-    readFully(payload)
+    val payload = readByteString(remaining.toInt())
 
     return Publish(
         isDupMessage = headerFlags.isDupMessage,
@@ -97,7 +93,7 @@ internal fun Source.readPublish(headerFlags: Int): Publish {
         userProperties = UserProperties.from(properties),
         subscriptionIdentifier = properties.singleOrNull<SubscriptionIdentifier>(),
         contentType = properties.singleOrNull<ContentType>(),
-        payload = ByteString(payload)
+        payload = payload
     )
 }
 
