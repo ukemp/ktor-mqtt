@@ -41,7 +41,7 @@ class ConnectTest {
                 "username",
                 "password123",
                 SessionExpiryInterval(60u),
-                ReceiveMaximum(150),
+                ReceiveMaximum(150u),
                 MaximumPacketSize(3000u),
                 TopicAliasMaximum(200u),
                 RequestResponseInformation(true),

@@ -70,7 +70,7 @@ public fun <T : MqttEngineConfig> buildConfig(
 @MqttDslMarker
 @Suppress("MemberVisibilityCanBePrivate")
 public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
-    private val connectionFactory: MqttEngineFactory<T>
+    private val engineFactory: MqttEngineFactory<T>
 ) {
     private var userPropertiesBuilder: UserPropertiesBuilder? = null
     private var willMessageBuilder: WillMessageBuilder? = null
@@ -83,7 +83,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     public var username: String? = null
     public var password: String? = null
     public var sessionExpiryInterval: Duration? = null
-    public var receiveMaximum: Short? = null
+    public var receiveMaximum: UShort? = null
     public var maximumPacketSize: UInt? = null
     public var topicAliasMaximum: UShort = 0u
     public var requestResponseInformation: Boolean = false
@@ -92,7 +92,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     public var authenticationData: ByteString? = null
 
     public fun connection(init: T.() -> Unit) {
-        engine = connectionFactory.create(init)
+        engine = engineFactory.create(init)
     }
 
     /**
@@ -115,7 +115,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
 
     public fun build(): MqttClientConfig {
         if (engine == null) {
-            engine = connectionFactory.create { }
+            engine = engineFactory.create { }
         }
         return MqttClientConfigImpl(
             engine = engine!!,

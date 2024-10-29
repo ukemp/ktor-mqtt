@@ -18,7 +18,7 @@ class ConnackTest {
                 false,
                 MalformedPacket,
                 SessionExpiryInterval(1u),
-                ReceiveMaximum(42),
+                ReceiveMaximum(42u),
                 MaximumQoS(0.toByte()),
                 RetainAvailable(true),
                 MaximumPacketSize(2000u),
@@ -47,7 +47,7 @@ class ConnackTest {
         val connack = Connack(
             isSessionPresent = true,
             reason = ReAuthenticate,
-            receiveMaximum = ReceiveMaximum(27),
+            receiveMaximum = ReceiveMaximum(27u),
             serverKeepAlive = ServerKeepAlive(99u),
             userProperties = userProperties
         )
@@ -60,7 +60,7 @@ class ConnackTest {
 
         assertTrue(actual.isSessionPresent)
         assertEquals(ReAuthenticate, actual.reason)
-        assertEquals(27, actual.receiveMaximum?.value)
+        assertEquals(27u, actual.receiveMaximum?.value)
         assertEquals(99u, actual.serverKeepAlive?.value)
         assertEquals(userProperties, actual.userProperties)
         assertNull(actual.sessionExpiryInterval)

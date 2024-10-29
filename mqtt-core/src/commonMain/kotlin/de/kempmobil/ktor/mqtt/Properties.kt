@@ -85,7 +85,7 @@ internal fun <T> Source.readProperty(): Property<T> {
         26 -> ResponseInformation(readMqttString()) as Property<T>
         28 -> ServerReference(readMqttString()) as Property<T>
         31 -> ReasonString(readMqttString()) as Property<T>
-        33 -> ReceiveMaximum(readShort()) as Property<T>
+        33 -> ReceiveMaximum(readUShort()) as Property<T>
         34 -> TopicAliasMaximum(readUShort()) as Property<T>
         35 -> TopicAlias(readUShort()) as Property<T>
         36 -> MaximumQoS(readByte()) as Property<T>
@@ -351,13 +351,13 @@ public fun ReasonString?.ifNull(reasonCode: ReasonCode): String {
 }
 
 @JvmInline
-public value class ReceiveMaximum(override val value: Short) : WritableProperty<Short> {
+public value class ReceiveMaximum(override val value: UShort) : WritableProperty<UShort> {
 
     public override val identifier: Int
         get() = 33
 
-    override val writeValue: Sink.(Short) -> Unit
-        get() = ShortWriter
+    override val writeValue: Sink.(UShort) -> Unit
+        get() = UShortWriter
 
     override fun byteCount(): Int = 3
 }
