@@ -1,6 +1,7 @@
 package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.packet.*
+import de.kempmobil.ktor.mqtt.util.toTopic
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
@@ -211,7 +212,7 @@ class MqttClientTest {
     fun `unsubscribe fails when the unsubscribe packet is not sent successfully`() = runTest {
         everySuspend { connection.send(ofType<Unsubscribe>()) } returns Result.failure(ConnectionException())
 
-        val filters = listOf(Topic("test/topic"))
+        val filters = listOf("test/topic".toTopic())
         val client = createClient(connection)
         val result = client.unsubscribe(filters)
 
@@ -223,7 +224,7 @@ class MqttClientTest {
     fun `unsubscribe fails when the unsuback packet is not received`() = runTest {
         everySuspend { connection.send(ofType<Unsubscribe>()) } returns Result.success(Unit)
 
-        val filters = listOf(Topic("test/topic"))
+        val filters = listOf("test/topic".toTopic())
         val client = createClient(connection)
         val result = client.unsubscribe(filters)
 
@@ -239,7 +240,7 @@ class MqttClientTest {
             packetIdentifier = 1u,
             reasons = listOf(GrantedQoS0, TopicFilterInvalid)
         )
-        val filters = listOf(Topic("test/topic"))
+        val filters = listOf("test/topic".toTopic())
         val client = createClient(connection)
         val result = sendPacket(unsuback) {
             client.unsubscribe(filters)

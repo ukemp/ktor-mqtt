@@ -1,6 +1,7 @@
 package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.packet.*
+import de.kempmobil.ktor.mqtt.util.toTopic
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
@@ -88,7 +89,7 @@ class DefaultEngineTest {
             }
         })
 
-        val expected = Publish(topic = Topic("test-topic"), payload = "1234567890".encodeToByteString())
+        val expected = Publish(topic = "test-topic".toTopic(), payload = "1234567890".encodeToByteString())
         val engine = MqttEngine()
         engine.start()
         engine.send(expected)
@@ -110,7 +111,7 @@ class DefaultEngineTest {
             }
         })
 
-        val expected = Publish(topic = Topic("test-topic"), payload = "1234567890".encodeToByteString())
+        val expected = Publish(topic = "test-topic".toTopic(), payload = "1234567890".encodeToByteString())
         val engine = MqttEngine()
         engine.start()
         serverPackets.emit(expected)
