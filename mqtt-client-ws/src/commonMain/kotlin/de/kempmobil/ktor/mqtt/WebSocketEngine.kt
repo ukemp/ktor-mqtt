@@ -8,7 +8,7 @@ import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
-import io.ktor.utils.io.core.*
+import io.ktor.utils.io.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -94,6 +94,17 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
     }
 
     private suspend fun DefaultClientWebSocketSession.incomingMessagesLoop() {
+        // As we cannot assume that MQTT Control Packets are aligned on WebSocket frame boundaries. Hence, use a
+        // ByteChannel where we write all received binary frames to and read the packets from it, as soon as a complete
+        // packet is available. This works because unlike Buffer.read(), Channel.read() can suspend until new bytes are
+        // available.
+        val channel = ByteChannel(autoFlush = true)
+        val reader = launch {
+            while (!channel.isClosedForRead) {
+                _packetResults.emit(Result.success(channel.readPacket()))
+            }
+        }
+
         while (receiverJob?.isActive == true) {
             try {
                 Logger.d { "${this@WebSocketEngine} waiting for incoming frames..." }
@@ -103,13 +114,11 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
                         // Note that in non-raw mode, we should never receive Close, Ping or Pong frames
                         is Frame.Binary -> {
                             Logger.d { "${this@WebSocketEngine} received data frame of size: ${frame.data.size}" }
-                            with(Buffer()) {
-                                writeFully(frame.readBytes())
-                                _packetResults.emit(Result.success(readPacket()))
-                            }
+                            channel.writeFully(frame.readBytes())
                         }
 
                         else -> {
+                            // TODO: Close the network connection when receiving a non-binary frame [MQTT-6.0.0-1]
                             Logger.e { "${this@WebSocketEngine} received unexpected frame: $frame" }
                         }
                     }
@@ -129,6 +138,7 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
                 Logger.e(throwable = ex) { "${this@WebSocketEngine} error while receiving messages: " + ex::class }
             }
         }
+        reader.cancel()
     }
 
     private suspend fun DefaultClientWebSocketSession.doSend(packet: Packet): Result<Unit> {
@@ -137,7 +147,16 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
         return try {
             with(Buffer()) {
                 write(packet)
-                outgoing.send(Frame.Binary(fin = true, packet = this))
+
+                if (size <= maxFrameSize) {
+                    outgoing.send(Frame.Binary(fin = true, packet = this))
+                } else {
+                    val frame = Buffer()
+                    while (size > 0) {
+                        readAtMostTo(frame, size.coerceAtMost(maxFrameSize))
+                        outgoing.send(Frame.Binary(fin = true, packet = frame))
+                    }
+                }
             }
             Result.success(Unit)
         } catch (ex: Exception) {

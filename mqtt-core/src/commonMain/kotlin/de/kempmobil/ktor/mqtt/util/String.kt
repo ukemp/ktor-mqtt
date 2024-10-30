@@ -1,11 +1,17 @@
 package de.kempmobil.ktor.mqtt.util
 
 import de.kempmobil.ktor.mqtt.MalformedPacketException
+import de.kempmobil.ktor.mqtt.ReasonString
+import de.kempmobil.ktor.mqtt.Topic
 import kotlinx.io.*
 import kotlinx.io.bytestring.decodeToString
 import kotlinx.io.bytestring.encodeToByteString
 
 private const val MAX_TEXT_SIZE = 65_535
+
+public fun String.toTopic(): Topic = Topic(this)
+
+public fun String.toReasonString(): ReasonString = ReasonString(this)
 
 /**
  * Writes the specified string as an MQTT string, hence writing first the size of the string, then the ZTF-8 encoded

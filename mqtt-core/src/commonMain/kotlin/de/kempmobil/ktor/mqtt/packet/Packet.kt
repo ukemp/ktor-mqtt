@@ -44,6 +44,7 @@ public suspend fun ByteReadChannel.readPacket(): Packet {
     return bytes.readBody(type, header)
 }
 
+// TODO: remove this, only use ByteReadChannel.readPacket()
 public fun Source.readPacket(): Packet {
     val header = readByte()
     val type = PacketType.from(header)
