@@ -45,7 +45,7 @@ class WebSocketIntegrationTest : IntegrationTestBase() {
     }
 
     private fun createClient(url: String): MqttClient {
-        return MqttClient(Url(url)) {
+        return de.kempmobil.ktor.mqtt.ws.MqttClient(Url(url)) {
             connection {
                 http = {
                     HttpClient(CIO) {

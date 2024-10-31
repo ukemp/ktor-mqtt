@@ -1,5 +1,8 @@
-package de.kempmobil.ktor.mqtt
+package de.kempmobil.ktor.mqtt.ws
 
+import de.kempmobil.ktor.mqtt.MqttClient
+import de.kempmobil.ktor.mqtt.MqttClientConfigBuilder
+import de.kempmobil.ktor.mqtt.QoS
 import io.ktor.client.*
 import io.ktor.client.engine.*
 import io.ktor.client.plugins.websocket.*

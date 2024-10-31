@@ -1,5 +1,6 @@
-package de.kempmobil.ktor.mqtt
+package de.kempmobil.ktor.mqtt.ws
 
+import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.packet.*
 import de.kempmobil.ktor.mqtt.util.toReasonString
 import de.kempmobil.ktor.mqtt.util.toTopic
