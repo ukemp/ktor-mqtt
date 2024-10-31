@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kover)
+    `maven-publish`
 }
 
 kotlin {
@@ -52,5 +53,18 @@ android {
     compileSdk = 34
     defaultConfig {
         minSdk = 24
+    }
+}
+
+group = "de.kempmobil.ktor.mqtt"
+version = libs.versions.ktormqtt.get()
+
+publishing {
+    val repoDirectory: String by rootProject.extra
+    repositories {
+        maven {
+            name = "ktor-mqtt"
+            url = uri(repoDirectory)
+        }
     }
 }

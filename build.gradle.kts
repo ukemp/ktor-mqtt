@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.kover)
 }
 
+// Local maven repository to publish artifacts to
+val repoDirectory by extra { "${project.rootDir}/repo" }
 
 dependencies {
     kover(project(":mqtt-core"))
