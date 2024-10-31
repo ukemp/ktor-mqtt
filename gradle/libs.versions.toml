@@ -8,6 +8,7 @@ testcontainers = "1.19.8"
 slf4j = "2.0.13"
 mockery = "2.3.0"
 versions = "0.51.0"
+kover = "0.8.3"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -44,3 +45,4 @@ kotlinCocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = 
 org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 mockery = { id = "dev.mokkery", version.ref = "mockery" }
 versions = { id = "com.github.ben-manes.versions", version.ref = "versions" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
