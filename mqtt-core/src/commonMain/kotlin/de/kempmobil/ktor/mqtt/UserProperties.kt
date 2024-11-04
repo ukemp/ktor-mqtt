@@ -52,7 +52,7 @@ public data class UserProperties(public val values: List<StringPair>) {
 /**
  * DSL for building a [UserProperties] instance.
  *
- * @sample createUserPropertiesDsl
+ * @sample Sample.createUserProperties
  */
 public fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProperties {
     val builder = UserPropertiesBuilder()
@@ -63,7 +63,7 @@ public fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProp
 /**
  * DSL for creating MQTT user properties. Note that the same name is allowed to appear more than once in user properties.
  *
- * @sample createUserPropertiesDsl
+ * @sample Sample.createUserProperties
  */
 @MqttDslMarker
 public class UserPropertiesBuilder() {
@@ -92,8 +92,10 @@ internal fun Sink.write(userProperties: UserProperties) {
     }
 }
 
-internal fun createUserPropertiesDsl() {
-    buildUserProperties {
-        "filename" to "test.txt"
+internal class Sample {
+    internal fun createUserProperties() {
+        buildUserProperties {
+            "filename" to "test.txt"
+        }
     }
 }

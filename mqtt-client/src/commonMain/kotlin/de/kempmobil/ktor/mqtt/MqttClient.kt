@@ -431,7 +431,7 @@ public class MqttClient internal constructor(
  * }
  * ```
  *
- * @sample createClientDsl
+ * @sample Sample.createClient
  */
 public fun MqttClient(
     host: String,
@@ -441,29 +441,31 @@ public fun MqttClient(
     return MqttClient(MqttClientConfigBuilder(DefaultEngineFactory(host, port)).also(init).build())
 }
 
-private fun createClientDsl() {
-    val client = MqttClient("test.mosquitto.org", 8886) {
-        connection {
-            tls { }  // Enable TLS using the system's trust manager
-        }
+internal class Sample {
 
-        clientId = "test-client"
-        username = "ro"
-        password = "readonly"
-
-        willMessage("topics/last-will") {
-            retainWillMessage = true
-            willOqS = QoS.AT_MOST_ONCE
-            payload("Last will message of test-client")
-            properties {
-                willDelayInterval = 10.seconds
-                messageExpiryInterval = 2.days
+    internal fun createClient() {
+        val client = MqttClient("test.mosquitto.org", 8886) {
+            connection {
+                tls { }  // Enable TLS using the system's trust manager
             }
-        }
-        userProperties {
-            "user-key" to "value1"
-            "user-key" to "value2"  // Property keys may occur more than once!
+
+            clientId = "test-client"
+            username = "ro"
+            password = "readonly"
+
+            willMessage("topics/last-will") {
+                retainWillMessage = true
+                willOqS = QoS.AT_MOST_ONCE
+                payload("Last will message of test-client")
+                properties {
+                    willDelayInterval = 10.seconds
+                    messageExpiryInterval = 2.days
+                }
+            }
+            userProperties {
+                "user-key" to "value1"
+                "user-key" to "value2"  // Property keys may occur more than once!
+            }
         }
     }
 }
-

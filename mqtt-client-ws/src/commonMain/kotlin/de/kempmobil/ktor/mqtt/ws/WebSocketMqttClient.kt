@@ -29,7 +29,7 @@ import kotlin.time.Duration.Companion.seconds
  * ```
  *
  * @param url the URL to connect to, this may contain a 'http', 'https', 'ws' or 'wss' protocol
- * @sample createClientDsl
+ * @sample Sample.createWebsocketClient
  */
 public fun MqttClient(url: String, init: MqttClientConfigBuilder<WebSocketEngineConfig>.() -> Unit): MqttClient {
     return MqttClient(Url(url), init)
@@ -54,41 +54,44 @@ public fun MqttClient(url: String, init: MqttClientConfigBuilder<WebSocketEngine
  * ```
  *
  * @param url the URL to connect to, this may contain a 'http', 'https', 'ws' or 'wss' protocol
- * @sample createClientDsl
+ * @sample Sample.createWebsocketClient
  */
 public fun MqttClient(url: Url, init: MqttClientConfigBuilder<WebSocketEngineConfig>.() -> Unit): MqttClient {
     return MqttClient(MqttClientConfigBuilder(WebSocketEngineFactory((url))).also(init).build())
 }
 
-private fun createClientDsl() {
-    val client = MqttClient("https://test.mosquitto.org:8091") {
-        connection {
-            http = {
-                HttpClient {
-                    install(WebSockets)
-                    engine {
-                        proxy = ProxyBuilder.http("http://my.proxy.com:3128")
+internal class Sample {
+
+    internal fun createWebsocketClient() {
+        val client = MqttClient("https://test.mosquitto.org:8091") {
+            connection {
+                http = {
+                    HttpClient {
+                        install(WebSockets)
+                        engine {
+                            proxy = ProxyBuilder.http("http://my.proxy.com:3128")
+                        }
                     }
                 }
             }
-        }
 
-        clientId = "test-client"
-        username = "ro"
-        password = "readonly"
+            clientId = "test-client"
+            username = "ro"
+            password = "readonly"
 
-        willMessage("topics/last-will") {
-            retainWillMessage = true
-            willOqS = QoS.AT_MOST_ONCE
-            payload("Last will message of test-client")
-            properties {
-                willDelayInterval = 10.seconds
-                messageExpiryInterval = 2.days
+            willMessage("topics/last-will") {
+                retainWillMessage = true
+                willOqS = QoS.AT_MOST_ONCE
+                payload("Last will message of test-client")
+                properties {
+                    willDelayInterval = 10.seconds
+                    messageExpiryInterval = 2.days
+                }
             }
-        }
-        userProperties {
-            "user-key" to "value1"
-            "user-key" to "value2"  // Property keys may occur more than once!
+            userProperties {
+                "user-key" to "value1"
+                "user-key" to "value2"  // Property keys may occur more than once!
+            }
         }
     }
 }
