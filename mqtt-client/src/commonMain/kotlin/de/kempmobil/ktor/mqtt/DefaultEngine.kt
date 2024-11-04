@@ -85,7 +85,21 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
         return with(config) {
             val tlsConfig = tlsConfigBuilder?.build()
             if (tlsConfig != null) {
-                aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(dispatcher, tlsConfig)
+                // We must provide our own exception handler for the TLS connection, otherwise errors (which might happen
+                // due to an already closed connection) will get propagated to the parent's coroutine, which is not what
+                // we want.
+                val handler = CoroutineExceptionHandler { _, exception ->
+                    if (connected.value) {
+                        Logger.e(throwable = exception) { "TLS error while connected to $host:$port, disconnecting..." }
+                        scope.launch {
+                            disconnect()
+                        }
+                    }
+                    // When not connected, ignore this exception, as it is a result of being disconnected
+                }
+                val tlsContext = CoroutineName("TLS Handler") + config.dispatcher + handler
+
+                aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(tlsContext, tlsConfig)
             } else {
                 aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
             }
