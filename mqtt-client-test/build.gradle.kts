@@ -36,6 +36,8 @@ kotlin {
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.websockets)
                 implementation(libs.ktor.client.cio)
+                implementation(libs.ktor.client.okhttp)
+                implementation(libs.ktor.client.java)
                 implementation(libs.ktor.client.logging)
                 implementation(libs.ktor.network)
                 implementation(libs.ktor.network.tls)

@@ -343,6 +343,8 @@ public value class ReasonString(override val value: String) : WritableProperty<S
     override fun byteCount(): Int = value.utf8Size() + 3
 }
 
+public fun String?.toReasonString(): ReasonString? = if (this != null) ReasonString(this) else null
+
 /**
  * Converts this into a string or uses the string representation of the specified reason code if this is `null`.
  */

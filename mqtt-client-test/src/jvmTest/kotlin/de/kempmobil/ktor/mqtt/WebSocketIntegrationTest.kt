@@ -2,54 +2,58 @@ package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.ws.MqttClient
 import io.ktor.client.*
+import io.ktor.client.engine.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.engine.java.*
+import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.plugins.websocket.*
-import io.ktor.http.*
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import java.security.cert.X509Certificate
-import javax.net.ssl.X509TrustManager
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
-val NoTrustManager = object : X509TrustManager {
-    override fun getAcceptedIssuers(): Array<X509Certificate?> = arrayOf()
-    override fun checkClientTrusted(certs: Array<X509Certificate?>?, authType: String?) {}
-    override fun checkServerTrusted(certs: Array<X509Certificate?>?, authType: String?) {}
-}
-
-class WebSocketIntegrationTest : IntegrationTestBase() {
+open class WebSocketIntegrationTest : IntegrationTestBase() {
 
     private lateinit var client: MqttClient
 
     @AfterTest
-    fun tearDown() {
-        runBlocking {
-            client.disconnect()
-            client.close()
-        }
+    fun tearDown() = runTest {
+        client.disconnect()
+        client.close()
     }
 
     @Test
-    fun `ws connection with credentials`() = runTest {
-        client = createClient("http://${mosquitto.host}:${mosquitto.wsPort}")
+    fun `websocket connection with CIO client`() = runTest {
+        client = createClient("http://${mosquitto.host}:${mosquitto.wsPort}", CIO)
         val connected = client.connect()
 
         assertTrue(connected.isSuccess)
+        assertTrue(connected.getOrThrow().isSuccess)
     }
 
     @Test
-    fun `wss connection with credentials`() = runTest {
-        client = createClient("wss://${mosquitto.host}:${mosquitto.wssPort}")
+    fun `websocket connection with OkHttp client`() = runTest {
+        client = createClient("http://${mosquitto.host}:${mosquitto.wsPort}", OkHttp)
         val connected = client.connect()
 
         assertTrue(connected.isSuccess)
+        assertTrue(connected.getOrThrow().isSuccess)
     }
 
-    private fun createClient(url: String): MqttClient {
-        return MqttClient(Url(url)) {
+    @Test
+    fun `websocket connection with Java client`() = runTest {
+        client = createClient("http://${mosquitto.host}:${mosquitto.wsPort}", Java)
+        val connected = client.connect()
+
+        assertTrue(connected.isSuccess)
+        assertTrue(connected.getOrThrow().isSuccess)
+    }
+
+    @Test
+    fun `websocket TLS connection with CIO client`() = runTest {
+        val url = "wss://${mosquitto.host}:${mosquitto.wssPort}"
+        client = MqttClient(url) {
             connection {
                 http = {
                     HttpClient(CIO) {
@@ -60,6 +64,31 @@ class WebSocketIntegrationTest : IntegrationTestBase() {
                                 trustManager = NoTrustManager
                             }
                         }
+                    }
+                }
+            }
+            username = MosquittoContainer.user
+            password = MosquittoContainer.password
+        }
+        val connected = client.connect()
+
+        assertTrue(connected.isSuccess)
+        assertTrue(connected.getOrThrow().isSuccess)
+
+        client.disconnect()
+        val reconnected = client.connect()
+
+        assertTrue(reconnected.isSuccess)
+        assertTrue(reconnected.getOrThrow().isSuccess)
+    }
+
+    private fun createClient(url: String, engineFactory: HttpClientEngineFactory<*>): MqttClient {
+        return MqttClient(url) {
+            connection {
+                http = {
+                    HttpClient(engineFactory) {
+                        install(WebSockets)
+                        install(Logging)
                     }
                 }
             }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.decodeToString
 import kotlin.test.*
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
 
@@ -49,6 +50,14 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `connect via TLS with credentials`() = runTest {
+        client = createClient(port = mosquitto.tlsPort)
+        val connected = client.connect()
+
+        assertTrue(connected.isSuccess)
+    }
+
+    @Test
     fun `allow reconnection after disconnect`() = runTest {
         client = createClient()
         val connected1 = client.connect()
@@ -58,6 +67,44 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         Thread.sleep(10)
         val connected2 = client.connect()
         assertTrue(connected2.isSuccess)
+    }
+
+    @Test
+    fun `allow reconnection after disconnect via TLS`() = runTest {
+        client = createClient(port = mosquitto.tlsPort)
+        val connected1 = client.connect()
+        assertTrue(connected1.isSuccess)
+
+        client.disconnect()
+        Thread.sleep(10)
+        val connected2 = client.connect()
+        assertTrue(connected2.isSuccess)
+    }
+
+    @Test
+    fun `fail when connecting on non TLS port via TLS`() = runTest {
+        client = MqttClient(mosquitto.host, mosquitto.defaultPort) {
+            connection {
+                tls {
+                    trustManager = NoTrustManager
+                }
+            }
+        }
+
+        val connected = client.connect()
+
+        assertFalse(connected.isSuccess)
+    }
+
+    @Test
+    fun `fail when connecting on TLS port without TLS configuration`() = runTest {
+        client = MqttClient(mosquitto.host, mosquitto.tlsPort) {
+            ackMessageTimeout = 500.milliseconds
+        }
+
+        val connected = client.connect()
+
+        assertFalse(connected.isSuccess)
     }
 
     @Test
@@ -240,6 +287,13 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         port: Int = mosquitto.defaultPort
     ): MqttClient {
         return MqttClient(mosquitto.host, port) {
+            if (port == mosquitto.tlsPort) {
+                connection {
+                    tls {
+                        trustManager = NoTrustManager
+                    }
+                }
+            }
             username = user
             password = pwd
             clientId = id

@@ -187,8 +187,8 @@ public class MqttClient internal constructor(
         }
     }
 
-    public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reasonString: String? = null) {
-        engine.send(createDisconnect(reasonCode, if (reasonString == null) null else ReasonString(reasonString)))
+    public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reason: String? = null) {
+        engine.send(createDisconnect(reasonCode, reason))
         engine.disconnect()
     }
 
@@ -273,11 +273,11 @@ public class MqttClient internal constructor(
         }
     }
 
-    private fun createDisconnect(reasonCode: ReasonCode, reasonString: ReasonString?): Disconnect {
+    private fun createDisconnect(reasonCode: ReasonCode, reason: String?): Disconnect {
         return Disconnect(
-            reasonCode,
+            reason = reasonCode,
             sessionExpiryInterval = config.sessionExpiryInterval,
-            reasonString = reasonString,
+            reasonString = reason.toReasonString()
         )
     }
 
