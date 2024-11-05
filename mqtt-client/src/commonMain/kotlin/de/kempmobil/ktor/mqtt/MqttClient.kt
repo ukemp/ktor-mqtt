@@ -67,7 +67,7 @@ public class MqttClient internal constructor(
             } else {
                 Disconnected
             }
-        }
+        }.distinctUntilChanged()
 
     private val connackFlow = MutableStateFlow<Connack?>(null)
 
