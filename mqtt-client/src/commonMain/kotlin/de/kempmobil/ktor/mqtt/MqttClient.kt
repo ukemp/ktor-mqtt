@@ -1,7 +1,7 @@
 package de.kempmobil.ktor.mqtt
 
-import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.packet.*
+import de.kempmobil.ktor.mqtt.util.Logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
@@ -157,6 +157,10 @@ public class MqttClient internal constructor(
     }
 
     public suspend fun publish(request: PublishRequest): Result<QoS> {
+        if (!engine.connected.value) {
+            return Result.failure(ConnectionException("Cannot send PUBLISH packet while not connected"))
+        }
+
         return createPublish(request).map { publish ->
 
             when (publish.qoS) {
