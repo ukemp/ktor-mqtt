@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalStdlibApi::class, ExperimentalStdlibApi::class)
-
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.util.Logger
@@ -31,6 +29,7 @@ public inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publ
     return T::class.isInstance(this) && publish.packetIdentifier == (this as PacketIdentifierPacket).packetIdentifier
 }
 
+@OptIn(ExperimentalStdlibApi::class)
 private val HeaderFormat = HexFormat { number.prefix = "0x" }
 
 /**
@@ -38,6 +37,7 @@ private val HeaderFormat = HexFormat { number.prefix = "0x" }
  *
  * @throws MalformedPacketException when the packet cannot be parsed
  */
+@OptIn(ExperimentalStdlibApi::class)
 public suspend fun ByteReadChannel.readPacket(): Packet {
     val header = readByte()
     Logger.v { "New MQTT header received: ${header.toHexString(HeaderFormat)}" }
@@ -46,17 +46,6 @@ public suspend fun ByteReadChannel.readPacket(): Packet {
     val bytes = readPacket(length)
 
     return bytes.readBody(type, header)
-}
-
-// TODO: remove this, only use ByteReadChannel.readPacket()
-public fun Source.readPacket(): Packet {
-    val header = readByte()
-    Logger.v { "New MQTT header received: ${header.toHexString(HeaderFormat)}" }
-    val type = PacketType.from(header)
-    val length = readVariableByteInt()
-    require(length.toLong())
-
-    return readBody(type, header)
 }
 
 private fun Source.readBody(type: PacketType, headerFlags: Byte): Packet {
