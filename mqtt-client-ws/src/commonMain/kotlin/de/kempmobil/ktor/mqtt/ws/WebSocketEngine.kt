@@ -1,6 +1,6 @@
 package de.kempmobil.ktor.mqtt.ws
 
-import co.touchlab.kermit.Logger
+import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.ConnectionException
 import de.kempmobil.ktor.mqtt.MalformedPacketException
 import de.kempmobil.ktor.mqtt.MqttEngine

@@ -1,6 +1,6 @@
 package de.kempmobil.ktor.mqtt.ws
 
-import co.touchlab.kermit.Logger
+import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.MqttClient
 import de.kempmobil.ktor.mqtt.Topic
 import de.kempmobil.ktor.mqtt.TopicFilter
@@ -38,7 +38,6 @@ class MosquittoTest {
 
     @Test
     fun `subscribe to all`() = runTest {
-        Logger.setLogWriters()
         client = MqttClient(Url("http://$mosquitto:8090")) {
             username = "ro"
             password = "readonly"

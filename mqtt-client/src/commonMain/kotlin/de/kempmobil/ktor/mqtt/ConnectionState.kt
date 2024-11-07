@@ -12,7 +12,7 @@ public data object Disconnected : ConnectionState() {
     override val isConnected: Boolean = false
 }
 
-public data class Connected(val connack: Connack) : ConnectionState() {
+public data class Connected(public val connack: Connack) : ConnectionState() {
 
     override val isConnected: Boolean = true
 }

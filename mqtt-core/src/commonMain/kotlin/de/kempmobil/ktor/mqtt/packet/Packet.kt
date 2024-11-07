@@ -1,6 +1,8 @@
+@file:OptIn(ExperimentalStdlibApi::class, ExperimentalStdlibApi::class)
+
 package de.kempmobil.ktor.mqtt.packet
 
-import co.touchlab.kermit.Logger
+import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.readVariableByteInt
 import de.kempmobil.ktor.mqtt.util.writeVariableByteInt
 import io.ktor.utils.io.*
@@ -29,6 +31,8 @@ public inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publ
     return T::class.isInstance(this) && publish.packetIdentifier == (this as PacketIdentifierPacket).packetIdentifier
 }
 
+private val HeaderFormat = HexFormat { number.prefix = "0x" }
+
 /**
  * Reads a packet from this byte read channel. Blocks until the packet has been read completely
  *
@@ -36,22 +40,22 @@ public inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publ
  */
 public suspend fun ByteReadChannel.readPacket(): Packet {
     val header = readByte()
+    Logger.v { "New MQTT header received: ${header.toHexString(HeaderFormat)}" }
     val type = PacketType.from(header)
     val length = readVariableByteInt()
     val bytes = readPacket(length)
 
-    Logger.v { "Received new packet of type: $type" }
     return bytes.readBody(type, header)
 }
 
 // TODO: remove this, only use ByteReadChannel.readPacket()
 public fun Source.readPacket(): Packet {
     val header = readByte()
+    Logger.v { "New MQTT header received: ${header.toHexString(HeaderFormat)}" }
     val type = PacketType.from(header)
     val length = readVariableByteInt()
     require(length.toLong())
 
-    Logger.v { "Received new packet of type: $type" }
     return readBody(type, header)
 }
 

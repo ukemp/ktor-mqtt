@@ -1,9 +1,9 @@
 package de.kempmobil.ktor.mqtt
 
-import co.touchlab.kermit.Logger
 import de.kempmobil.ktor.mqtt.packet.Packet
 import de.kempmobil.ktor.mqtt.packet.readPacket
 import de.kempmobil.ktor.mqtt.packet.write
+import de.kempmobil.ktor.mqtt.util.Logger
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
@@ -128,7 +128,7 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
             }
         }
 
-        Logger.d { "Incoming message loop terminated" }
+        Logger.v { "Incoming message loop terminated" }
         disconnected()
     }
 
@@ -140,7 +140,7 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
             flush()
             Result.success(Unit)
         } catch (ex: CancellationException) {
-            Logger.d { "Packet writer job has been cancelled during write operation" }
+            Logger.v { "Packet writer job has been cancelled during write operation" }
             disconnected()
             Result.failure(ex)
         } catch (ex: ClosedWriteChannelException) {

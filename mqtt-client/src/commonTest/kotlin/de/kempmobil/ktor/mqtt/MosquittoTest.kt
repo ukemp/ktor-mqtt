@@ -1,6 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
-import co.touchlab.kermit.Logger
+import de.kempmobil.ktor.mqtt.util.Logger
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -55,7 +55,6 @@ class MosquittoTest {
 
     @Test
     fun `subscribe to all`() = runTest {
-        Logger.setLogWriters()
         client = MqttClient(mosquitto, 1884) {
             username = "ro"
             password = "readonly"

@@ -1,6 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
-import co.touchlab.kermit.Logger
+import de.kempmobil.ktor.mqtt.util.Logger
 import org.junit.AfterClass
 import org.junit.BeforeClass
 
@@ -19,7 +19,7 @@ abstract class IntegrationTestBase {
         @JvmStatic
         @AfterClass
         fun stopServer() {
-            Logger.i(mosquitto.logs)
+            println(mosquitto.logs)
             mosquitto.stop()
         }
     }

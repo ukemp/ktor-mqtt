@@ -1,5 +1,8 @@
 package de.kempmobil.ktor.mqtt
 
+import co.touchlab.kermit.LogWriter
+import co.touchlab.kermit.MutableLoggerConfig
+import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.MqttDslMarker
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
@@ -75,6 +78,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     private var userPropertiesBuilder: UserPropertiesBuilder? = null
     private var willMessageBuilder: WillMessageBuilder? = null
     private var engine: MqttEngine? = null
+    private var loggerConfig: (MutableLoggerConfig.() -> Unit)? = null
 
     public var dispatcher: CoroutineDispatcher = Dispatchers.Default
     public var ackMessageTimeout: Duration = 7.seconds
@@ -93,6 +97,10 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
 
     public fun connection(init: T.() -> Unit) {
         engine = engineFactory.create(init)
+    }
+
+    public fun logging(init: MutableLoggerConfig.() -> Unit) {
+        loggerConfig = init
     }
 
     /**
@@ -114,6 +122,9 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     }
 
     public fun build(): MqttClientConfig {
+        loggerConfig?.let {
+            Logger.configureLogging(it)
+        }
         if (engine == null) {
             engine = engineFactory.create { }
         }

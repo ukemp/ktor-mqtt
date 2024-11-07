@@ -1,6 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
-import co.touchlab.kermit.Logger
+import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.packet.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -132,7 +132,7 @@ public class MqttClient internal constructor(
         val identifier = if ((subscriptionIdentifier != null) && !subscriptionIdentifierAvailable) {
             Logger.w(
                 throwable = IllegalArgumentException("Ignoring $subscriptionIdentifier"),
-                messageString = "Ignoring subscription identifier, as the server doesn't support it"
+                { "Ignoring subscription identifier, as the server doesn't support it" }
             )
             null
         } else {
@@ -337,7 +337,7 @@ public class MqttClient internal constructor(
     }
 
     private suspend fun handlePacket(packet: Packet) {
-        Logger.v { "Received new packet: $packet" }
+        Logger.v { "Received packet: $packet" }
         when (packet) {
             is Disconnect -> {
                 Logger.i { "Received DISCONNECT (${packet.reasonString.ifNull(packet.reason)}) from server, disconnecting..." }
