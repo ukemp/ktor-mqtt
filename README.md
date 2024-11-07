@@ -6,24 +6,16 @@ allows connections to MQTT servers via plain sockets or via websockets.
 
 This library does not support MQTT 3.
 
-## Subscribing to a topic
-Creating a client, subscribing to a topic and receiving PUBLISH packets is as simple as:
+### Subscribing to a topic
+
+Creating a client with username password authentication, subscribing to a topic and receiving
+PUBLISH packets is as simple as:
+
 ```kotlin
 runBlocking {
     val client = MqttClient("test.mosquitto.org", 1884) {
         username = "ro"
         password = "readonly"
-    }
-
-    // Monitor the state of the connection
-    launch {
-        client.connectionState.fold(Disconnected as ConnectionState) { previous, current ->
-            if (current is Disconnected && previous is Connected) {
-                cancel()
-            }
-            println("Client is${if (current is Disconnected) " not " else " "}connected")
-            current
-        }
     }
 
     // Print the first 100 published packets
@@ -41,6 +33,57 @@ runBlocking {
 
     receiver.join()
     client.disconnect()
+}
+```
+
+### Publishing to a topic
+
+To publish data, create a `PublishRequest` and specified the topic or topic alias:
+
+```kotlin
+client.publish(PublishRequest("topics/test") {
+  desiredQoS = QoS.AT_LEAST_ONCE
+  messageExpiryInterval = 12.hours
+  payload("This text message expires in 12h")
+  userProperties {
+    "key-1" to "value-1"
+  }
+})
+```
+
+`PublishRequest` is a data class, hence you can reuse it, if you just want to change specific properties:
+
+```kotlin
+val next = publishRequest.copy(payload = "Another payload".encodeToByteString())
+```
+
+### Specifying a last will message
+
+The will message, its payload and properties are defined in the constructor DSL, for example:
+
+```kotlin
+val client = MqttClient("test.mosquitto.org", 1883) {
+  willMessage("topics/last/will") {
+    payload("Have been here")
+    properties {
+      willDelayInterval = 1.minutes
+    }
+  }
+}
+```
+
+### Logging
+
+By default, the library does not create any log messages. However logging is based on
+[Kermit](https://kermit.touchlab.co/) can be enabled in the logging part of the constructor
+DSL by using a non-empty log writer list. For example:
+
+```kotlin
+val client = MqttClient("test.mosquitto.org", 1883) {
+  logging {
+    logWriterList = listOf(CommonWriter())
+    minSeverity = Severity.Info
+  }
 }
 ```
 
@@ -82,3 +125,50 @@ kotlin {
 
 Ktor and this library are based on [`kotlinx-io`](https://github.com/Kotlin/kotlinx-io/), which is
 available for Android 5.0+ (API level 21+).
+
+## Using Web Sockets
+
+If you want to connect to the MQTT server via web sockets, also add the `mqtt-client-ws` library
+and at least one Ktor Http client library, for example CIO:
+
+```kotlin
+dependencies {
+  implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.5.0")
+  implementation("io.ktor:ktor-client-cio:3.0.0")
+}
+```
+
+Then pass a URL to the `MqttClient` constructor:
+
+```kotlin
+val client = MqttClient("http://test.mosquitto.org:8080") { }
+```
+
+- As protocol, you can use either `http:` or `ws:` for plain connections or `https:` or `wss:`  for
+  secure connections.
+- Ktor will choose the `HttpClient` [automatically](https://ktor.io/docs/client-engines.html#default)
+  depending on the artifacts added in your build script. If you need more control over the `HttpClient`
+  used, for example, to specify a http proxy and a custom trust manager overwrite the http client
+  builder:
+
+```kotlin
+val client = MqttClient("https://test.mosquitto.org:8081") {
+  connection {
+    http = {
+      HttpClient(CIO) {
+        install(WebSockets) // Remember to install the WebSockets plugin!
+        install(Logging)    // Helpful for debugging http connection problems
+        engine {
+          proxy = ProxyBuilder.http("http://my.proxy.com:3128")
+          https {
+            trustManager = ...
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+See the [Ktor documentation](https://ktor.io/docs/client-create-and-configure.html) on how to configure
+a http client.
