@@ -128,12 +128,12 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
             }
         }
 
-        Logger.v { "Incoming message loop terminated" }
+        Logger.d { "Incoming message loop terminated" }
         disconnected()
     }
 
     private suspend fun ByteWriteChannel.doSend(packet: Packet): Result<Unit> {
-        Logger.v { "Sending $packet..." }
+        Logger.d { "Sending $packet..." }
 
         return try {
             write(packet)

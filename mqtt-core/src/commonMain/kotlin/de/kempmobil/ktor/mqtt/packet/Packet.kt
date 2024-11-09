@@ -6,7 +6,6 @@ import de.kempmobil.ktor.mqtt.util.writeVariableByteInt
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import kotlinx.io.Sink
-import kotlinx.io.Source
 
 public interface Packet {
 
@@ -29,42 +28,36 @@ public inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publ
     return T::class.isInstance(this) && publish.packetIdentifier == (this as PacketIdentifierPacket).packetIdentifier
 }
 
-@OptIn(ExperimentalStdlibApi::class)
-private val HeaderFormat = HexFormat { number.prefix = "0x" }
-
 /**
  * Reads a packet from this byte read channel. Blocks until the packet has been read completely
  *
  * @throws MalformedPacketException when the packet cannot be parsed
  */
-@OptIn(ExperimentalStdlibApi::class)
 public suspend fun ByteReadChannel.readPacket(): Packet {
     val header = readByte()
-    Logger.v { "New MQTT header received: ${header.toHexString(HeaderFormat)}" }
     val type = PacketType.from(header)
     val length = readVariableByteInt()
-    val bytes = readPacket(length)
 
-    return bytes.readBody(type, header)
-}
+    Logger.v { "New MQTT header of type $type received, remaining packet has $length bytes" }
 
-private fun Source.readBody(type: PacketType, headerFlags: Byte): Packet {
-    return when (type) {
-        PacketType.CONNACK -> readConnack()
-        PacketType.CONNECT -> readConnect()
-        PacketType.PUBLISH -> readPublish(headerFlags.toInt())
-        PacketType.PUBACK -> readPublishResponse(PubackFactory)
-        PacketType.PUBREC -> readPublishResponse(PubrecFactory)
-        PacketType.PUBREL -> readPublishResponse(PubrelFactory)
-        PacketType.PUBCOMP -> readPublishResponse(PubcompFactory)
-        PacketType.SUBSCRIBE -> readSubscribe()
-        PacketType.SUBACK -> readSuback()
-        PacketType.UNSUBSCRIBE -> readUnsubscribe()
-        PacketType.UNSUBACK -> readUnsuback()
-        PacketType.PINGREQ -> Pingreq
-        PacketType.PINGRESP -> Pingresp
-        PacketType.DISCONNECT -> readDisconnect()
-        PacketType.AUTH -> readAuth()
+    return with(readPacket(length)) {
+        when (type) {
+            PacketType.CONNACK -> readConnack()
+            PacketType.CONNECT -> readConnect()
+            PacketType.PUBLISH -> readPublish(header.toInt())
+            PacketType.PUBACK -> readPublishResponse(PubackFactory)
+            PacketType.PUBREC -> readPublishResponse(PubrecFactory)
+            PacketType.PUBREL -> readPublishResponse(PubrelFactory)
+            PacketType.PUBCOMP -> readPublishResponse(PubcompFactory)
+            PacketType.SUBSCRIBE -> readSubscribe()
+            PacketType.SUBACK -> readSuback()
+            PacketType.UNSUBSCRIBE -> readUnsubscribe()
+            PacketType.UNSUBACK -> readUnsuback()
+            PacketType.PINGREQ -> Pingreq
+            PacketType.PINGRESP -> Pingresp
+            PacketType.DISCONNECT -> readDisconnect()
+            PacketType.AUTH -> readAuth()
+        }
     }
 }
 

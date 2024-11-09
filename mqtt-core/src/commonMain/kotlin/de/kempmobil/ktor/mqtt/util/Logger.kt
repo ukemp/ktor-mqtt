@@ -8,8 +8,7 @@ public object Logger {
     private val log: Logger = Logger(mutableLoggerConfigInit(platformLogWriter()), "mqtt")
 
     init {
-        // Do not write any output by default:
-        log.mutableConfig.logWriterList = emptyList()
+        log.mutableConfig.minSeverity = Severity.Assert // Highest severity and not used, hence no logging by default
     }
 
     public fun configureLogging(init: MutableLoggerConfig.() -> Unit) {

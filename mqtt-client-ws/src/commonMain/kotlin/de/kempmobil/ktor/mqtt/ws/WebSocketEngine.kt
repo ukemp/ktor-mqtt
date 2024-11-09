@@ -1,12 +1,12 @@
 package de.kempmobil.ktor.mqtt.ws
 
-import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.ConnectionException
 import de.kempmobil.ktor.mqtt.MalformedPacketException
 import de.kempmobil.ktor.mqtt.MqttEngine
 import de.kempmobil.ktor.mqtt.packet.Packet
 import de.kempmobil.ktor.mqtt.packet.readPacket
 import de.kempmobil.ktor.mqtt.packet.write
+import de.kempmobil.ktor.mqtt.util.Logger
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.websocket.*
@@ -110,42 +110,40 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
 
         while (receiverJob?.isActive == true) {
             try {
-                Logger.d { "${this@WebSocketEngine} waiting for incoming frames..." }
-
                 for (frame in incoming) {
                     when (frame) {
                         // Note that in non-raw mode, we should never receive Close, Ping or Pong frames
                         is Frame.Binary -> {
-                            Logger.d { "${this@WebSocketEngine} received data frame of size: ${frame.data.size}" }
+                            Logger.v { "Received data frame of size: ${frame.data.size}" }
                             channel.writeFully(frame.readBytes())
                         }
 
                         else -> {
                             // TODO: Close the network connection when receiving a non-binary frame [MQTT-6.0.0-1]
-                            Logger.e { "${this@WebSocketEngine} received unexpected frame: $frame" }
+                            Logger.e { "Received unexpected frame type: $frame" }
                         }
                     }
                 }
-                Logger.d { "${this@WebSocketEngine} frames terminated, cancelling incoming message queue" }
+                Logger.d { "Incoming message loop terminated (no more web socket frames available)" }
 
                 // When we come here, the connection has been terminated, hence do some cleanup
                 disconnect()
 
             } catch (ex: CancellationException) {
-                Logger.d { "Incoming message queue of ${this@WebSocketEngine} has been cancelled" }
+                Logger.v { "Incoming message queue of ${this@WebSocketEngine} has been cancelled" }
                 disconnect()
             } catch (ex: MalformedPacketException) {
                 // Continue with the loop, so that the client can decide what to do
                 _packetResults.emit(Result.failure(ex))
             } catch (ex: Exception) {
-                Logger.e(throwable = ex) { "${this@WebSocketEngine} error while receiving messages: " + ex::class }
+                Logger.e(throwable = ex) { "Error while receiving messages: " + ex::class }
             }
         }
         reader.cancel()
     }
 
     private suspend fun DefaultClientWebSocketSession.doSend(packet: Packet): Result<Unit> {
-        Logger.v { "Sending $packet..." }
+        Logger.d { "Sending $packet..." }
 
         return try {
             with(Buffer()) {

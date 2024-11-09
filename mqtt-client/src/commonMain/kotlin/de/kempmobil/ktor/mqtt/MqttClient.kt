@@ -341,7 +341,7 @@ public class MqttClient internal constructor(
     }
 
     private suspend fun handlePacket(packet: Packet) {
-        Logger.v { "Received packet: $packet" }
+        Logger.d { "Received packet: $packet" }
         when (packet) {
             is Disconnect -> {
                 Logger.i { "Received DISCONNECT (${packet.reasonString.ifNull(packet.reason)}) from server, disconnecting..." }

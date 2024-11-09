@@ -80,14 +80,13 @@ val client = MqttClient("test.mosquitto.org", 1883) {
 ### Logging
 
 By default, the library does not create any log messages. However logging is based on
-[Kermit](https://kermit.touchlab.co/) can be enabled in the logging part of the constructor
-DSL by using a non-empty log writer list. For example:
+[Kermit](https://kermit.touchlab.co/) and can be enabled in the logging part of the constructor
+DSL; for example:
 
 ```kotlin
 val client = MqttClient("test.mosquitto.org", 1883) {
   logging {
-    logWriterList = listOf(CommonWriter())
-    minSeverity = Severity.Info
+    minSeverity = Severity.Debug
   }
 }
 ```
