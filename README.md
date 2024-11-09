@@ -29,6 +29,8 @@ runBlocking {
         if (connack.isSuccess) {
             client.subscribe(buildFilterList { +"#" })
         }
+    }.onFailure {
+        throw it
     }
 
     receiver.join()
@@ -62,21 +64,6 @@ was actually used is the return value of this method.
 val next = publishRequest.copy(payload = "Another payload".encodeToByteString())
 ```
 
-### Specifying a last will message
-
-The will message, its payload and properties are defined in the constructor DSL, for example:
-
-```kotlin
-val client = MqttClient("test.mosquitto.org", 1883) {
-    willMessage("topics/last/will") {
-        payload("Have been here")
-        properties {
-            willDelayInterval = 1.minutes
-        }
-    }
-}
-```
-
 ### Using TLS
 
 To use TLS, enable it in the connection DSL:
@@ -92,7 +79,23 @@ val client = MqttClient("test.mosquitto.org", 8886) {
 The `tls` part allows you to configure further TLS settings via Ktor
 [TLSConfigBuilder](https://api.ktor.io/ktor-network/ktor-network-tls/io.ktor.network.tls/-t-l-s-config-builder/index.html),
 for example for the Java platform, you can use your
-own [TrustManager](https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/TrustManager.html).
+own [X509TrustManager](https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/X509TrustManager.html).
+
+### Specifying a last will message
+
+A [will message](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc479576982), its topic, payload and
+properties are defined in the constructor DSL, for example:
+
+```kotlin
+val client = MqttClient("test.mosquitto.org", 1883) {
+    willMessage("topics/last/will") {
+        payload("Have been here")
+        properties {
+            willDelayInterval = 1.minutes
+        }
+    }
+}
+```
 
 ### Logging
 
