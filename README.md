@@ -42,12 +42,12 @@ To publish data, create a `PublishRequest` and specify the topic (or topic alias
 
 ```kotlin
 client.publish(PublishRequest("topics/test") {
-  desiredQoS = QoS.AT_LEAST_ONCE
-  messageExpiryInterval = 12.hours
-  payload("This text message expires in 12h")
-  userProperties {
-    "key-1" to "value-1"
-  }
+    desiredQoS = QoS.AT_LEAST_ONCE
+    messageExpiryInterval = 12.hours
+    payload("This text message expires in 12h")
+    userProperties {
+        "key-1" to "value-1"
+    }
 })
 ```
 
@@ -68,14 +68,31 @@ The will message, its payload and properties are defined in the constructor DSL,
 
 ```kotlin
 val client = MqttClient("test.mosquitto.org", 1883) {
-  willMessage("topics/last/will") {
-    payload("Have been here")
-    properties {
-      willDelayInterval = 1.minutes
+    willMessage("topics/last/will") {
+        payload("Have been here")
+        properties {
+            willDelayInterval = 1.minutes
+        }
     }
-  }
 }
 ```
+
+### Using TLS
+
+To use TLS, enable it in the connection DSL:
+
+```kotlin
+val client = MqttClient("test.mosquitto.org", 8886) {
+    connection {
+        tls { }
+    }
+}
+```
+
+The `tls` part allows you to configure further TLS settings via Ktor
+[TLSConfigBuilder](https://api.ktor.io/ktor-network/ktor-network-tls/io.ktor.network.tls/-t-l-s-config-builder/index.html),
+for example for the Java platform, you can use your
+own [TrustManager](https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/TrustManager.html).
 
 ### Logging
 
@@ -85,9 +102,9 @@ DSL; for example:
 
 ```kotlin
 val client = MqttClient("test.mosquitto.org", 1883) {
-  logging {
-    minSeverity = Severity.Debug
-  }
+    logging {
+        minSeverity = Severity.Debug
+    }
 }
 ```
 
@@ -133,16 +150,16 @@ available for Android 5.0+ (API level 21+).
 ## Using Web Sockets
 
 If you want to connect to the MQTT server via web sockets, also add the `mqtt-client-ws` library
-and at least one Ktor Http client library, for example CIO:
+and **at least one Ktor Http client library**, for example `CIO`:
 
 ```kotlin
 dependencies {
-  implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.5.0")
-  implementation("io.ktor:ktor-client-cio:3.0.0")
+    implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.5.0")
+    implementation("io.ktor:ktor-client-cio:3.0.0")
 }
 ```
 
-Then pass a URL to the `MqttClient` constructor:
+Then pass a URL instead of a server name and a port number to the `MqttClient` factory method:
 
 ```kotlin
 val client = MqttClient("http://test.mosquitto.org:8080") { }
@@ -157,20 +174,20 @@ val client = MqttClient("http://test.mosquitto.org:8080") { }
 
 ```kotlin
 val client = MqttClient("https://test.mosquitto.org:8081") {
-  connection {
-    http = {
-      HttpClient(CIO) {
-        install(WebSockets) // Remember to install the WebSockets plugin!
-        install(Logging)    // Helpful for debugging http connection problems
-        engine {
-          proxy = ProxyBuilder.http("http://my.proxy.com:3128")
-          https {
-            trustManager = ...
-          }
+    connection {
+        http = {
+            HttpClient(CIO) {
+                install(WebSockets) // Remember to install the WebSockets plugin!
+                install(Logging)    // Helpful for debugging http connection problems
+                engine {
+                    proxy = ProxyBuilder.http("http://my.proxy.com:3128")
+                    https {
+                        trustManager = ...
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }
 ```
 
