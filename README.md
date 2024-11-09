@@ -6,7 +6,7 @@ allows connections to MQTT servers via plain sockets or via websockets.
 
 This library does not support MQTT 3.
 
-### Subscribing to a topic
+### Using the library
 
 Creating a client with username password authentication, subscribing to a topic and receiving
 PUBLISH packets is as simple as:
