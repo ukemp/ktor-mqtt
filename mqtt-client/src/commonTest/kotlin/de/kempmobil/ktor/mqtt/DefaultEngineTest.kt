@@ -185,24 +185,29 @@ class DefaultEngineTest {
         reader: (ByteReadChannel.() -> Unit)? = null,
         writer: (ByteWriteChannel.() -> Unit)? = null
     ): Job {
-        val selectorManager = SelectorManager(Dispatchers.Default)
-        val serverSocket = aSocket(selectorManager).tcp().bind(defaultHost, defaultPort)
+        try {
+            val selectorManager = SelectorManager(Dispatchers.Default)
+            val serverSocket = aSocket(selectorManager).tcp().bind(defaultHost, defaultPort)
 
-        val socketAcceptor = testScope.async {
-            serverSocket.accept().also { socket ->
-                if (reader != null) {
-                    socket.openReadChannel().reader()
-                }
-                if (writer != null) {
-                    socket.openWriteChannel(autoFlush = true).writer()
+            val socketAcceptor = testScope.async {
+                serverSocket.accept().also { socket ->
+                    if (reader != null) {
+                        socket.openReadChannel().reader()
+                    }
+                    if (writer != null) {
+                        socket.openWriteChannel(autoFlush = true).writer()
+                    }
                 }
             }
-        }
 
-        return testScope.launch(start = CoroutineStart.LAZY) {
-            socketAcceptor.await().close()
-            serverSocket.dispose()
-            selectorManager.close()
+            return testScope.launch(start = CoroutineStart.LAZY) {
+                socketAcceptor.await().close()
+                serverSocket.dispose()
+                selectorManager.close()
+            }
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            throw ex
         }
     }
 }
