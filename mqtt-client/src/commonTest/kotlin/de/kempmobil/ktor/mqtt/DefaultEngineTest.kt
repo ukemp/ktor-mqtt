@@ -128,7 +128,8 @@ class DefaultEngineTest {
         val receivedPackets = MutableSharedFlow<Packet>()
 
         val closeServer = startServer(this, writer = {
-            backgroundScope.launch {
+            CoroutineScope(Dispatchers.Default).launch {
+                delay(100)
                 dataToSend.collect {
                     writeFully(it)
                 }

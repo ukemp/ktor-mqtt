@@ -104,9 +104,7 @@ class WebSocketEngineTest {
 
         val engine = MqttEngine()
         engine.start()
-        samplePackets.forEach {
-            engine.send(it)
-        }
+        samplePackets.forEach { engine.send(it) }
 
         val received = mutableListOf<Packet>()
         receivedPackets.take(samplePackets.size).toList(received)
@@ -118,11 +116,11 @@ class WebSocketEngineTest {
     @Test
     fun `when the server sends packets they are received by the engine`() = runTest {
         val packetsToSend = MutableSharedFlow<Packet>(replay = 30)
-        samplePackets.forEach { packetsToSend.emit(it) }
 
         val closeServer = startServer(this, session = senderSession(packetsToSend))
         val engine = MqttEngine()
         engine.start()
+        samplePackets.forEach { packetsToSend.emit(it) }
 
         val received = mutableListOf<Packet>()
         engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
@@ -134,7 +132,6 @@ class WebSocketEngineTest {
     @Test
     fun `when the server sends packets in more than one frame they are received by the client`() = runTest {
         val packetsToSend = MutableSharedFlow<Packet>(replay = 30)
-        samplePackets.forEach { packetsToSend.emit(it) }
 
         val closeServer = startServer(
             this,
@@ -143,6 +140,7 @@ class WebSocketEngineTest {
         )
         val engine = MqttEngine()
         engine.start()
+        samplePackets.forEach { packetsToSend.emit(it) }
 
         val received = mutableListOf<Packet>()
         engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
@@ -151,6 +149,8 @@ class WebSocketEngineTest {
         closeServer.start()
 
     }
+
+    // ---- Helper functions -------------------------------------------------------------------------------------------
 
     @Suppress("TestFunctionName")
     private fun MqttEngine(): MqttEngine {
