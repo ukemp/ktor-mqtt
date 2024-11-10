@@ -8,9 +8,9 @@ jobs:
     strategy:
       matrix:
         include:
-          # - target: iosSimulatorArm64Test
-          #   os: macos-latest
-          - target: allTests
+          - target: publish
+            os: macos-latest
+          - target: publish
             os: ubuntu-latest
     runs-on: ${{ matrix.os }}
 
