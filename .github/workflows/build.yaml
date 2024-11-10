@@ -25,6 +25,9 @@ jobs:
           java-version: '17'
           distribution: "zulu"
 
+      - name: Set up Docker Buildx to use Docker in unit tests
+        uses: docker/setup-buildx-action@v3
+
       - name: Setup Gradle cache
         uses: actions/cache@v3
         with:
