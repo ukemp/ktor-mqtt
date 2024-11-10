@@ -55,7 +55,13 @@ class MosquittoContainer {
         get() = mosquitto.logs
 
     fun start() {
-        mosquitto.start()
+        try {
+            mosquitto.start()
+        } catch (throwable: Throwable) {
+            println("Error creating Mosquitto image: $throwable")
+            throwable.printStackTrace()
+            throw throwable
+        }
 
         println("Listing all exposed container ports:")
         println("------------------------------------")

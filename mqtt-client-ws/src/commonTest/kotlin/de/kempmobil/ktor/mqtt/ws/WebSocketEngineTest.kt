@@ -1,7 +1,9 @@
 package de.kempmobil.ktor.mqtt.ws
 
+import co.touchlab.kermit.Severity
 import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.packet.*
+import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.toReasonString
 import de.kempmobil.ktor.mqtt.util.toTopic
 import io.ktor.http.*
@@ -154,6 +156,9 @@ class WebSocketEngineTest {
 
     @Suppress("TestFunctionName")
     private fun MqttEngine(): MqttEngine {
+        Logger.configureLogging {
+            minSeverity = Severity.Verbose
+        }
         return WebSocketEngine(WebSocketEngineConfig(Url("http://$defaultHost:$defaultPort")))
     }
 

@@ -1,6 +1,8 @@
 package de.kempmobil.ktor.mqtt
 
+import co.touchlab.kermit.Severity
 import de.kempmobil.ktor.mqtt.packet.*
+import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.toTopic
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
@@ -169,6 +171,9 @@ class DefaultEngineTest {
 
     @Suppress("TestFunctionName")
     private fun MqttEngine(host: String = defaultHost, port: Int = defaultPort): MqttEngine {
+        Logger.configureLogging {
+            minSeverity = Severity.Verbose
+        }
         return DefaultEngine(DefaultEngineConfig(host, port))
     }
 
