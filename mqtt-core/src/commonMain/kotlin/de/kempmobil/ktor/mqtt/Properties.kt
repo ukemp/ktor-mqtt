@@ -165,6 +165,10 @@ public value class ContentType(override val value: String) : WritableProperty<St
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
+
+    override fun toString(): String {
+        return value
+    }
 }
 
 @JvmInline
@@ -177,6 +181,10 @@ public value class ResponseTopic(override val value: String) : WritableProperty<
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
+
+    override fun toString(): String {
+        return value
+    }
 }
 
 @JvmInline
@@ -233,6 +241,10 @@ public value class AssignedClientIdentifier(override val value: String) : Writab
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
+
+    override fun toString(): String {
+        return value
+    }
 }
 
 @JvmInline
@@ -257,6 +269,10 @@ public value class AuthenticationMethod(override val value: String) : WritablePr
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
+
+    override fun toString(): String {
+        return value
+    }
 }
 
 @JvmInline
@@ -317,6 +333,10 @@ public value class ResponseInformation(override val value: String) : WritablePro
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
+
+    override fun toString(): String {
+        return value
+    }
 }
 
 @JvmInline
@@ -329,6 +349,10 @@ public value class ServerReference(override val value: String) : WritablePropert
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
+
+    override fun toString(): String {
+        return value
+    }
 }
 
 @JvmInline
@@ -341,6 +365,10 @@ public value class ReasonString(override val value: String) : WritableProperty<S
         get() = StringWriter
 
     override fun byteCount(): Int = value.utf8Size() + 3
+
+    override fun toString(): String {
+        return value
+    }
 }
 
 public fun String?.toReasonString(): ReasonString? = if (this != null) ReasonString(this) else null
