@@ -1,6 +1,5 @@
 package de.kempmobil.ktor.mqtt
 
-import co.touchlab.kermit.LogWriter
 import co.touchlab.kermit.MutableLoggerConfig
 import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.MqttDslMarker
@@ -106,7 +105,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     /**
      * Build user properties used in the CONNECT packet of this client.
      *
-     * @sample Sample.createClient
+     * @sample PropertiesSample.createClient
      */
     public fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userPropertiesBuilder = UserPropertiesBuilder().also(init)

@@ -435,7 +435,7 @@ public class MqttClient internal constructor(
  * }
  * ```
  *
- * @sample Sample.createClient
+ * @sample ClientSample.createClient
  */
 public fun MqttClient(
     host: String,
@@ -445,7 +445,7 @@ public fun MqttClient(
     return MqttClient(MqttClientConfigBuilder(DefaultEngineFactory(host, port)).also(init).build())
 }
 
-internal class Sample {
+internal class ClientSample {
 
     internal fun createClient() {
         val client = MqttClient("test.mosquitto.org", 8886) {

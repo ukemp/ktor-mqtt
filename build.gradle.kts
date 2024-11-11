@@ -22,7 +22,11 @@ kover {
     reports {
         filters {
             excludes {
-                classes("de.kempmobil.ktor.mqtt.*.Sample")
+                classes(
+                    "de.kempmobil.ktor.mqtt.PropertiesSample",
+                    "de.kempmobil.ktor.mqtt.ClientSample",
+                    "de.kempmobil.ktor.mqtt.ws.WsSample"
+                )
             }
         }
     }
