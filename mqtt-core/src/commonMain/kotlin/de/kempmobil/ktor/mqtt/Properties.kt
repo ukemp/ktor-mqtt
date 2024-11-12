@@ -127,6 +127,10 @@ public value class PayloadFormatIndicator private constructor(override val value
 
     override fun byteCount(): Int = 2
 
+    override fun toString(): String {
+        return value.toString()
+    }
+
     public companion object {
 
         public fun from(byte: Byte): PayloadFormatIndicator {
@@ -153,6 +157,10 @@ public value class MessageExpiryInterval(override val value: UInt) : WritablePro
         get() = UIntWriter
 
     override fun byteCount(): Int = 5
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -197,6 +205,10 @@ public value class CorrelationData(override val value: ByteString) : WritablePro
         get() = ByteStringWriter
 
     override fun byteCount(): Int = value.size + 1
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -214,6 +226,10 @@ public value class SubscriptionIdentifier(override val value: Int) : WritablePro
         get() = { writeVariableByteInt(value) }
 
     override fun byteCount(): Int = value.variableByteIntSize() + 1
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -229,6 +245,10 @@ public value class SessionExpiryInterval(override val value: UInt) : WritablePro
 
     public val doesNotExpire: Boolean
         get() = value == UInt.MAX_VALUE
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -257,6 +277,10 @@ public value class ServerKeepAlive(override val value: UShort) : WritablePropert
         get() = UShortWriter
 
     override fun byteCount(): Int = 3
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -285,6 +309,10 @@ public value class AuthenticationData(override val value: ByteString) : Writable
         get() = ByteStringWriter
 
     override fun byteCount(): Int = value.size + 1
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -297,6 +325,10 @@ public value class RequestProblemInformation(override val value: Boolean) : Writ
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -309,6 +341,10 @@ public value class WillDelayInterval(override val value: UInt) : WritablePropert
         get() = UIntWriter
 
     override fun byteCount(): Int = 5
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -321,6 +357,10 @@ public value class RequestResponseInformation(override val value: Boolean) : Wri
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -390,6 +430,10 @@ public value class ReceiveMaximum(override val value: UShort) : WritableProperty
         get() = UShortWriter
 
     override fun byteCount(): Int = 3
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -402,6 +446,10 @@ public value class TopicAliasMaximum(override val value: UShort) : WritablePrope
         get() = UShortWriter
 
     override fun byteCount(): Int = 3
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -414,6 +462,10 @@ public value class TopicAlias(override val value: UShort) : WritableProperty<USh
         get() = UShortWriter
 
     override fun byteCount(): Int = 3
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -429,6 +481,10 @@ public value class MaximumQoS(override val value: Byte) : WritableProperty<Byte>
 
     public val qoS: QoS
         get() = QoS.from(value.toInt())
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -441,6 +497,10 @@ public value class RetainAvailable(override val value: Boolean) : WritableProper
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -455,6 +515,10 @@ public value class UserProperty(override val value: StringPair) : WritableProper
     override fun byteCount(): Int {
         return value.name.utf8Size() + value.value.utf8Size() + 5 // 1 for the identifier 2 + 2 for the string lengths
     }
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -467,6 +531,10 @@ public value class MaximumPacketSize(override val value: UInt) : WritablePropert
         get() = UIntWriter
 
     override fun byteCount(): Int = 5
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -479,6 +547,10 @@ public value class WildcardSubscriptionAvailable(override val value: Boolean) : 
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 @JvmInline
@@ -491,6 +563,10 @@ public value class SubscriptionIdentifierAvailable(override val value: Boolean) 
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 /**
@@ -509,6 +585,10 @@ public value class SharedSubscriptionAvailable(override val value: Boolean) : Wr
         get() = BooleanWriter
 
     override fun byteCount(): Int = 2
+
+    override fun toString(): String {
+        return value.toString()
+    }
 }
 
 // ---- Helper functions/classes ---------------------------------------------------------------------------------------
