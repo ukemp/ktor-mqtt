@@ -1,6 +1,7 @@
 package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.util.*
+import io.ktor.network.sockets.*
 import kotlinx.io.*
 import kotlinx.io.bytestring.ByteString
 import kotlin.jvm.JvmInline
@@ -394,6 +395,37 @@ public value class ServerReference(override val value: String) : WritablePropert
         return value
     }
 }
+
+/**
+ * Tries to parse the list of servers according to the recommendations of the
+ * [MQTT 5 specification](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Server_redirection).
+ *
+ * Note that in case no port number is specified, it will be set to 0 in the returned [SocketAddress]
+ */
+public val ServerReference.servers: List<SocketAddress>
+    get() {
+        return if (value.isBlank()) {
+            emptyList()
+        } else {
+            value.trim().split(Regex("\\s+")).mapNotNull { str ->
+                try {
+                    if (str.startsWith("[")) {
+                        val endIndex = str.indexOf(']')
+                        val server = str.substring(1..endIndex - 1)
+                        val port = str.substring(str.indexOf(':', endIndex) + 1)
+                        InetSocketAddress(server.trim(), port.toInt())
+                    } else if (str.contains(":")) {
+                        InetSocketAddress(str.substringBefore(":"), str.substringAfter(":").toInt())
+                    } else {
+                        InetSocketAddress(str, 0)
+                    }
+                } catch (ex: Exception) {
+                    Logger.e(throwable = ex) { "Failed to parse server reference: '$str'" }
+                    null
+                }
+            }
+        }
+    }
 
 @JvmInline
 public value class ReasonString(override val value: String) : WritableProperty<String> {
