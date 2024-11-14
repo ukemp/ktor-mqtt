@@ -194,5 +194,13 @@ val client = MqttClient("https://test.mosquitto.org:8081") {
 }
 ```
 
-See the [Ktor documentation](https://ktor.io/docs/client-create-and-configure.html) on how to configure
-a http client.
+See the [Ktor documentation](https://ktor.io/docs/client-create-and-configure.html) on how to configure a http client.
+
+## Missing features
+
+What's currently missing:
+
+- Handling of MQTT sessions: the clean start flag is currently always set to `true`
+- Handling of `Authentication Method` and `Authentication Data` fields in the `CONNACK` message
+- Handling of the `Receive Maximum`, `Retain Available`, `Maximum Packet Size`, `Wildcard Subscription Available`
+  `Shared Subscription Available` flags in the `CONNACK` message
