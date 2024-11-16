@@ -3,6 +3,10 @@ package de.kempmobil.ktor.mqtt
 import de.kempmobil.ktor.mqtt.util.MqttDslMarker
 import kotlinx.io.Sink
 
+/**
+ * Represents the user properties of the MQTT specification. Note that unlike in `Map<String, String>` the names of the
+ * user properties may occur more than once.
+ */
 public data class UserProperties(public val values: List<StringPair>) {
 
     // Note: not using a map for storing key/value pairs, as the key might appear more than once in a user property!
@@ -36,14 +40,18 @@ public data class UserProperties(public val values: List<StringPair>) {
 
     public companion object {
 
+        /**
+         * An empty list of user properties.
+         */
         public val EMPTY: UserProperties = UserProperties(values = emptyList())
 
         internal fun from(properties: List<Property<*>>): UserProperties {
-            val list = properties.filterIsInstance<UserProperty>()
-            return if (list.isEmpty()) {
-                EMPTY
-            } else {
-                return UserProperties(list.map { it.value })
+            return with(properties.filterIsInstance<UserProperty>()) {
+                if (isEmpty()) {
+                    EMPTY
+                } else {
+                    UserProperties(map { it.value })
+                }
             }
         }
     }
