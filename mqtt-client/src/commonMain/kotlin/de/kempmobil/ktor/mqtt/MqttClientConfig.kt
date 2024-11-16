@@ -42,7 +42,6 @@ public interface MqttClientConfig {
  *
  * @param host the host to connect to
  * @param port the port to connect to, defaults to 1883
- * @sample dslSample
  */
 public fun <T : MqttEngineConfig> buildConfig(
     connectionFactory: MqttEngineFactory<T>,
@@ -104,8 +103,6 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
 
     /**
      * Build user properties used in the CONNECT packet of this client.
-     *
-     * @sample PropertiesSample.createClient
      */
     public fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userPropertiesBuilder = UserPropertiesBuilder().also(init)

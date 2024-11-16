@@ -29,7 +29,7 @@ import kotlin.time.Duration.Companion.seconds
  * ```
  *
  * @param url the URL to connect to, this may contain a 'http', 'https', 'ws' or 'wss' protocol
- * @sample WsSample.createWebsocketClient
+ * @sample de.kempmobil.ktor.mqtt.ws.WsSample.createWebsocketClient
  */
 public fun MqttClient(url: String, init: MqttClientConfigBuilder<WebSocketEngineConfig>.() -> Unit): MqttClient {
     return MqttClient(Url(url), init)
@@ -54,7 +54,7 @@ public fun MqttClient(url: String, init: MqttClientConfigBuilder<WebSocketEngine
  * ```
  *
  * @param url the URL to connect to, this may contain a 'http', 'https', 'ws' or 'wss' protocol
- * @sample WsSample.createWebsocketClient
+ * @sample de.kempmobil.ktor.mqtt.ws.WsSample.createWebsocketClient
  */
 public fun MqttClient(url: Url, init: MqttClientConfigBuilder<WebSocketEngineConfig>.() -> Unit): MqttClient {
     return MqttClient(MqttClientConfigBuilder(WebSocketEngineFactory((url))).also(init).build())

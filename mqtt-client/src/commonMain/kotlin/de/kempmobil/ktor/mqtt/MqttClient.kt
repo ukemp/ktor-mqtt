@@ -435,7 +435,7 @@ public class MqttClient internal constructor(
  * }
  * ```
  *
- * @sample ClientSample.createClient
+ * @sample de.kempmobil.ktor.mqtt.ClientSample.createClient
  */
 public fun MqttClient(
     host: String,
