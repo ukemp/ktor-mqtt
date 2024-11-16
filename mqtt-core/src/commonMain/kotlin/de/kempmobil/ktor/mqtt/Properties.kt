@@ -116,10 +116,16 @@ internal fun Source.readProperties(): List<Property<*>> {
     }
 }
 
-
+/**
+ * Value class representing the **Payload Format Indicator** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class PayloadFormatIndicator private constructor(override val value: Byte) : WritableProperty<Byte> {
+public value class PayloadFormatIndicator private constructor(override val value: Byte) : WritableProperty<Byte>,
+    Property<Byte> {
 
+    /**
+     * The identifier value of this property is: `0x01`
+     */
     public override val identifier: Int
         get() = 1
 
@@ -148,9 +154,15 @@ public value class PayloadFormatIndicator private constructor(override val value
     }
 }
 
+/**
+ * Value class representing the **Message Expiry Interval** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class MessageExpiryInterval(override val value: UInt) : WritableProperty<UInt> {
+public value class MessageExpiryInterval(override val value: UInt) : WritableProperty<UInt>, Property<UInt> {
 
+    /**
+     * The identifier value of this property is: `0x02`
+     */
     public override val identifier: Int
         get() = 2
 
@@ -164,9 +176,15 @@ public value class MessageExpiryInterval(override val value: UInt) : WritablePro
     }
 }
 
+/**
+ * Value class representing the **Content Type** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class ContentType(override val value: String) : WritableProperty<String> {
+public value class ContentType(override val value: String) : WritableProperty<String>, Property<String> {
 
+    /**
+     * The identifier value of this property is: `0x03`
+     */
     public override val identifier: Int
         get() = 3
 
@@ -180,9 +198,15 @@ public value class ContentType(override val value: String) : WritableProperty<St
     }
 }
 
+/**
+ * Value class representing the **Response Topic** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class ResponseTopic(override val value: String) : WritableProperty<String> {
+public value class ResponseTopic(override val value: String) : WritableProperty<String>, Property<String> {
 
+    /**
+     * The identifier value of this property is: `0x08`
+     */
     public override val identifier: Int
         get() = 8
 
@@ -196,9 +220,16 @@ public value class ResponseTopic(override val value: String) : WritableProperty<
     }
 }
 
+/**
+ * Value class representing the **Correlation Data** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class CorrelationData(override val value: ByteString) : WritableProperty<ByteString> {
+public value class CorrelationData(override val value: ByteString) : WritableProperty<ByteString>,
+    Property<ByteString> {
 
+    /**
+     * The identifier value of this property is: `0x09`
+     */
     public override val identifier: Int
         get() = 9
 
@@ -212,6 +243,9 @@ public value class CorrelationData(override val value: ByteString) : WritablePro
     }
 }
 
+/**
+ * Value class representing the **Subscription Identifier** property as defined in the MQTT specification.
+ */
 @JvmInline
 public value class SubscriptionIdentifier(override val value: Int) : WritableProperty<Int> {
 
@@ -219,6 +253,9 @@ public value class SubscriptionIdentifier(override val value: Int) : WritablePro
         wellFormedWhen(value != 0) { "Subscription identifiers must not be zero" }
     }
 
+    /**
+     * The identifier value of this property is: `0x0B`
+     */
     // This is a "variable byte integer" property (the only one)
     public override val identifier: Int
         get() = 11
@@ -233,9 +270,15 @@ public value class SubscriptionIdentifier(override val value: Int) : WritablePro
     }
 }
 
+/**
+ * Value class representing the **Session Expiry Interval** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class SessionExpiryInterval(override val value: UInt) : WritableProperty<UInt> {
+public value class SessionExpiryInterval(override val value: UInt) : WritableProperty<UInt>, Property<UInt> {
 
+    /**
+     * The identifier value of this property is: `0x11`
+     */
     public override val identifier: Int
         get() = 17
 
@@ -252,9 +295,15 @@ public value class SessionExpiryInterval(override val value: UInt) : WritablePro
     }
 }
 
+/**
+ * Value class representing the **Assigned Client Identifier** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class AssignedClientIdentifier(override val value: String) : WritableProperty<String> {
+public value class AssignedClientIdentifier(override val value: String) : WritableProperty<String>, Property<String> {
 
+    /**
+     * The identifier value of this property is: `0x12`
+     */
     public override val identifier: Int
         get() = 18
 
@@ -268,9 +317,15 @@ public value class AssignedClientIdentifier(override val value: String) : Writab
     }
 }
 
+/**
+ * Value class representing the **Server Keep Alive** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class ServerKeepAlive(override val value: UShort) : WritableProperty<UShort> {
+public value class ServerKeepAlive(override val value: UShort) : WritableProperty<UShort>, Property<UShort> {
 
+    /**
+     * The identifier value of this property is: `0x13`
+     */
     public override val identifier: Int
         get() = 19
 
@@ -284,9 +339,15 @@ public value class ServerKeepAlive(override val value: UShort) : WritablePropert
     }
 }
 
+/**
+ * Value class representing the **Authentication Method** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class AuthenticationMethod(override val value: String) : WritableProperty<String> {
+public value class AuthenticationMethod(override val value: String) : WritableProperty<String>, Property<String> {
 
+    /**
+     * The identifier value of this property is: `0x15`
+     */
     public override val identifier: Int
         get() = 21
 
@@ -300,9 +361,16 @@ public value class AuthenticationMethod(override val value: String) : WritablePr
     }
 }
 
+/**
+ * Value class representing the **Authentication Data** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class AuthenticationData(override val value: ByteString) : WritableProperty<ByteString> {
+public value class AuthenticationData(override val value: ByteString) : WritableProperty<ByteString>,
+    Property<ByteString> {
 
+    /**
+     * The identifier value of this property is: `0x16`
+     */
     public override val identifier: Int
         get() = 22
 
@@ -316,9 +384,16 @@ public value class AuthenticationData(override val value: ByteString) : Writable
     }
 }
 
+/**
+ * Value class representing the **Request Problem Information** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class RequestProblemInformation(override val value: Boolean) : WritableProperty<Boolean> {
+public value class RequestProblemInformation(override val value: Boolean) : WritableProperty<Boolean>,
+    Property<Boolean> {
 
+    /**
+     * The identifier value of this property is: `0x17`
+     */
     public override val identifier: Int
         get() = 23
 
@@ -332,9 +407,15 @@ public value class RequestProblemInformation(override val value: Boolean) : Writ
     }
 }
 
+/**
+ * Value class representing the **Will Delay Interval** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class WillDelayInterval(override val value: UInt) : WritableProperty<UInt> {
+public value class WillDelayInterval(override val value: UInt) : WritableProperty<UInt>, Property<UInt> {
 
+    /**
+     * The identifier value of this property is: `0x18`
+     */
     public override val identifier: Int
         get() = 24
 
@@ -348,9 +429,16 @@ public value class WillDelayInterval(override val value: UInt) : WritablePropert
     }
 }
 
+/**
+ * Value class representing the **Request Response Information** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class RequestResponseInformation(override val value: Boolean) : WritableProperty<Boolean> {
+public value class RequestResponseInformation(override val value: Boolean) : WritableProperty<Boolean>,
+    Property<Boolean> {
 
+    /**
+     * The identifier value of this property is: `0x19`
+     */
     public override val identifier: Int
         get() = 25
 
@@ -364,9 +452,15 @@ public value class RequestResponseInformation(override val value: Boolean) : Wri
     }
 }
 
+/**
+ * Value class representing the **Response Information** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class ResponseInformation(override val value: String) : WritableProperty<String> {
+public value class ResponseInformation(override val value: String) : WritableProperty<String>, Property<String> {
 
+    /**
+     * The identifier value of this property is: `0x1A`
+     */
     public override val identifier: Int
         get() = 26
 
@@ -380,9 +474,15 @@ public value class ResponseInformation(override val value: String) : WritablePro
     }
 }
 
+/**
+ * Value class representing the **Server Reference** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class ServerReference(override val value: String) : WritableProperty<String> {
+public value class ServerReference(override val value: String) : WritableProperty<String>, Property<String> {
 
+    /**
+     * The identifier value of this property is: `0x1C`
+     */
     public override val identifier: Int
         get() = 28
 
@@ -427,9 +527,15 @@ public val ServerReference.servers: List<SocketAddress>
         }
     }
 
+/**
+ * Value class representing the **Reason String** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class ReasonString(override val value: String) : WritableProperty<String> {
+public value class ReasonString(override val value: String) : WritableProperty<String>, Property<String> {
 
+    /**
+     * The identifier value of this property is: `0x1F`
+     */
     public override val identifier: Int
         get() = 31
 
@@ -452,9 +558,15 @@ public fun ReasonString?.ifNull(reasonCode: ReasonCode): String {
     return "${reasonCode.code} ${this?.value ?: reasonCode.name}"
 }
 
+/**
+ * Value class representing the **Receive Maximum** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class ReceiveMaximum(override val value: UShort) : WritableProperty<UShort> {
+public value class ReceiveMaximum(override val value: UShort) : WritableProperty<UShort>, Property<UShort> {
 
+    /**
+     * The identifier value of this property is: `0x21`
+     */
     public override val identifier: Int
         get() = 33
 
@@ -468,9 +580,15 @@ public value class ReceiveMaximum(override val value: UShort) : WritableProperty
     }
 }
 
+/**
+ * Value class representing the **Topic Alias Maximum** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class TopicAliasMaximum(override val value: UShort) : WritableProperty<UShort> {
+public value class TopicAliasMaximum(override val value: UShort) : WritableProperty<UShort>, Property<UShort> {
 
+    /**
+     * The identifier value of this property is: `0x22`
+     */
     public override val identifier: Int
         get() = 34
 
@@ -484,9 +602,15 @@ public value class TopicAliasMaximum(override val value: UShort) : WritablePrope
     }
 }
 
+/**
+ * Value class representing the **Topic Alias** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class TopicAlias(override val value: UShort) : WritableProperty<UShort> {
+public value class TopicAlias(override val value: UShort) : WritableProperty<UShort>, Property<UShort> {
 
+    /**
+     * The identifier value of this property is: `0x23`
+     */
     public override val identifier: Int
         get() = 35
 
@@ -500,9 +624,15 @@ public value class TopicAlias(override val value: UShort) : WritableProperty<USh
     }
 }
 
+/**
+ * Value class representing the **Maximum QoS** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class MaximumQoS(override val value: Byte) : WritableProperty<Byte> {
+public value class MaximumQoS(override val value: Byte) : WritableProperty<Byte>, Property<Byte> {
 
+    /**
+     * The identifier value of this property is: `0x24`
+     */
     public override val identifier: Int
         get() = 36
 
@@ -519,9 +649,15 @@ public value class MaximumQoS(override val value: Byte) : WritableProperty<Byte>
     }
 }
 
+/**
+ * Value class representing the **Retain Available** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class RetainAvailable(override val value: Boolean) : WritableProperty<Boolean> {
+public value class RetainAvailable(override val value: Boolean) : WritableProperty<Boolean>, Property<Boolean> {
 
+    /**
+     * The identifier value of this property is: `0x25`
+     */
     public override val identifier: Int
         get() = 37
 
@@ -535,9 +671,15 @@ public value class RetainAvailable(override val value: Boolean) : WritableProper
     }
 }
 
+/**
+ * Value class representing the **User Property** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class UserProperty(override val value: StringPair) : WritableProperty<StringPair> {
+public value class UserProperty(override val value: StringPair) : WritableProperty<StringPair>, Property<StringPair> {
 
+    /**
+     * The identifier value of this property is: `0x26`
+     */
     public override val identifier: Int
         get() = 38
 
@@ -553,9 +695,15 @@ public value class UserProperty(override val value: StringPair) : WritableProper
     }
 }
 
+/**
+ * Value class representing the **Maximum Packet Size** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class MaximumPacketSize(override val value: UInt) : WritableProperty<UInt> {
+public value class MaximumPacketSize(override val value: UInt) : WritableProperty<UInt>, Property<UInt> {
 
+    /**
+     * The identifier value of this property is: `0x27`
+     */
     public override val identifier: Int
         get() = 39
 
@@ -569,9 +717,16 @@ public value class MaximumPacketSize(override val value: UInt) : WritablePropert
     }
 }
 
+/**
+ * Value class representing the **Wildcard Subscription Available** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class WildcardSubscriptionAvailable(override val value: Boolean) : WritableProperty<Boolean> {
+public value class WildcardSubscriptionAvailable(override val value: Boolean) : WritableProperty<Boolean>,
+    Property<Boolean> {
 
+    /**
+     * The identifier value of this property is: `0x28`
+     */
     public override val identifier: Int
         get() = 40
 
@@ -585,9 +740,16 @@ public value class WildcardSubscriptionAvailable(override val value: Boolean) : 
     }
 }
 
+/**
+ * Value class representing the **Subscription Identifier Available** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class SubscriptionIdentifierAvailable(override val value: Boolean) : WritableProperty<Boolean> {
+public value class SubscriptionIdentifierAvailable(override val value: Boolean) : WritableProperty<Boolean>,
+    Property<Boolean> {
 
+    /**
+     * The identifier value of this property is: `0x29`
+     */
     public override val identifier: Int
         get() = 41
 
@@ -607,9 +769,16 @@ public value class SubscriptionIdentifierAvailable(override val value: Boolean) 
  */
 public fun SubscriptionIdentifierAvailable?.isAvailable(): Boolean = this == null || this.value
 
+/**
+ * Value class representing the **Shared Subscription Available** property as defined in the MQTT specification.
+ */
 @JvmInline
-public value class SharedSubscriptionAvailable(override val value: Boolean) : WritableProperty<Boolean> {
+public value class SharedSubscriptionAvailable(override val value: Boolean) : WritableProperty<Boolean>,
+    Property<Boolean> {
 
+    /**
+     * The identifier value of this property is: `0x2A`
+     */
     public override val identifier: Int
         get() = 42
 
