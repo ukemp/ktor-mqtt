@@ -52,7 +52,12 @@ public data class UserProperties(public val values: List<StringPair>) {
 /**
  * DSL for building a [UserProperties] instance.
  *
- * @sample PropertiesSample.createUserProperties
+ * For exmaple:
+ * ```kotlin
+ * buildUserProperties {
+ *     "filename" to "test.txt"
+ * }
+ * ```
  */
 public fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProperties {
     val builder = UserPropertiesBuilder()
@@ -62,11 +67,9 @@ public fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProp
 
 /**
  * DSL for creating MQTT user properties. Note that the same name is allowed to appear more than once in user properties.
- *
- * @sample PropertiesSample.createUserProperties
  */
 @MqttDslMarker
-public class UserPropertiesBuilder() {
+public class UserPropertiesBuilder {
 
     private val userProperties = mutableListOf<StringPair>()
 
@@ -89,13 +92,5 @@ internal val UserProperties.asArray: Array<UserProperty>
 internal fun Sink.write(userProperties: UserProperties) {
     if (userProperties.values.isNotEmpty()) {
         userProperties.values.forEach { this.write(it) }
-    }
-}
-
-internal class PropertiesSample {
-    internal fun createUserProperties() {
-        buildUserProperties {
-            "filename" to "test.txt"
-        }
     }
 }
