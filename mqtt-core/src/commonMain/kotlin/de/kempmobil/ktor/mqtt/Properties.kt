@@ -411,7 +411,7 @@ public val ServerReference.servers: List<SocketAddress>
                 try {
                     if (str.startsWith("[")) {
                         val endIndex = str.indexOf(']')
-                        val server = str.substring(1..endIndex - 1)
+                        val server = str.substring(1..<endIndex)
                         val port = str.substring(str.indexOf(':', endIndex) + 1)
                         InetSocketAddress(server.trim(), port.toInt())
                     } else if (str.contains(":")) {

@@ -27,4 +27,4 @@ public value class Topic(public val name: String) {
 /**
  * Converts a list of strings into a list of Topic items.
  */
-public inline fun topics(vararg topic: String): List<Topic> = topic.map { Topic(it) }
+public fun topics(vararg topic: String): List<Topic> = topic.map { Topic(it) }

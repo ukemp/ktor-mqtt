@@ -1,5 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
+@ConsistentCopyVisibility
 public data class ReasonCode internal constructor(val code: Int, val name: String) {
 
     public override fun toString(): String {

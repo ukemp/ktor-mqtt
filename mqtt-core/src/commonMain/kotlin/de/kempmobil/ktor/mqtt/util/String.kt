@@ -7,13 +7,13 @@ import kotlinx.io.bytestring.encodeToByteString
 
 private const val MAX_TEXT_SIZE = 65_535
 
-public inline fun String.toTopic(): Topic = Topic(this)
+public fun String.toTopic(): Topic = Topic(this)
 
-public inline fun String.toResponseTopic(): ResponseTopic = ResponseTopic(this)
+public fun String.toResponseTopic(): ResponseTopic = ResponseTopic(this)
 
-public inline fun String.toResponseInformation(): ResponseInformation = ResponseInformation(this)
+public fun String.toResponseInformation(): ResponseInformation = ResponseInformation(this)
 
-public inline fun String.toReasonString(): ReasonString = ReasonString(this)
+public fun String.toReasonString(): ReasonString = ReasonString(this)
 
 /**
  * Writes the specified string as an MQTT string, hence writing first the size of the string, then the ZTF-8 encoded
