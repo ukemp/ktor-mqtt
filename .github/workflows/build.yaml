@@ -1,6 +1,9 @@
 ---
 name: Build Ktor MQTT Library
-on: [ push ]
+on:
+  push:
+    tags:
+      - '**'
 env:
   ACTIONS_RUNNER_DEBUG: true
 jobs:
@@ -8,9 +11,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: publish
+          - target: publishAllPublicationsToMavenCentral --no-configuration-cache
             os: macos-latest
-          - target: publish
+          - target: publishAllPublicationsToMavenCentral --no-configuration-cache
             os: ubuntu-latest
     runs-on: ${{ matrix.os }}
 
@@ -27,9 +30,6 @@ jobs:
           java-version: '17'
           distribution: "zulu"
 
-      #      - name: Set up Docker Buildx to use Docker in unit tests
-      #        uses: docker/setup-buildx-action@v3
-
       - name: Setup Gradle cache
         uses: actions/cache@v3
         with:
@@ -39,5 +39,8 @@ jobs:
 
       - name: Build with Gradle
         uses: gradle/actions/setup-gradle@v3
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         with:
-          arguments: ${{ matrix.target }} -x jvmTest
+          arguments: ${{ matrix.target }}

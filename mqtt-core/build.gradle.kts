@@ -1,8 +1,12 @@
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.KotlinMultiplatform
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kover)
-    `maven-publish`
+    alias(libs.plugins.vanniktech)
+    alias(libs.plugins.dokka)
 }
 
 kotlin {
@@ -53,19 +57,17 @@ android {
     namespace = "de.kempmobil.ktor.mqtt"
     compileSdk = 34
     defaultConfig {
-        minSdk = 24
+        minSdk = 21
     }
 }
 
-group = "de.kempmobil.ktor.mqtt"
-version = libs.versions.ktormqtt.get()
-
-publishing {
-    val repoDirectory: String by rootProject.extra
-    repositories {
-        maven {
-            name = "ktor-mqtt"
-            url = uri(repoDirectory)
-        }
-    }
+mavenPublishing {
+    coordinates("de.kempmobil.ktor.mqtt", "mqtt-core", libs.versions.ktormqtt.get())
+    configure(
+        KotlinMultiplatform(
+            javadocJar = JavadocJar.Dokka("dokkaHtml"),
+            sourcesJar = true,
+            androidVariantsToPublish = listOf("debug", "release"),
+        )
+    )
 }
