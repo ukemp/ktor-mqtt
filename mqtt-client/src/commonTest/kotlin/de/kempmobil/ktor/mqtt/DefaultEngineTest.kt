@@ -204,6 +204,10 @@ class DefaultEngineTest {
                 socketAcceptor.await().close()
                 serverSocket.dispose()
                 selectorManager.close()
+                // Let the sockets close
+                runBlocking {
+                    delay(100)
+                }
             }
         } catch (ex: Exception) {
             ex.printStackTrace()
