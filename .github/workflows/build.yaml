@@ -1,9 +1,7 @@
 ---
-name: Publish Ktor MQTT Library to Maven Central
-on:
-  push:
-    tags:
-      - '**'
+name: Build and Test Ktor MQTT Library
+on: [ push ]
+
 env:
   ACTIONS_RUNNER_DEBUG: true
 jobs:
@@ -11,9 +9,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: publishAllPublicationsToMavenCentral --no-configuration-cache
+          - target: allTests
             os: macos-latest
-          - target: publishAllPublicationsToMavenCentral --no-configuration-cache
+          - target: allTests
             os: ubuntu-latest
     runs-on: ${{ matrix.os }}
 
@@ -39,10 +37,5 @@ jobs:
 
       - name: Build with Gradle
         uses: gradle/actions/setup-gradle@v3
-        env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_SECRET_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSWORD }}
         with:
           arguments: ${{ matrix.target }}
