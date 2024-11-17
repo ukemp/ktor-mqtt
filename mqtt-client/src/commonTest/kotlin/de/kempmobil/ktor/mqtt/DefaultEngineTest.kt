@@ -18,7 +18,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class DefaultEngineTest {
 
-    private val defaultHost = "localhost"
+    private val defaultHost = "127.0.0.1"
     private val defaultPort = 12345
 
     @Test
