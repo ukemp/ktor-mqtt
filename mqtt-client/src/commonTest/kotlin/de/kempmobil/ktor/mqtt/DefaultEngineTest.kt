@@ -131,9 +131,8 @@ class DefaultEngineTest {
     }
 
     @Test
-    fun `when receiving a malformed packet the connection is terminated with a disconnect packet`() = runTest {
+    fun `when receiving a malformed packet the packet results returns a failure`() = runTest {
         val dataToSend = MutableSharedFlow<ByteArray>(replay = 1)
-        val receivedPackets = MutableSharedFlow<Packet>()
 
         cleanupJob = startServer(writer = {
             CoroutineScope(Dispatchers.Default).launch {
@@ -141,10 +140,6 @@ class DefaultEngineTest {
                 dataToSend.collect {
                     writeFully(it)
                 }
-            }
-        }, reader = {
-            backgroundScope.launch {
-                receivedPackets.emit(readPacket())
             }
         })
 
