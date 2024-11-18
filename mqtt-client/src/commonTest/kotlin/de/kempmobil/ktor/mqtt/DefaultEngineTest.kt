@@ -22,6 +22,7 @@ class DefaultEngineTest {
     private val defaultPort = 12345
 
     private var cleanupJob: Job? = null
+    private lateinit var engine: MqttEngine
 
     @AfterTest
     fun cleanup() {
@@ -30,18 +31,20 @@ class DefaultEngineTest {
                 start()
                 join()
             }
+            engine.disconnect()
+            engine.close()
         }
     }
 
     @Test
     fun `the initial connection state is disconnected`() {
-        val engine = MqttEngine()
+        engine = MqttEngine()
         assertFalse(engine.connected.value)
     }
 
     @Test
     fun `when the server is not reachable return a failure`() = runTest {
-        val engine = MqttEngine()
+        engine = MqttEngine()
         val result = engine.start()
 
         assertTrue(result.isFailure)
@@ -51,7 +54,7 @@ class DefaultEngineTest {
     @Test
     fun `when the server is reachable return success`() = runTest {
         cleanupJob = startServer()
-        val engine = MqttEngine()
+        engine = MqttEngine()
         val result = engine.start()
 
         assertTrue(result.isSuccess)
@@ -61,7 +64,7 @@ class DefaultEngineTest {
     @Test
     fun `when terminating a connected session the connection state is updated`() = runTest {
         cleanupJob = startServer()
-        val engine = MqttEngine()
+        engine = MqttEngine()
         val result = engine.start()
 
         assertTrue(result.isSuccess)
@@ -80,7 +83,7 @@ class DefaultEngineTest {
     @Test
     fun `when disconnecting a connected session the connection state is updated`() = runTest {
         cleanupJob = startServer()
-        val engine = MqttEngine()
+        engine = MqttEngine()
         val result = engine.start()
 
         assertTrue(result.isSuccess)
@@ -102,7 +105,7 @@ class DefaultEngineTest {
         })
 
         val expected = Publish(topic = "test-topic".toTopic(), payload = "1234567890".encodeToByteString())
-        val engine = MqttEngine()
+        engine = MqttEngine()
         engine.start()
         engine.send(expected)
 
@@ -123,7 +126,7 @@ class DefaultEngineTest {
         })
 
         val expected = Publish(topic = "test-topic".toTopic(), payload = "1234567890".encodeToByteString())
-        val engine = MqttEngine()
+        engine = MqttEngine()
         engine.start()
         serverPackets.emit(expected)
 
@@ -144,7 +147,7 @@ class DefaultEngineTest {
             }
         })
 
-        val engine = MqttEngine()
+        engine = MqttEngine()
         engine.start()
         dataToSend.emit(byteArrayOf(0, 0, 0))
 
@@ -156,7 +159,7 @@ class DefaultEngineTest {
     @Test
     fun `when calling send on a disconnected connection return a failure`() = runTest {
         cleanupJob = startServer()
-        val engine = MqttEngine()
+        engine = MqttEngine()
         engine.start()
         engine.disconnect()
 
