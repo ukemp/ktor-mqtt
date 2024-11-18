@@ -10,6 +10,7 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.*
@@ -135,7 +136,7 @@ class DefaultEngineTest {
         val dataToSend = MutableSharedFlow<ByteArray>(replay = 1)
 
         cleanupJob = startServer(writer = {
-            CoroutineScope(Dispatchers.Default).launch {
+            backgroundScope.launch {
                 delay(100)
                 dataToSend.collect {
                     writeFully(it)
@@ -177,16 +178,15 @@ class DefaultEngineTest {
     /**
      * Starts a socket server and returns an (unstarted) [Job] to stop it.
      */
-    private suspend fun startServer(
+    private suspend fun TestScope.startServer(
         reader: (ByteReadChannel.() -> Unit)? = null,
         writer: (ByteWriteChannel.() -> Unit)? = null
     ): Job {
-        val scope = CoroutineScope(Dispatchers.Default)
         try {
             val selectorManager = SelectorManager(Dispatchers.Default)
             val serverSocket = aSocket(selectorManager).tcp().bind(defaultHost, defaultPort)
 
-            val socketAcceptor = scope.async {
+            val socketAcceptor = backgroundScope.async {
                 serverSocket.accept().also { socket ->
                     if (reader != null) {
                         socket.openReadChannel().reader()
@@ -197,7 +197,8 @@ class DefaultEngineTest {
                 }
             }
 
-            return scope.launch(start = CoroutineStart.LAZY) {
+            // Don't use backgroundScope to close the socket, as this scope is automatically canceled when the test finishes!
+            return CoroutineScope(Dispatchers.Default).launch(start = CoroutineStart.LAZY) {
                 socketAcceptor.await().close()
                 serverSocket.dispose()
                 selectorManager.close()
