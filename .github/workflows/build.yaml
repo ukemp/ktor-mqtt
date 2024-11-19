@@ -35,6 +35,9 @@ jobs:
             ~/.konan
           key: ${{ runner.os }}-${{ hashFiles('**/.lock') }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build with Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
