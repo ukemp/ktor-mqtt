@@ -21,6 +21,21 @@ class DefaultEngineTest {
     private val defaultHost = "localhost"
     private val defaultPort = 12345
 
+    private var cleanupJob: Job? = null
+
+    @AfterTest
+    fun cleanup() {
+        cleanupJob?.run {
+            cleanupJob = null
+            runBlocking {
+                withTimeout(1.seconds) {
+                    start()
+                    join()
+                }
+            }
+        }
+    }
+
     @Test
     fun `the initial connection state is disconnected`() {
         val engine = MqttEngine()
@@ -38,26 +53,26 @@ class DefaultEngineTest {
 
     @Test
     fun `when the server is reachable return success`() = runTest {
-        val closeServer = startServer(this)
+        cleanupJob = startServer()
         val engine = MqttEngine()
         val result = engine.start()
 
         assertTrue(result.isSuccess)
         assertTrue(engine.connected.value)
-
-        closeServer.start()
     }
 
     @Test
     fun `when terminating a connected session the connection state is updated`() = runTest {
-        val closeServer = startServer(this)
+        cleanupJob = startServer()
         val engine = MqttEngine()
         val result = engine.start()
 
         assertTrue(result.isSuccess)
         assertTrue(engine.connected.value)
 
-        closeServer.start()
+        cleanupJob?.start()
+        cleanupJob?.join()
+        cleanupJob = null
 
         withContext(Dispatchers.Default) { // See runTest { } on why we need this
             withTimeout(1.seconds) {       // It takes a few millis until the connection is actually closed
@@ -68,7 +83,7 @@ class DefaultEngineTest {
 
     @Test
     fun `when disconnecting a connected session the connection state is updated`() = runTest {
-        val closeServer = startServer(this)
+        cleanupJob = startServer()
         val engine = MqttEngine()
         val result = engine.start()
 
@@ -78,14 +93,12 @@ class DefaultEngineTest {
         engine.disconnect()
 
         assertFalse(engine.connected.first())
-
-        closeServer.start() // Cleanup
     }
 
     @Test
     fun `when sending a packet it is received by server`() = runTest {
         val serverPackets = MutableSharedFlow<Packet>()
-        val closeServer = startServer(this, reader = {
+        cleanupJob = startServer(reader = {
             backgroundScope.launch {
                 serverPackets.emit(readPacket())
             }
@@ -98,14 +111,12 @@ class DefaultEngineTest {
 
         val actual = serverPackets.first()
         assertEquals(expected, actual)
-
-        closeServer.start()
     }
 
     @Test
     fun `when the server sends a packet the received packets are updated`() = runTest {
         val serverPackets = MutableSharedFlow<Packet>(replay = 1)
-        val closeServer = startServer(this, writer = {
+        cleanupJob = startServer(writer = {
             backgroundScope.launch {
                 serverPackets.collect {
                     write(it)
@@ -120,25 +131,18 @@ class DefaultEngineTest {
 
         val actual = engine.packetResults.first()
         assertEquals(expected, actual.getOrNull())
-
-        closeServer.start()
     }
 
     @Test
-    fun `when receiving a malformed packet the connection is terminated with a disconnect packet`() = runTest {
+    fun `when receiving a malformed packet return a MalformedPacketException`() = runTest {
         val dataToSend = MutableSharedFlow<ByteArray>(replay = 1)
-        val receivedPackets = MutableSharedFlow<Packet>()
 
-        val closeServer = startServer(this, writer = {
+        cleanupJob = startServer(writer = {
             CoroutineScope(Dispatchers.Default).launch {
                 delay(100)
                 dataToSend.collect {
                     writeFully(it)
                 }
-            }
-        }, reader = {
-            backgroundScope.launch {
-                receivedPackets.emit(readPacket())
             }
         })
 
@@ -149,13 +153,11 @@ class DefaultEngineTest {
         val result = engine.packetResults.first()
         assertTrue(result.isFailure)
         assertIs<MalformedPacketException>(result.exceptionOrNull())
-
-        closeServer.start()
     }
 
     @Test
     fun `when calling send on a disconnected connection return a failure`() = runTest {
-        val closeServer = startServer(this)
+        cleanupJob = startServer()
         val engine = MqttEngine()
         engine.start()
         engine.disconnect()
@@ -163,8 +165,6 @@ class DefaultEngineTest {
         val result = engine.send(Pingreq)
         assertTrue(result.isFailure)
         assertIs<ConnectionException>(result.exceptionOrNull())
-
-        closeServer.start()
     }
 
     // ---- Helper functions -------------------------------------------------------------------------------------------
@@ -180,34 +180,34 @@ class DefaultEngineTest {
     /**
      * Starts a socket server and returns an (unstarted) [Job] to stop it.
      */
-    private suspend fun startServer(
-        testScope: TestScope,
+    private suspend fun TestScope.startServer(
         reader: (ByteReadChannel.() -> Unit)? = null,
         writer: (ByteWriteChannel.() -> Unit)? = null
     ): Job {
-        try {
-            val selectorManager = SelectorManager(Dispatchers.Default)
-            val serverSocket = aSocket(selectorManager).tcp().bind(defaultHost, defaultPort)
+        val selectorManager = SelectorManager(Dispatchers.Default)
+        val serverSocket = aSocket(selectorManager).tcp().bind(defaultHost, defaultPort)
+        var socket: Socket? = null
 
-            val socketAcceptor = testScope.async {
-                serverSocket.accept().also { socket ->
+        backgroundScope.launch {
+            try {
+                socket = serverSocket.accept().also { accepted ->
                     if (reader != null) {
-                        socket.openReadChannel().reader()
+                        accepted.openReadChannel().reader()
                     }
                     if (writer != null) {
-                        socket.openWriteChannel(autoFlush = true).writer()
+                        accepted.openWriteChannel(autoFlush = true).writer()
                     }
                 }
+            } catch (ex: Exception) {
+                fail("Cannot create server socket [$defaultHost:$defaultPort]", ex)
             }
+        }
 
-            return testScope.launch(start = CoroutineStart.LAZY) {
-                socketAcceptor.await().close()
-                serverSocket.dispose()
-                selectorManager.close()
-            }
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            throw ex
+        // Don't use TestScope here, as this might get canceled after test execution!
+        return CoroutineScope(Dispatchers.Default).launch(start = CoroutineStart.LAZY) {
+            socket?.close()
+            serverSocket.close()
+            selectorManager.close()
         }
     }
 }
