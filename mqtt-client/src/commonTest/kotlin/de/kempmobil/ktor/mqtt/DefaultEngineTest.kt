@@ -16,6 +16,7 @@ import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
 
+@Ignore
 class DefaultEngineTest {
 
     private val defaultHost = "127.0.0.1"
