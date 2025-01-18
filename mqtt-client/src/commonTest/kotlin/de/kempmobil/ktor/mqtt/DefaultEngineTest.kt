@@ -1,20 +1,42 @@
 package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Severity
-import de.kempmobil.ktor.mqtt.packet.*
+import de.kempmobil.ktor.mqtt.packet.Packet
+import de.kempmobil.ktor.mqtt.packet.Pingreq
+import de.kempmobil.ktor.mqtt.packet.Publish
+import de.kempmobil.ktor.mqtt.packet.readPacket
+import de.kempmobil.ktor.mqtt.packet.write
 import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.toTopic
-import io.ktor.network.selector.*
-import io.ktor.network.sockets.*
-import io.ktor.utils.io.*
-import kotlinx.coroutines.*
+import io.ktor.network.selector.SelectorManager
+import io.ktor.network.sockets.Socket
+import io.ktor.network.sockets.aSocket
+import io.ktor.network.sockets.openReadChannel
+import io.ktor.network.sockets.openWriteChannel
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.io.bytestring.encodeToByteString
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+import kotlin.test.fail
 import kotlin.time.Duration.Companion.seconds
 
 class DefaultEngineTest {
@@ -80,6 +102,8 @@ class DefaultEngineTest {
                 engine.connected.first { isConnected -> !isConnected }
             }
         }
+        // No need for an assertion here, as the test will fail with a TimeoutCancellationException when
+        // not receiving the disconnection event.
     }
 
     @Test
@@ -98,7 +122,7 @@ class DefaultEngineTest {
 
     @Test
     fun `when sending a packet it is received by server`() = runTest {
-        val serverPackets = MutableSharedFlow<Packet>()
+        val serverPackets = MutableSharedFlow<Packet>(replay = 1)
         stopServerJob = startServer(reader = {
             serverPackets.emit(readPacket())
         })
