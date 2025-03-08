@@ -1,5 +1,5 @@
 ---
-name: Build Ktor MQTT Library
+name: Publish Ktor MQTT Library
 on:
   push:
     tags:
