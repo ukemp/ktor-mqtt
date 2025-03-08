@@ -1,6 +1,6 @@
 ---
 name: Build and Test Ktor MQTT Library
-on: [ push ]
+on: workflow_dispatch
 
 env:
   ACTIONS_RUNNER_DEBUG: true
