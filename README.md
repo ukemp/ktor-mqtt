@@ -157,8 +157,8 @@ and **at least one Ktor Http client library**, for example `CIO`:
 
 ```kotlin
 dependencies {
-  implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.5.1")
-  implementation("io.ktor:ktor-client-cio:3.1.1")
+    implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.5.0")
+    implementation("io.ktor:ktor-client-cio:3.0.1")
 }
 ```
 
