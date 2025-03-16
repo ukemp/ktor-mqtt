@@ -99,9 +99,13 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
                 }
                 val tlsContext = CoroutineName("TLS Handler") + config.dispatcher + handler
 
-                aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(tlsContext, tlsConfig)
+                withTimeout(connectionTimeout.inWholeMilliseconds) {
+                    aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(tlsContext, tlsConfig)
+                }
             } else {
-                aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
+                withTimeout(connectionTimeout.inWholeMilliseconds) {
+                    aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
+                }
             }
         }
     }

@@ -5,6 +5,7 @@ import de.kempmobil.ktor.mqtt.MqttClientConfigBuilder
 import de.kempmobil.ktor.mqtt.QoS
 import io.ktor.client.*
 import io.ktor.client.engine.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
 import kotlin.time.Duration.Companion.days
@@ -68,6 +69,12 @@ internal class WsSample {
                 http = {
                     HttpClient {
                         install(WebSockets)
+                        // To define http timeout values:
+                        install(HttpTimeout) {
+                            connectTimeoutMillis = 5000
+                            requestTimeoutMillis = 1000
+                        }
+                        // To define an http proxy:
                         engine {
                             proxy = ProxyBuilder.http("http://my.proxy.com:3128")
                         }
