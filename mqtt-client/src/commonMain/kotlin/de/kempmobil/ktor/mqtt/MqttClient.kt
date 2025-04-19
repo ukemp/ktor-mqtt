@@ -300,9 +300,16 @@ public class MqttClient internal constructor(
             val keepAlive = (connack.serverKeepAlive?.value ?: config.keepAliveSeconds).toInt().seconds
             if (keepAlive.inWholeSeconds > 0) {
                 scope.launch {
-                    delay(keepAlive)
-                    awaitResponseOf<Pingresp>(PacketType.PINGRESP) {
-                        engine.send(Pingreq)
+                    while (connectionState.firstOrNull() == Connected(connack)) {
+                        delay(keepAlive)
+                        val result = awaitResponseOf<Pingresp>(PacketType.PINGRESP) {
+                            engine.send(Pingreq)
+                        }
+
+                        if(result.isFailure){
+                            Logger.e { "Keep Alive failure" }
+                            disconnect(KeepAliveTimeout)
+                        }
                     }
                 }
             }
