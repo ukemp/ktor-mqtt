@@ -2,24 +2,27 @@
 ktormqtt = "0.6.1"
 
 agp = "8.2.2"
-kotlin = "2.1.0"
-kotlinx-coroutines = "1.10.1"
-ktor = "3.1.1"
+kotlin = "2.1.21"
+kotlinx-coroutines = "1.10.2"
+kotlinx-datetime = "0.6.2"
+kotlinx-io = "0.7.0"
+ktor = "3.1.3"
 junit = "5.8.1"
-testcontainers = "1.19.8"
+testcontainers = "1.21.0"
 slf4j = "2.0.16"
-mockery = "2.7.0"
+kermit = "2.0.5"
+mockery = "2.8.0"
 versions = "0.51.0"
 kover = "0.9.1"
-vanniktech = "0.30.0"
+vanniktech = "0.32.0"
 dokka = "2.0.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
-kotlinx-datetime = "org.jetbrains.kotlinx:kotlinx-datetime:0.6.2"
-kotlinx-io = "org.jetbrains.kotlinx:kotlinx-io-core:0.6.0"
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-io = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
@@ -31,7 +34,7 @@ ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
 ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
 ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }
 ktor-network-tls = { module = "io.ktor:ktor-network-tls", version.ref = "ktor" }
-kermit = "co.touchlab:kermit:2.0.2"
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 
 # JVM Integration test libraries
 junit-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }

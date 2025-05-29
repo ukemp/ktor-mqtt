@@ -1,5 +1,6 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import java.net.URI
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -64,11 +65,23 @@ android {
     }
 }
 
+dokka {
+    moduleName.set("Ktor-MQTT Client v${libs.versions.ktormqtt.get()}")
+    dokkaSourceSets.configureEach {
+        sourceLink {
+            localDirectory.set(projectDir.resolve("src"))
+            remoteUrl.set(URI("https://github.com/ukemp/ktor-mqtt/tree/main/mqtt-client/src"))
+            remoteLineSuffix.set("#L")
+        }
+    }
+}
+
+
 mavenPublishing {
     coordinates("de.kempmobil.ktor.mqtt", "mqtt-client", libs.versions.ktormqtt.get())
     configure(
         KotlinMultiplatform(
-            javadocJar = JavadocJar.Dokka("dokkaHtml"),
+            javadocJar = JavadocJar.Dokka("dokkaGenerate"),
             sourcesJar = true,
             androidVariantsToPublish = listOf("debug", "release"),
         )
