@@ -1,5 +1,6 @@
 package de.kempmobil.ktor.mqtt.packet
 
+import de.kempmobil.ktor.mqtt.MalformedPacketException
 import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.readVariableByteInt
 import de.kempmobil.ktor.mqtt.util.writeVariableByteInt

@@ -3,8 +3,6 @@ package de.kempmobil.ktor.mqtt
 import co.touchlab.kermit.MutableLoggerConfig
 import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.MqttDslMarker
-import io.ktor.network.sockets.*
-import io.ktor.network.tls.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.io.bytestring.ByteString
@@ -40,8 +38,8 @@ public interface MqttClientConfig {
 /**
  * DSL for creating an MQTT client configuration.
  *
- * @param host the host to connect to
- * @param port the port to connect to, defaults to 1883
+ * @param connectionFactory the connection factory to use, usually [DefaultEngineFactory].
+ * @param init DSL for configuring the client
  */
 public fun <T : MqttEngineConfig> buildConfig(
     connectionFactory: MqttEngineFactory<T>,
