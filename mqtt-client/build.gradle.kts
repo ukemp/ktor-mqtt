@@ -1,5 +1,6 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
 
 plugins {
@@ -15,9 +16,9 @@ kotlin {
     explicitApi()
     jvm()
     androidTarget {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "1.8"
+        compilations {
+            compilerOptions {
+                jvmTarget.set(JvmTarget.JVM_1_8)
             }
         }
         publishLibraryVariants("release", "debug")
