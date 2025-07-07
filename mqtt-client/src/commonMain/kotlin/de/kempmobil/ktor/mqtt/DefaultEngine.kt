@@ -29,7 +29,7 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
 
     private val selectorManager = SelectorManager(config.dispatcher)
 
-    private val scope = CoroutineScope(config.dispatcher)
+    private var scope = CoroutineScope(config.dispatcher)
 
     private var sendChannel: ByteWriteChannel? = null
 
@@ -39,6 +39,9 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
 
     override suspend fun start(): Result<Unit> {
         return try {
+            if (!scope.isActive) {
+                scope = CoroutineScope(config.dispatcher)
+            }
             socket = scope.async {
                 val socket = openSocket()
                 _connected.emit(true)
