@@ -60,7 +60,7 @@ public data class UserProperties(public val values: List<StringPair>) {
 /**
  * DSL for building a [UserProperties] instance.
  *
- * For exmaple:
+ * For example:
  * ```kotlin
  * buildUserProperties {
  *     "filename" to "test.txt"

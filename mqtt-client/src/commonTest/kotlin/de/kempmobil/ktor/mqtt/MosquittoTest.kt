@@ -1,6 +1,5 @@
 package de.kempmobil.ktor.mqtt
 
-import de.kempmobil.ktor.mqtt.util.Logger
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest

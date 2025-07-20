@@ -1,6 +1,5 @@
 package de.kempmobil.ktor.mqtt
 
-import de.kempmobil.ktor.mqtt.util.Logger
 import org.junit.AfterClass
 import org.junit.BeforeClass
 

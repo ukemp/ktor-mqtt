@@ -67,8 +67,8 @@ open class WebSocketIntegrationTest : IntegrationTestBase() {
                     }
                 }
             }
-            username = MosquittoContainer.user
-            password = MosquittoContainer.password
+            username = MosquittoContainer.USER
+            password = MosquittoContainer.PASSWORD
         }
         val connected = client.connect()
 
@@ -92,8 +92,8 @@ open class WebSocketIntegrationTest : IntegrationTestBase() {
                     }
                 }
             }
-            username = MosquittoContainer.user
-            password = MosquittoContainer.password
+            username = MosquittoContainer.USER
+            password = MosquittoContainer.PASSWORD
         }
     }
 }

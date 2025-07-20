@@ -107,7 +107,7 @@ public class MqttClient internal constructor(
                     engine.send(createConnect())
                 }.onSuccess {
                     inspectConnack(it)
-                }.getOrElse() {
+                }.getOrElse {
                     throw it
                 }
             }
@@ -130,10 +130,9 @@ public class MqttClient internal constructor(
         userProperties: UserProperties = UserProperties.EMPTY
     ): Result<Suback> {
         val identifier = if ((subscriptionIdentifier != null) && !subscriptionIdentifierAvailable) {
-            Logger.w(
-                throwable = IllegalArgumentException("Ignoring $subscriptionIdentifier"),
-                { "Ignoring subscription identifier, as the server doesn't support it" }
-            )
+            Logger.w(throwable = IllegalArgumentException("Ignoring $subscriptionIdentifier")) {
+                "Ignoring subscription identifier, as the server doesn't support it"
+            }
             null
         } else {
             subscriptionIdentifier
@@ -306,7 +305,7 @@ public class MqttClient internal constructor(
                             engine.send(Pingreq)
                         }
 
-                        if(result.isFailure){
+                        if (result.isFailure) {
                             Logger.e { "Keep Alive failure" }
                             disconnect(KeepAliveTimeout)
                         }

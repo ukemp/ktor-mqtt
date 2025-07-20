@@ -1,6 +1,5 @@
 package de.kempmobil.ktor.mqtt.ws
 
-import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.MqttClient
 import de.kempmobil.ktor.mqtt.Topic
 import de.kempmobil.ktor.mqtt.TopicFilter

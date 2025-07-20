@@ -86,7 +86,7 @@ class MosquittoContainer {
      */
     fun publish(topic: String, qos: String, payload: String, repeats: Int = 0) {
         val commands = mutableListOf(
-            "mosquitto_pub", "-h", "localhost", "-u", user, "-P", password, "-t", topic, "-q", qos, "-i",
+            "mosquitto_pub", "-h", "localhost", "-u", USER, "-P", PASSWORD, "-t", topic, "-q", qos, "-i",
             "test-publisher", "-m", payload
         )
         if (repeats > 0) {
@@ -102,7 +102,7 @@ class MosquittoContainer {
     }
 
     companion object {
-        const val user = "mqtt-test-user"
-        const val password = "3n63hLKRV31fHf41NF95"  // Encrypted in the resources/passwd file!
+        const val USER = "mqtt-test-user"
+        const val PASSWORD = "3n63hLKRV31fHf41NF95"  // Encrypted in the resources/passwd file!
     }
 }

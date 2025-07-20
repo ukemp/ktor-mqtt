@@ -281,8 +281,8 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     private fun createClient(
-        user: String? = MosquittoContainer.user,
-        pwd: String? = MosquittoContainer.password,
+        user: String? = MosquittoContainer.USER,
+        pwd: String? = MosquittoContainer.PASSWORD,
         id: String = "",
         port: Int = mosquitto.defaultPort
     ): MqttClient {
