@@ -49,72 +49,77 @@ class DefaultEngineTest {
 
     @Test
     fun `when the server is not reachable return a failure`() = runTest {
-        val engine = MqttEngine()
-        val result = engine.start()
+        MqttEngine().use { engine ->
+            val result = engine.start()
 
-        assertTrue(result.isFailure)
-        assertFalse(engine.connected.value)
+            assertTrue(result.isFailure)
+            assertFalse(engine.connected.value)
+        }
     }
 
     @Test
     fun `when the server is reachable return success`() = runTest {
         stopServerJob = startServer()
-        val engine = MqttEngine()
-        val result = engine.start()
+        MqttEngine().use { engine ->
+            val result = engine.start()
 
-        assertTrue(result.isSuccess)
-        assertTrue(engine.connected.value)
+            assertTrue(result.isSuccess)
+            assertTrue(engine.connected.value)
+        }
     }
 
     @Test
     fun `when terminating a connected session the connection state is updated`() = runTest {
         stopServerJob = startServer()
-        val engine = MqttEngine()
-        val result = engine.start()
+        MqttEngine().use { engine ->
+            val result = engine.start()
 
-        assertTrue(result.isSuccess)
-        assertTrue(engine.connected.value)
+            assertTrue(result.isSuccess)
+            assertTrue(engine.connected.value)
 
-        stopServerJob?.start()
-        stopServerJob?.join()
-        stopServerJob = null
+            stopServerJob?.start()
+            stopServerJob?.join()
+            stopServerJob = null
 
-        withContext(Dispatchers.Default) { // See runTest { } on why we need this
-            withTimeout(1.seconds) {       // It takes a few millis until the connection is actually closed
-                engine.connected.first { isConnected -> !isConnected }
+            withContext(Dispatchers.Default) { // See runTest { } on why we need this
+                withTimeout(1.seconds) {       // It takes a few millis until the connection is actually closed
+                    engine.connected.first { isConnected -> !isConnected }
+                }
             }
+            // No need for an assertion here, as the test will fail with a TimeoutCancellationException when
+            // not receiving the disconnection event.
         }
-        // No need for an assertion here, as the test will fail with a TimeoutCancellationException when
-        // not receiving the disconnection event.
     }
 
     @Test
     fun `when disconnecting a connected session the connection state is updated`() = runTest {
         stopServerJob = startServer()
-        val engine = MqttEngine()
-        val result = engine.start()
+        MqttEngine().use { engine ->
+            val result = engine.start()
 
-        assertTrue(result.isSuccess)
-        assertTrue(engine.connected.value)
+            assertTrue(result.isSuccess)
+            assertTrue(engine.connected.value)
 
-        engine.disconnect()
+            engine.disconnect()
 
-        assertFalse(engine.connected.value)
+            assertFalse(engine.connected.value)
+        }
     }
 
     @Test
     fun `when reconnecting a failed connection the second attempt succeeds`() = runTest {
-        val engine = MqttEngine()
-        val failing = engine.start()  // This connection fails as the server is not started
+        MqttEngine().use { engine ->
+            val failing = engine.start()  // This connection fails as the server is not started
 
-        assertFalse(failing.isSuccess)
-        assertFalse(engine.connected.value)
+            assertFalse(failing.isSuccess)
+            assertFalse(engine.connected.value)
 
-        stopServerJob = startServer()
-        val result = engine.start()
+            stopServerJob = startServer()
+            val result = engine.start()
 
-        assertTrue(result.isSuccess)
-        assertTrue(engine.connected.value)
+            assertTrue(result.isSuccess)
+            assertTrue(engine.connected.value)
+        }
     }
 
     @Test
@@ -125,12 +130,13 @@ class DefaultEngineTest {
         })
 
         val expected = Publish(topic = "test-topic".toTopic(), payload = "1234567890".encodeToByteString())
-        val engine = MqttEngine()
-        engine.start()
-        engine.send(expected)
+        MqttEngine().use { engine ->
+            engine.start()
+            engine.send(expected)
 
-        val actual = serverPackets.first()
-        assertEquals(expected, actual)
+            val actual = serverPackets.first()
+            assertEquals(expected, actual)
+        }
     }
 
     @Test
@@ -143,12 +149,13 @@ class DefaultEngineTest {
         })
 
         val expected = Publish(topic = "test-topic".toTopic(), payload = "1234567890".encodeToByteString())
-        val engine = MqttEngine()
-        engine.start()
-        serverPackets.emit(expected)
+        MqttEngine().use { engine ->
+            engine.start()
+            serverPackets.emit(expected)
 
-        val actual = engine.packetResults.first()
-        assertEquals(expected, actual.getOrNull())
+            val actual = engine.packetResults.first()
+            assertEquals(expected, actual.getOrNull())
+        }
     }
 
     @Test
@@ -161,25 +168,27 @@ class DefaultEngineTest {
             }
         })
 
-        val engine = MqttEngine()
-        engine.start()
-        dataToSend.emit(byteArrayOf(0, 0, 0))
+        MqttEngine().use { engine ->
+            engine.start()
+            dataToSend.emit(byteArrayOf(0, 0, 0))
 
-        val result = engine.packetResults.first()
-        assertTrue(result.isFailure)
-        assertIs<MalformedPacketException>(result.exceptionOrNull())
+            val result = engine.packetResults.first()
+            assertTrue(result.isFailure)
+            assertIs<MalformedPacketException>(result.exceptionOrNull())
+        }
     }
 
     @Test
     fun `when calling send on a disconnected connection return a failure`() = runTest {
         stopServerJob = startServer()
-        val engine = MqttEngine()
-        engine.start()
-        engine.disconnect()
+        MqttEngine().use { engine ->
+            engine.start()
+            engine.disconnect()
 
-        val result = engine.send(Pingreq)
-        assertTrue(result.isFailure)
-        assertIs<ConnectionException>(result.exceptionOrNull())
+            val result = engine.send(Pingreq)
+            assertTrue(result.isFailure)
+            assertIs<ConnectionException>(result.exceptionOrNull())
+        }
     }
 
     // ---- Helper functions -------------------------------------------------------------------------------------------

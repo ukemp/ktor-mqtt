@@ -67,43 +67,46 @@ class WebSocketEngineTest {
     @Test
     fun `when the server is reachable return success`() = runTest {
         cleanupJob = startServer()
-        val engine = MqttEngine()
-        val result = engine.start()
+        MqttEngine().use { engine ->
+            val result = engine.start()
 
-        assertTrue(result.isSuccess)
-        assertTrue(engine.connected.value)
+            assertTrue(result.isSuccess)
+            assertTrue(engine.connected.value)
+        }
     }
 
     @Test
     fun `when terminating a connected session the connection state is updated`() = runTest {
         cleanupJob = startServer()
-        val engine = MqttEngine()
-        val result = engine.start()
+        MqttEngine().use { engine ->
+            val result = engine.start()
 
-        assertTrue(result.isSuccess)
-        assertTrue(engine.connected.value)
+            assertTrue(result.isSuccess)
+            assertTrue(engine.connected.value)
 
-        cleanupJob?.start()
-        cleanupJob?.join()
-        cleanupJob = null
+            cleanupJob?.start()
+            cleanupJob?.join()
+            cleanupJob = null
 
-        withContext(Dispatchers.Default) { // See runTest { } on why we need this
-            engine.connected.first { isConnected -> !isConnected }
+            withContext(Dispatchers.Default) { // See runTest { } on why we need this
+                engine.connected.first { isConnected -> !isConnected }
+            }
         }
     }
 
     @Test
     fun `when disconnecting a connected session the connection state is updated`() = runTest {
         cleanupJob = startServer()
-        val engine = MqttEngine()
-        val result = engine.start()
+        MqttEngine().use { engine ->
+            val result = engine.start()
 
-        assertTrue(result.isSuccess)
-        assertTrue(engine.connected.value)
+            assertTrue(result.isSuccess)
+            assertTrue(engine.connected.value)
 
-        engine.disconnect()
+            engine.disconnect()
 
-        assertFalse(engine.connected.first())
+            assertFalse(engine.connected.first())
+        }
     }
 
     @Test
@@ -111,13 +114,14 @@ class WebSocketEngineTest {
         val receivedPackets = MutableSharedFlow<Packet>(replay = 30)
         cleanupJob = startServer(session = receiverSession(receivedPackets))
 
-        val engine = MqttEngine()
-        engine.start()
-        samplePackets.forEach { engine.send(it) }
+        MqttEngine().use { engine ->
+            engine.start()
+            samplePackets.forEach { engine.send(it) }
 
-        val received = mutableListOf<Packet>()
-        receivedPackets.take(samplePackets.size).toList(received)
-        assertEquals(samplePackets, received)
+            val received = mutableListOf<Packet>()
+            receivedPackets.take(samplePackets.size).toList(received)
+            assertEquals(samplePackets, received)
+        }
     }
 
     @Test
@@ -125,13 +129,14 @@ class WebSocketEngineTest {
         val packetsToSend = MutableSharedFlow<Packet>(replay = 30)
 
         cleanupJob = startServer(session = senderSession(packetsToSend))
-        val engine = MqttEngine()
-        engine.start()
-        samplePackets.forEach { packetsToSend.emit(it) }
+        MqttEngine().use { engine ->
+            engine.start()
+            samplePackets.forEach { packetsToSend.emit(it) }
 
-        val received = mutableListOf<Packet>()
-        engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
-        assertEquals(samplePackets, received)
+            val received = mutableListOf<Packet>()
+            engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
+            assertEquals(samplePackets, received)
+        }
     }
 
     @Test
@@ -142,13 +147,14 @@ class WebSocketEngineTest {
             session = senderSessionWithLimitedFrameSize(packetsToSend),
             frameSize = limitedFrameSize
         )
-        val engine = MqttEngine()
-        engine.start()
-        samplePackets.forEach { packetsToSend.emit(it) }
+        MqttEngine().use { engine ->
+            engine.start()
+            samplePackets.forEach { packetsToSend.emit(it) }
 
-        val received = mutableListOf<Packet>()
-        engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
-        assertEquals(samplePackets, received)
+            val received = mutableListOf<Packet>()
+            engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
+            assertEquals(samplePackets, received)
+        }
     }
 
     // ---- Helper functions -------------------------------------------------------------------------------------------
