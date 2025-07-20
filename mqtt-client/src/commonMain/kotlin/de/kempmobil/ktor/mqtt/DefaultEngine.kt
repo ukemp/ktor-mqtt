@@ -8,6 +8,7 @@ import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
 import io.ktor.utils.io.*
+import io.ktor.utils.io.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
@@ -29,19 +30,16 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
 
     private val selectorManager = SelectorManager(config.dispatcher)
 
-    private var scope = CoroutineScope(config.dispatcher)
+    private var scope = CoroutineScope(config.dispatcher + SupervisorJob())
 
     private var sendChannel: ByteWriteChannel? = null
 
-    private var socket: Socket? = null
+    private var socket: Closeable? = null
 
     private var receiverJob: Job? = null
 
     override suspend fun start(): Result<Unit> {
         return try {
-            if (!scope.isActive) {
-                scope = CoroutineScope(config.dispatcher)
-            }
             socket = scope.async {
                 val socket = openSocket()
                 _connected.emit(true)
@@ -76,6 +74,7 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
 
     override fun close() {
         selectorManager.close()
+        scope.cancel()
     }
 
     override fun toString(): String {
