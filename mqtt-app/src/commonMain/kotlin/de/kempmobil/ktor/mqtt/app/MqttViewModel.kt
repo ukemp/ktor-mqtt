@@ -5,6 +5,7 @@ import androidx.compose.runtime.asIntState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Severity
 import de.kempmobil.ktor.mqtt.MqttClient
 import de.kempmobil.ktor.mqtt.buildFilterList
 import kotlinx.coroutines.Job
@@ -110,6 +111,10 @@ class MqttViewModel : ViewModel() {
             client = MqttClient(server.value, port.value) {
                 username = this@MqttViewModel.user.value
                 password = this@MqttViewModel.password.value
+
+                logging {
+                    minSeverity = Severity.Debug
+                }
 
                 if (useTls.value) {
                     connection {

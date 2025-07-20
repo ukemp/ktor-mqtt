@@ -43,6 +43,7 @@ kotlin {
             implementation(project(":mqtt-client"))
             implementation(project(":mqtt-client-ws"))
             implementation(libs.ktor.network.tls)
+            implementation(libs.kermit)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
