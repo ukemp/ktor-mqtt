@@ -1,42 +1,20 @@
 package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Severity
-import de.kempmobil.ktor.mqtt.packet.Packet
-import de.kempmobil.ktor.mqtt.packet.Pingreq
-import de.kempmobil.ktor.mqtt.packet.Publish
-import de.kempmobil.ktor.mqtt.packet.readPacket
-import de.kempmobil.ktor.mqtt.packet.write
+import de.kempmobil.ktor.mqtt.packet.*
 import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.toTopic
-import io.ktor.network.selector.SelectorManager
-import io.ktor.network.sockets.Socket
-import io.ktor.network.sockets.aSocket
-import io.ktor.network.sockets.openReadChannel
-import io.ktor.network.sockets.openWriteChannel
-import io.ktor.utils.io.ByteReadChannel
-import io.ktor.utils.io.ByteWriteChannel
-import io.ktor.utils.io.writeFully
+import io.ktor.network.selector.*
+import io.ktor.network.sockets.*
+import io.ktor.utils.io.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import kotlinx.io.bytestring.encodeToByteString
-import kotlin.test.AfterTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
-import kotlin.test.fail
+import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
 
 class DefaultEngineTest {
@@ -48,10 +26,14 @@ class DefaultEngineTest {
 
     @AfterTest
     fun cleanup() {
+        stopServer()
+    }
+
+    private fun stopServer() {
         stopServerJob?.run {
             stopServerJob = null
             runBlocking {
-                withTimeout(1.seconds) {
+                withTimeout(2.seconds) {
                     start()
                     join()
                 }
@@ -118,6 +100,21 @@ class DefaultEngineTest {
         engine.disconnect()
 
         assertFalse(engine.connected.value)
+    }
+
+    @Test
+    fun `when reconnecting a failed connection the second attempt succeeds`() = runTest {
+        val engine = MqttEngine()
+        val failing = engine.start()  // This connection fails as the server is not started
+
+        assertFalse(failing.isSuccess)
+        assertFalse(engine.connected.value)
+
+        stopServerJob = startServer()
+        val result = engine.start()
+
+        assertTrue(result.isSuccess)
+        assertTrue(engine.connected.value)
     }
 
     @Test
@@ -217,7 +214,7 @@ class DefaultEngineTest {
                         accepted.openWriteChannel(autoFlush = true).writer()
                     }
                 }
-            } catch (ex: CancellationException) {
+            } catch (_: CancellationException) {
                 // ignore
             } catch (ex: Exception) {
                 fail("Cannot create server socket [$defaultHost:$defaultPort]", ex)
