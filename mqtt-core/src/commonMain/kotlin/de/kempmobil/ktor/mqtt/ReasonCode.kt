@@ -59,6 +59,8 @@ public data class ReasonCode internal constructor(val code: Int, val name: Strin
         return "$code $name"
     }
 
+    public operator fun compareTo(other: ReasonCode): Int = code.compareTo(other.code)
+
     public companion object {
         public fun from(code: Byte, defaultSuccessReason: ReasonCode = Success): ReasonCode {
             check(defaultSuccessReason.code == 0) {

@@ -6,10 +6,15 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.decrementAndFetch
+import kotlin.concurrent.atomics.plusAssign
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
 
+@OptIn(ExperimentalAtomicApi::class)
 public class MqttClient internal constructor(
     private val config: MqttClientConfig,
     private val engine: MqttEngine,
@@ -82,6 +87,9 @@ public class MqttClient internal constructor(
 
     private val isCleanStart: Boolean
         get() = true // TODO
+
+    private var receiveMaximum = UShort.MAX_VALUE
+    private var sendQuota = AtomicInt(receiveMaximum.toInt())
 
     init {
         scope.launch {
@@ -169,6 +177,7 @@ public class MqttClient internal constructor(
                 }
 
                 QoS.AT_LEAST_ONCE -> {
+                    sendQuota.decrementAndFetch()
                     packetStore.store(publish)
                     engine.send(publish)
                     receivedPackets.first { it.isResponseFor<Puback>(publish) }
@@ -177,6 +186,7 @@ public class MqttClient internal constructor(
                 }
 
                 QoS.EXACTLY_ONE -> {
+                    sendQuota.decrementAndFetch()
                     packetStore.store(publish)
                     engine.send(publish)
                     receivedPackets.first { it.isResponseFor<Pubrec>(publish) }
@@ -248,31 +258,33 @@ public class MqttClient internal constructor(
     private suspend fun createPublish(request: PublishRequest, isDupMessage: Boolean = false): Result<Publish> {
         return if (request.topicAlias != null && request.topicAlias.value > serverTopicAliasMaximum.value) {
             Result.failure(TopicAliasException("Server maximum topic alias is: $serverTopicAliasMaximum, but you requested: ${request.topicAlias}"))
-        } else if (request.topic.containsWildcard()) {
-            Result.failure(IllegalArgumentException("The topic of a PUBLISH packet must not contain wildcard characters: '${request.topic}'"))
         } else {
             val actualQoS = request.desiredQoS.coerceAtMost(maxQos)  // MQTT-3.2.2-11
             if (actualQoS != request.desiredQoS) {
                 Logger.i { "Publish QoS for ${request.topic} was ${request.desiredQoS} but was downgraded to $actualQoS due to server requirements" }
             }
-            Result.success(
-                Publish(
-                    isDupMessage = if (actualQoS == QoS.AT_MOST_ONCE) false else isDupMessage,  // MQTT-3.3.1-2
-                    qoS = actualQoS,
-                    isRetainMessage = request.isRetainMessage,
-                    packetIdentifier = if (actualQoS == QoS.AT_MOST_ONCE) null else nextPacketIdentifier(),
-                    topic = request.topic,
-                    payloadFormatIndicator = request.payloadFormatIndicator,
-                    messageExpiryInterval = request.messageExpiryInterval,
-                    topicAlias = request.topicAlias,
-                    responseTopic = request.responseTopic,
-                    correlationData = request.correlationData,
-                    userProperties = request.userProperties,
-                    subscriptionIdentifier = null, // A PUBLISH packet sent from a Client to a Server MUST NOT contain a Subscription Identifier [MQTT-3.3.4-6]
-                    contentType = request.contentType,
-                    payload = request.payload
+            if (actualQoS != QoS.AT_MOST_ONCE && sendQuota.load() == 0) {
+                Result.failure(ReceiveMaximumExceededException(receiveMaximum))
+            } else {
+                Result.success(
+                    Publish(
+                        isDupMessage = if (actualQoS == QoS.AT_MOST_ONCE) false else isDupMessage,  // MQTT-3.3.1-2
+                        qoS = actualQoS,
+                        isRetainMessage = request.isRetainMessage,
+                        packetIdentifier = if (actualQoS == QoS.AT_MOST_ONCE) null else nextPacketIdentifier(),
+                        topic = request.topic,
+                        payloadFormatIndicator = request.payloadFormatIndicator,
+                        messageExpiryInterval = request.messageExpiryInterval,
+                        topicAlias = request.topicAlias,
+                        responseTopic = request.responseTopic,
+                        correlationData = request.correlationData,
+                        userProperties = request.userProperties,
+                        subscriptionIdentifier = null, // A PUBLISH packet sent from a Client to a Server MUST NOT contain a Subscription Identifier [MQTT-3.3.4-6]
+                        contentType = request.contentType,
+                        payload = request.payload
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -313,6 +325,9 @@ public class MqttClient internal constructor(
                 }
             }
 
+            receiveMaximum = connack.receiveMaximum?.value ?: UShort.MAX_VALUE
+            sendQuota.store(receiveMaximum.toInt())
+
             // MQTT-3.2.2-16
             if (config.clientId.isEmpty()) {
                 connack.assignedClientIdentifier?.let { _clientId = it.value }
@@ -325,6 +340,7 @@ public class MqttClient internal constructor(
                         "maxQoS=$maxQos, " +
                         "keepAlive=$keepAlive, " +
                         "serverTopicAliasMaximum=${serverTopicAliasMaximum.value}, " +
+                        "receiveMaximum=${connack.receiveMaximum?.value}, " +
                         "assignedClientIdentifier=${connack.assignedClientIdentifier?.value ?: "''"}, " +
                         "subscriptionIdentifierAvailable=$_subscriptionIdentifierAvailable"
             }
@@ -385,6 +401,16 @@ public class MqttClient internal constructor(
             is Pubrel -> {
                 engine.send(Pubcomp.from(packet))
                 publishReceivedPackets.remove(packet.packetIdentifier)
+            }
+
+            is Puback, is Pubcomp -> {
+                sendQuota.plusAssign(1)  // see 4.9 Flow Control
+            }
+
+            is Pubrec -> {
+                if (packet.reason >= UnspecifiedError) {  // see 4.9 Flow Control
+                    sendQuota.plusAssign(1)
+                }
             }
 
             else -> {
