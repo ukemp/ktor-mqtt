@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.io.EOFException
 
 internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngine {
@@ -29,6 +31,8 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
         get() = _connected
 
     private val selectorManager = SelectorManager(config.dispatcher)
+
+    private val writeMutex = Mutex()
 
     private var scope = CoroutineScope(config.dispatcher + SupervisorJob())
 
@@ -142,8 +146,10 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
         Logger.d { "Sending $packet..." }
 
         return try {
-            write(packet)
-            flush()
+            writeMutex.withLock {
+                write(packet)
+                flush()
+            }
             Result.success(Unit)
         } catch (ex: CancellationException) {
             Logger.v { "Packet writer job has been cancelled during write operation" }
