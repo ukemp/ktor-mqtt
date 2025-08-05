@@ -113,6 +113,8 @@ public data class ReasonCode internal constructor(val code: Int, val name: Strin
             }
         }
     }
+
+    public operator fun compareTo(other: ReasonCode): Int = this.code.compareTo(other.code)
 }
 
 /**

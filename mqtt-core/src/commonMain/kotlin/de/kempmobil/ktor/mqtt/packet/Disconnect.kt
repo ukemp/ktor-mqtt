@@ -22,12 +22,15 @@ public data class Disconnect(
 internal fun Sink.write(disconnect: Disconnect) {
     with(disconnect) {
         writeByte(reason.code.toByte())
-        writeProperties(
-            sessionExpiryInterval,
-            reasonString,
-            serverReference,
-            *userProperties.asArray
-        )
+        // For Disconnect, there is no need to write the properties length bytes, in case there are no properties:
+        if (sessionExpiryInterval != null || reasonString != null || serverReference != null || userProperties.isNotEmpty()) {
+            writeProperties(
+                sessionExpiryInterval,
+                reasonString,
+                serverReference,
+                *userProperties.asArray
+            )
+        }
     }
 }
 
