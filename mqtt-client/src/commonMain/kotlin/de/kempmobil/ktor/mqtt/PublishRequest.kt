@@ -1,6 +1,7 @@
 package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.util.MqttDslMarker
+import de.kempmobil.ktor.mqtt.util.toTopic
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 import kotlin.time.Duration
@@ -17,7 +18,14 @@ public data class PublishRequest(
     val contentType: ContentType? = null,
     val payloadFormatIndicator: PayloadFormatIndicator? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
-)
+) {
+
+    init {
+        if (topic.containsWildcard()) {
+            throw IllegalArgumentException("Topic Name in PUBLISH packet contains wildcard characters [MQTT-3.3.2-2]: '$topic'")
+        }
+    }
+}
 
 /**
  * Create a request to send a PUBLISH packet to the server. When `topicAlias` is not null, make sure the specified
@@ -30,11 +38,7 @@ public fun PublishRequest(
     topicAlias: UShort? = null,
     init: PublishRequestBuilder.() -> Unit
 ): PublishRequest {
-    val topic = Topic(topicName)
-    if (topic.containsWildcard()) {
-        throw IllegalArgumentException("Topic Name in PUBLISH packet contains wildcard characters [MQTT-3.3.2-2]: '$topicName'")
-    }
-    return PublishRequestBuilder(topic, topicAlias).also(init).build()
+    return PublishRequestBuilder(topicName.toTopic(), topicAlias).also(init).build()
 }
 
 @MqttDslMarker

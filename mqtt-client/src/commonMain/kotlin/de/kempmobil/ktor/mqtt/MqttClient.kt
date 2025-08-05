@@ -248,8 +248,6 @@ public class MqttClient internal constructor(
     private suspend fun createPublish(request: PublishRequest, isDupMessage: Boolean = false): Result<Publish> {
         return if (request.topicAlias != null && request.topicAlias.value > serverTopicAliasMaximum.value) {
             Result.failure(TopicAliasException("Server maximum topic alias is: $serverTopicAliasMaximum, but you requested: ${request.topicAlias}"))
-        } else if (request.topic.containsWildcard()) {
-            Result.failure(IllegalArgumentException("The topic of a PUBLISH packet must not contain wildcard characters: '${request.topic}'"))
         } else {
             val actualQoS = request.desiredQoS.coerceAtMost(maxQos)  // MQTT-3.2.2-11
             if (actualQoS != request.desiredQoS) {
