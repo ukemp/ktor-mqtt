@@ -31,20 +31,23 @@ internal fun Sink.write(disconnect: Disconnect) {
     }
 }
 
-internal fun Source.readDisconnect(): Disconnect {
-    val reason = ReasonCode.from(readByte(), defaultSuccessReason = NormalDisconnection)
-
-    val properties = if (!exhausted()) {
-        readProperties()
+internal fun Source.readDisconnect(remainingLength: Int): Disconnect {
+    return if (remainingLength == 0) {
+        Disconnect(NormalDisconnection)
     } else {
-        emptyList()
-    }
+        val reason = ReasonCode.from(readByte(), defaultSuccessReason = NormalDisconnection)
 
-    return Disconnect(
-        reason = reason,
-        sessionExpiryInterval = properties.singleOrNull<SessionExpiryInterval>(),
-        reasonString = properties.singleOrNull<ReasonString>(),
-        userProperties = UserProperties.from(properties),
-        serverReference = properties.singleOrNull<ServerReference>()
-    )
+        if (remainingLength == 1) {
+            Disconnect(reason)
+        } else {
+            val properties = readProperties()
+            Disconnect(
+                reason = reason,
+                sessionExpiryInterval = properties.singleOrNull<SessionExpiryInterval>(),
+                reasonString = properties.singleOrNull<ReasonString>(),
+                userProperties = UserProperties.from(properties),
+                serverReference = properties.singleOrNull<ServerReference>()
+            )
+        }
+    }
 }

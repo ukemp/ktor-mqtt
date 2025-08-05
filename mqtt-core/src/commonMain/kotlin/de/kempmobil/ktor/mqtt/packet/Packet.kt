@@ -56,7 +56,7 @@ public suspend fun ByteReadChannel.readPacket(): Packet {
             PacketType.UNSUBACK -> readUnsuback()
             PacketType.PINGREQ -> Pingreq
             PacketType.PINGRESP -> Pingresp
-            PacketType.DISCONNECT -> readDisconnect()
+            PacketType.DISCONNECT -> readDisconnect(length)
             PacketType.AUTH -> readAuth()
         }
     }
