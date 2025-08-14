@@ -4,7 +4,7 @@ import de.kempmobil.ktor.mqtt.packet.Packet
 import de.kempmobil.ktor.mqtt.packet.Publish
 import de.kempmobil.ktor.mqtt.packet.Pubrel
 import de.kempmobil.ktor.mqtt.util.Logger
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 public class InMemoryPacketStore(private val clock: Clock = Clock.System) : PacketStore {
 
