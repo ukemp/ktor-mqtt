@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
-@Ignore
+//@Ignore
 class MosquittoTest {
 
     private val mosquitto = "test.mosquitto.org"
@@ -41,15 +41,16 @@ class MosquittoTest {
         val result = client.connect()
         assertTrue(result.isSuccess)
 
-        val qos = client.publish(PublishRequest("test/topic") {
+        val response = client.publish(PublishRequest("test/topic") {
             payload("This is a test publish packet")
             desiredQoS = QoS.EXACTLY_ONE
             userProperties {
                 "user" to "property"
             }
         })
-        assertTrue(qos.isSuccess)
-        assertEquals(QoS.EXACTLY_ONE, qos.getOrThrow())
+        assertTrue(response.isSuccess)
+        assertIs<ExactlyOnePublishResponse>(response.getOrThrow())
+        assertEquals(0, response.getOrThrow().reason.code)
     }
 
     @Test

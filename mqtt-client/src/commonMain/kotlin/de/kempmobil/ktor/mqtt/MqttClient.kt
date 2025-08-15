@@ -155,36 +155,49 @@ public class MqttClient internal constructor(
         })
     }
 
-    public suspend fun publish(request: PublishRequest): Result<QoS> {
+    public suspend fun publish(request: PublishRequest): Result<PublishResponse> {
         if (!engine.connected.value) {
             return Result.failure(ConnectionException("Cannot send PUBLISH packet while not connected"))
         }
 
-        return createPublish(request).map { publish ->
+        return createPublish(request).mapCatching { publish ->
 
             when (publish.qoS) {
                 QoS.AT_MOST_ONCE -> {
                     engine.send(publish)
-                    QoS.AT_MOST_ONCE
+                    AtMostOncePublishResponse(publish)
                 }
 
                 QoS.AT_LEAST_ONCE -> {
                     packetStore.store(publish)
-                    engine.send(publish)
-                    receivedPackets.first { it.isResponseFor<Puback>(publish) }
+                    val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
+                        engine.send(publish)
+                    }.getOrElse {
+                        throw HandshakeFailedException(publish)
+                    }
+
                     packetStore.acknowledge(publish)
-                    QoS.AT_LEAST_ONCE
+                    AtLeastOncePublishResponse(publish, puback)
                 }
 
                 QoS.EXACTLY_ONE -> {
                     packetStore.store(publish)
-                    engine.send(publish)
-                    receivedPackets.first { it.isResponseFor<Pubrec>(publish) }
+                    awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
+                        engine.send(publish)
+                    }.getOrElse {
+                        throw HandshakeFailedException(publish)
+                    }
+
                     val pubrel = packetStore.replace(publish)
-                    engine.send(pubrel)
-                    receivedPackets.first { it.isResponseFor<Pubcomp>(publish) }
+                    val pubcomp = awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(publish) }) {
+                        engine.send(pubrel)
+                    }.getOrElse {
+                        throw HandshakeFailedException(publish)
+                    }
                     packetStore.acknowledge(pubrel)
-                    QoS.EXACTLY_ONE
+
+                    println("----------> $pubcomp")
+                    ExactlyOnePublishResponse(publish, pubcomp)
                 }
             }
         }
