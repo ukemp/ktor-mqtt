@@ -52,7 +52,7 @@ public fun <T : MqttEngineConfig> buildConfig(
  * Mqtt client config builder
  *
  * @property dispatcher the coroutine dispatcher to use for background tasks
- * @property ackMessageTimeout the time to wait for an acknowledgment message from the server, defaults to 7 seconds
+ * @property ackMessageTimeout the time to wait for an acknowledgment/handshake messages from the server, defaults to 7 seconds
  * @property clientId the ID of this client, defaults to an empty string
  * @property keepAliveSeconds the value of keep alive in the connect message of this client, defaults to 0
  * @property username the username for authenticating this client

@@ -9,7 +9,7 @@ import de.kempmobil.ktor.mqtt.packet.Publish
  *
  * @see MqttClient.publish
  * @see AtMostOncePublishResponse
- * @sse AtLeastOncePublishResponse
+ * @see AtLeastOncePublishResponse
  * @see ExactlyOnePublishResponse
  */
 public sealed class PublishResponse() {
@@ -40,12 +40,17 @@ public sealed class PublishResponse() {
 public val PublishResponse.qoS: QoS
     get() = source.qoS
 
-
+/**
+ * The publish response for [QoS.AT_MOST_ONCE].
+ */
 public data class AtMostOncePublishResponse(public override val source: Publish) : PublishResponse() {
 
     override val reason: ReasonCode = Success
 }
 
+/**
+ * The publish response for [QoS.AT_LEAST_ONCE].
+ */
 public data class AtLeastOncePublishResponse(
     public override val source: Publish,
     public val puback: Puback
@@ -54,6 +59,9 @@ public data class AtLeastOncePublishResponse(
     override val reason: ReasonCode = puback.reason
 }
 
+/**
+ * The publish response for [QoS.EXACTLY_ONE].
+ */
 public data class ExactlyOnePublishResponse(
     public override val source: Publish,
     public val pubcomp: Pubcomp

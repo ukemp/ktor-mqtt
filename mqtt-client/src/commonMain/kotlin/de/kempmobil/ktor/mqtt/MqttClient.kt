@@ -155,6 +155,19 @@ public class MqttClient internal constructor(
         })
     }
 
+    /**
+     * Sends the specified [PublishRequest] to the server.
+     *
+     * In case the server announced a [QoS] value lower than the one requested, the QoS of the published packet will be
+     * automatically downgraded. The actual QoS can be determined from either [maxQos] or from [PublishResponse.qoS]
+     *
+     * When this method successfully returns, all handshake packets required by the actual `QoS` will be exchanged
+     * between this client and the server. When the server does not respond within
+     * [ackMessageTimeout][de.kempmobil.ktor.mqtt.MqttClientConfigBuilder.ackMessageTimeout] the result will be a
+     * failure with a [HandshakeFailedException].
+     *
+     * All returned exceptions are of type [MqttException] resp. its subtypes.
+     */
     public suspend fun publish(request: PublishRequest): Result<PublishResponse> {
         if (!engine.connected.value) {
             return Result.failure(ConnectionException("Cannot send PUBLISH packet while not connected"))
@@ -196,7 +209,6 @@ public class MqttClient internal constructor(
                     }
                     packetStore.acknowledge(pubrel)
 
-                    println("----------> $pubcomp")
                     ExactlyOnePublishResponse(publish, pubcomp)
                 }
             }
