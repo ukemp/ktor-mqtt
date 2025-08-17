@@ -43,7 +43,6 @@ kotlin {
                 implementation(libs.ktor.client.logging)
                 implementation(libs.ktor.network)
                 implementation(libs.ktor.network.tls)
-                implementation(libs.kotlinx.datetime)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.kotlinx.io)

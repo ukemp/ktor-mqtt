@@ -42,7 +42,6 @@ kotlin {
                 implementation(libs.ktor.network)
                 implementation(libs.ktor.network.tls)
                 implementation(libs.kotlinx.io)
-                implementation(libs.kotlinx.datetime)
                 implementation(libs.kotlinx.coroutines.core)
             }
         }
