@@ -256,7 +256,7 @@ class MqttClientTest {
             ackMessageTimeout = 100.milliseconds
             clientId = id ?: ""
         }
-        return MqttClient(config, connection, InMemoryPacketStore())
+        return MqttClient(config, connection, InMemorySessionStore())
     }
 
     /**

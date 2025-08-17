@@ -13,10 +13,10 @@ import kotlin.time.Duration.Companion.seconds
 public class MqttClient internal constructor(
     private val config: MqttClientConfig,
     private val engine: MqttEngine,
-    private val packetStore: PacketStore
+    private val sessionStore: SessionStore
 ) : AutoCloseable {
     public constructor(config: MqttClientConfig) :
-            this(config, config.engine, InMemoryPacketStore())
+            this(config, config.engine, InMemorySessionStore())
 
     private val _publishedPackets = MutableSharedFlow<Publish>()
 
@@ -182,32 +182,32 @@ public class MqttClient internal constructor(
                 }
 
                 QoS.AT_LEAST_ONCE -> {
-                    packetStore.store(publish)
+                    sessionStore.store(publish)
                     val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
                         engine.send(publish)
                     }.getOrElse {
                         throw HandshakeFailedException(publish)
                     }
 
-                    packetStore.acknowledge(publish)
+                    sessionStore.acknowledge(publish)
                     AtLeastOncePublishResponse(publish, puback)
                 }
 
                 QoS.EXACTLY_ONE -> {
-                    packetStore.store(publish)
+                    sessionStore.store(publish)
                     awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
                         engine.send(publish)
                     }.getOrElse {
                         throw HandshakeFailedException(publish)
                     }
 
-                    val pubrel = packetStore.replace(publish)
+                    val pubrel = sessionStore.replace(publish)
                     val pubcomp = awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(publish) }) {
                         engine.send(pubrel)
                     }.getOrElse {
                         throw HandshakeFailedException(publish)
                     }
-                    packetStore.acknowledge(pubrel)
+                    sessionStore.acknowledge(pubrel)
 
                     ExactlyOnePublishResponse(publish, pubcomp)
                 }
