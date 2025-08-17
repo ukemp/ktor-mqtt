@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
-//@Ignore
+@Ignore
 class MosquittoTest {
 
     private val mosquitto = "test.mosquitto.org"

@@ -33,6 +33,7 @@ public interface MqttClientConfig {
     public val authenticationMethod: AuthenticationMethod?
     public val authenticationData: AuthenticationData?
     public val userProperties: UserProperties
+    public val sessionStoreProvider: () -> SessionStore
 }
 
 /**
@@ -65,6 +66,7 @@ public fun <T : MqttEngineConfig> buildConfig(
  * @property requestProblemInformation use this value to indicate whether the reason string or user properties are sent in the case of failures, default: `true`
  * @property authenticationMethod currently not used
  * @property authenticationData currently not used
+ * @property sessionStoreProvider factory method for creating an instance of [SessionStore], defaults to create an [InMemorySessionStore]
  */
 @MqttDslMarker
 @Suppress("MemberVisibilityCanBePrivate")
@@ -90,6 +92,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     public var requestProblemInformation: Boolean = true
     public var authenticationMethod: String? = null
     public var authenticationData: ByteString? = null
+    public var sessionStoreProvider: () -> SessionStore = { InMemorySessionStore() }
 
     public fun connection(init: T.() -> Unit) {
         engine = engineFactory.create(init)
@@ -142,6 +145,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
             authenticationMethod = authenticationMethod?.let { AuthenticationMethod(it) },
             authenticationData = authenticationData?.let { AuthenticationData(it) },
             userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
+            sessionStoreProvider = sessionStoreProvider
         )
     }
 }
@@ -166,4 +170,5 @@ private class MqttClientConfigImpl(
     override val authenticationMethod: AuthenticationMethod? = null,
     override val authenticationData: AuthenticationData? = null,
     override val userProperties: UserProperties,
+    override val sessionStoreProvider: () -> SessionStore,
 ) : MqttClientConfig

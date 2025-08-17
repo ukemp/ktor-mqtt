@@ -15,8 +15,9 @@ public class MqttClient internal constructor(
     private val engine: MqttEngine,
     private val sessionStore: SessionStore
 ) : AutoCloseable {
+
     public constructor(config: MqttClientConfig) :
-            this(config, config.engine, InMemorySessionStore())
+            this(config, config.engine, config.sessionStoreProvider())
 
     private val _publishedPackets = MutableSharedFlow<Publish>()
 
