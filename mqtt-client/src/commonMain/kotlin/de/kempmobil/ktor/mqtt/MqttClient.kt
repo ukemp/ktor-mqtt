@@ -13,7 +13,7 @@ import kotlin.time.Duration.Companion.seconds
 public class MqttClient internal constructor(
     private val config: MqttClientConfig,
     private val engine: MqttEngine,
-    private val sessionStore: SessionStore
+    private val session: SessionStore
 ) : AutoCloseable {
 
     public constructor(config: MqttClientConfig) :
@@ -106,8 +106,12 @@ public class MqttClient internal constructor(
             .mapCatching {
                 awaitResponseOf<Connack>(PacketType.CONNACK) {
                     engine.send(createConnect())
-                }.onSuccess {
-                    inspectConnack(it)
+                }.onSuccess { connack ->
+                    inspectConnack(connack)
+                    if (connack.isSessionPresent) {
+                        resumeSession()
+                    }
+                    session.clear()
                 }.getOrElse {
                     throw it
                 }
@@ -183,32 +187,32 @@ public class MqttClient internal constructor(
                 }
 
                 QoS.AT_LEAST_ONCE -> {
-                    sessionStore.store(publish)
+                    session.store(publish)
                     val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
                         engine.send(publish)
                     }.getOrElse {
                         throw HandshakeFailedException(publish)
                     }
 
-                    sessionStore.acknowledge(publish)
+                    session.acknowledge(publish)
                     AtLeastOncePublishResponse(publish, puback)
                 }
 
                 QoS.EXACTLY_ONE -> {
-                    sessionStore.store(publish)
+                    session.store(publish)
                     awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
                         engine.send(publish)
                     }.getOrElse {
                         throw HandshakeFailedException(publish)
                     }
 
-                    val pubrel = sessionStore.replace(publish)
+                    val pubrel = session.replace(publish)
                     val pubcomp = awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(publish) }) {
                         engine.send(pubrel)
                     }.getOrElse {
                         throw HandshakeFailedException(publish)
                     }
-                    sessionStore.acknowledge(pubrel)
+                    session.acknowledge(pubrel)
 
                     ExactlyOnePublishResponse(publish, pubcomp)
                 }
@@ -357,6 +361,10 @@ public class MqttClient internal constructor(
         return connack
     }
 
+    private fun resumeSession() {
+        // TODO implement resending of messages
+    }
+
     private suspend fun handlePacketResult(result: Result<Packet>) {
         result.onSuccess { packet ->
             handlePacket(packet)
@@ -397,7 +405,10 @@ public class MqttClient internal constructor(
                                 engine.send(it)
                             }
                         } else {
-                            _publishedPackets.emit(packet)
+                            if (!session.hasIncomingPacketId(packet)) {
+                                session.rememberIncomingPacketId(packet)
+                                _publishedPackets.emit(packet)
+                            }
                             val pubrec = Pubrec.from(packet)
                             publishReceivedPackets[id] = pubrec
                             engine.send(pubrec)
@@ -409,6 +420,7 @@ public class MqttClient internal constructor(
             is Pubrel -> {
                 engine.send(Pubcomp.from(packet))
                 publishReceivedPackets.remove(packet.packetIdentifier)
+                session.releaseIncomingPacketId(packet)
             }
 
             else -> {
