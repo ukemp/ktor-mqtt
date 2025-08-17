@@ -98,7 +98,11 @@ class InMemorySessionStoreTest {
 
     @Test
     fun `unknown incoming packets are identified as such`() {
-        assertFalse(store.hasIncomingPacketId(publishPacket(packetIdentifier = 42u)))
+        val unknownPacketIdentifier = publishPacket(packetIdentifier = 42u)
+        assertFalse(store.hasIncomingPacketId(unknownPacketIdentifier))
+
+        val missingPacketIdentifier = Publish(topic = "topic".toTopic(), payload = ByteString("payload".toByteArray()))
+        assertFalse(store.hasIncomingPacketId(missingPacketIdentifier))
     }
 
     @Test
