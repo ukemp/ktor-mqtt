@@ -1,31 +1,34 @@
 package de.kempmobil.ktor.mqtt
 
+import co.touchlab.kermit.Severity
 import de.kempmobil.ktor.mqtt.packet.Publish
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.takeWhile
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.decodeToString
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.*
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
 
 class DefaultIntegrationTest : IntegrationTestBase() {
 
     private lateinit var client: MqttClient
 
+    // -----------------------------------------------------------------------------------------------------------
+    // IMPORTANT: Do not use runTest { } in the integration tests, use runBlocking { } instead to be able to check
+    //            work in multithreading!
+    // -----------------------------------------------------------------------------------------------------------
+
     @AfterTest
-    fun tearDown() = runTest {
+    fun tearDown() = runBlocking(Dispatchers.Default) {
         client.disconnect()
         client.close()
     }
 
     @Test
-    fun `connect returns NotAuthorized when using wrong credentials`() = runTest {
+    fun `connect returns NotAuthorized when using wrong credentials`() = runBlocking(Dispatchers.Default) {
         client = createClient(pwd = "invalid-password")
         val connected = client.connect()
 
@@ -34,7 +37,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `connect without credentials`() = runTest {
+    fun `connect without credentials`() = runBlocking(Dispatchers.Default) {
         client = createClient(user = null, pwd = null, port = mosquitto.defaultPortNoAuth)
         val connected = client.connect()
 
@@ -42,7 +45,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `connect with credentials`() = runTest {
+    fun `connect with credentials`() = runBlocking(Dispatchers.Default) {
         client = createClient()
         val connected = client.connect()
 
@@ -50,7 +53,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `connect via TLS with credentials`() = runTest {
+    fun `connect via TLS with credentials`() = runBlocking(Dispatchers.Default) {
         client = createClient(port = mosquitto.tlsPort)
         val connected = client.connect()
 
@@ -58,7 +61,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `allow reconnection after disconnect`() = runTest {
+    fun `allow reconnection after disconnect`() = runBlocking(Dispatchers.Default) {
         client = createClient()
         val connected1 = client.connect()
         assertTrue(connected1.isSuccess)
@@ -70,7 +73,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `allow reconnection after disconnect via TLS`() = runTest {
+    fun `allow reconnection after disconnect via TLS`() = runBlocking(Dispatchers.Default) {
         client = createClient(port = mosquitto.tlsPort)
         val connected1 = client.connect()
         assertTrue(connected1.isSuccess)
@@ -82,7 +85,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `fail when connecting on non TLS port via TLS`() = runTest {
+    fun `fail when connecting on non TLS port via TLS`() = runBlocking(Dispatchers.Default) {
         client = MqttClient(mosquitto.host, mosquitto.defaultPort) {
             connection {
                 tls {
@@ -97,7 +100,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `fail when connecting on TLS port without TLS configuration`() = runTest {
+    fun `fail when connecting on TLS port without TLS configuration`() = runBlocking(Dispatchers.Default) {
         client = MqttClient(mosquitto.host, mosquitto.tlsPort) {
             ackMessageTimeout = 500.milliseconds
         }
@@ -108,7 +111,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `send publish request with QoS 0`() = runTest {
+    fun `send publish request with QoS 0`() = runBlocking(Dispatchers.Default) {
         val id = "publisher-test-0"
         client = createClient(id = id)
         client.connect()
@@ -123,22 +126,26 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `send publish request with QoS 1`() = runTest {
+    fun `send publish request with QoS 1`() = runBlocking(Dispatchers.Default) {
         val id = "publisher-test-1"
         client = createClient(id = id)
         client.connect()
 
+        println("Before publishing")
         val qos = client.publish(simplePublishRequest("test/topic/1", QoS.AT_LEAST_ONCE))
+        println("After publishing")
         assertTrue(qos.isSuccess)
 
         client.disconnect()
 
+        println("Before logs")
         val logs = mosquitto.logs
+        println("After logs")
         assertContains(logs, "Received PUBLISH from $id")
     }
 
     @Test
-    fun `send publish request with QoS 2`() = runTest {
+    fun `send publish request with QoS 2`() = runBlocking(Dispatchers.Default) {
         val id = "publisher-test-2"
         client = createClient(id = id)
         client.connect()
@@ -154,7 +161,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `can subscribe to topics with different QoS values`() = runTest {
+    fun `can subscribe to topics with different QoS values`() = runBlocking(Dispatchers.Default) {
         client = createClient()
         client.connect()
         val result = client.subscribe(buildFilterList {
@@ -168,7 +175,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `receive message with QoS 0`() = runTest {
+    fun `receive single message with QoS 0`() = runBlocking(Dispatchers.Default) {
         val topic = "test/topic/0"
         val id = "client-under-test"
         val payload = "text-payload-at-most-once"
@@ -193,7 +200,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `receive message with QoS 1`() = runTest {
+    fun `receive single message with QoS 1`() = runBlocking(Dispatchers.Default) {
         val topic = "test/topic/1"
         val id = "client-under-test"
         val payload = "text-payload-at-least-once"
@@ -212,6 +219,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
 
         mosquitto.publish(topic, "1", payload)
         receiverJob.join()
+        delay(100.milliseconds)
 
         assertNotNull(receivedMessage)
         assertEquals(payload, receivedMessage!!.payload.decodeToString())
@@ -222,7 +230,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `receive message with QoS 2`() = runTest {
+    fun `receive single message with QoS 2`() = runBlocking(Dispatchers.Default) {
         val topic = "test/topic/2"
         val id = "client-under-test"
         val payload = "text-payload-exactly-one"
@@ -230,7 +238,7 @@ class DefaultIntegrationTest : IntegrationTestBase() {
 
         client = createClient(id = id)
         assertTrue(client.connect().isSuccess)
-        val receiverJob = CoroutineScope(Dispatchers.Default).launch {
+        val receiverJob = launch {
             receivedMessage = client.publishedPackets.first()
         }
 
@@ -241,9 +249,10 @@ class DefaultIntegrationTest : IntegrationTestBase() {
 
         mosquitto.publish(topic, "2", payload)
         receiverJob.join()
+        delay(100.milliseconds)
 
         assertNotNull(receivedMessage)
-        assertEquals(payload, receivedMessage!!.payload.decodeToString())
+        assertEquals(payload, receivedMessage.payload.decodeToString())
         assertTrue(
             mosquitto.logs.contains("Received PUBCOMP from $id"),
             "Server should have received a PUBCOMP message"
@@ -251,17 +260,17 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `can receive 1000 messages with QoS 2`() = runTest(timeout = 2.seconds) {
+    fun `receive 1000 messages with QoS 2`() = runBlocking(Dispatchers.Default) {
         val messages = 1000
 
         val duration = measureTime {
-            val topic = "test/performance/2"
+            val topic = "test/subscribe/qos2"
             var count = 0
 
-            client = createClient()
+            client = createClient(id = "qos2-subscriber")
             assertTrue(client.connect().isSuccess)
 
-            val counterJob = backgroundScope.launch {
+            val counterJob = launch {
                 client.publishedPackets.takeWhile {
                     ++count < messages
                 }.collect()
@@ -280,6 +289,32 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         println("Collected $messages message in just $duration")
     }
 
+    @Test
+    fun `publish 1000 messages with QoS 2`() = runBlocking(Dispatchers.Default) {
+        val messages = 1000
+        client = createClient(id = "qos2-publisher")
+        assertTrue(client.connect().isSuccess)
+        val finishedCounter = AtomicInteger(0)
+
+        coroutineScope {
+            repeat(messages) { i ->
+                launch {
+                    val result = client.publish(PublishRequest("/test/publish/qos2") {
+                        desiredQoS = QoS.EXACTLY_ONE
+                        payload("payload-$i")
+                    })
+
+                    assertTrue(result.isSuccess, "Publish #$i failed: $result")
+                    assertEquals(QoS.EXACTLY_ONE, result.getOrThrow().qoS)
+                    finishedCounter.incrementAndGet()
+                }
+            }
+        }
+
+        assertEquals(messages, finishedCounter.get(), "Not all publish operations completed.")
+    }
+
+
     private fun createClient(
         user: String? = MosquittoContainer.USER,
         pwd: String? = MosquittoContainer.PASSWORD,
@@ -297,6 +332,9 @@ class DefaultIntegrationTest : IntegrationTestBase() {
             username = user
             password = pwd
             clientId = id
+            logging {
+                minSeverity = Severity.Info
+            }
         }
     }
 

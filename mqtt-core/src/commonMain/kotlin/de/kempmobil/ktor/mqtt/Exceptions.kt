@@ -22,5 +22,5 @@ public class TopicAliasException(message: String?) :
  * source packet. This exception is never raised when publishing [QoS.AT_MOST_ONCE] packets. The failed packets will
  * be retransmitted upon reconnection to the server.
  */
-public class HandshakeFailedException(source: Publish) :
-    MqttException("Error exchanging handshake packets for: $source")
+public class HandshakeFailedException(message: String, public val source: Publish) :
+    MqttException(message)

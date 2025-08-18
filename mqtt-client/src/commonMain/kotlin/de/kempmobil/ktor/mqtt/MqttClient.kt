@@ -74,7 +74,11 @@ public class MqttClient internal constructor(
 
     private val scope = CoroutineScope(config.dispatcher)
 
-    private val receivedPackets = MutableSharedFlow<Packet>()
+    // A replay cache is crucial here to prevent a race condition where a response packet arrives
+    // before the corresponding `awaitResponseOf` call is able to subscribe to the flow. Without a
+    // replay cache, such a packet would be lost. A capacity of 16 is chosen to safely handle
+    // bursts of responses from concurrent requests.
+    private val receivedPackets = MutableSharedFlow<Packet>(replay = 16)
 
     private var packetIdentifier: UShort = 0u
     private val packetIdentifierMutex = Mutex()
@@ -83,6 +87,8 @@ public class MqttClient internal constructor(
 
     private val isCleanStart: Boolean
         get() = true // TODO
+
+    private val sessionMutex = Mutex()
 
     init {
         scope.launch {
@@ -179,7 +185,6 @@ public class MqttClient internal constructor(
         }
 
         return createPublish(request).mapCatching { publish ->
-
             when (publish.qoS) {
                 QoS.AT_MOST_ONCE -> {
                     engine.send(publish)
@@ -187,34 +192,38 @@ public class MqttClient internal constructor(
                 }
 
                 QoS.AT_LEAST_ONCE -> {
-                    session.store(publish)
-                    val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
-                        engine.send(publish)
-                    }.getOrElse {
-                        throw HandshakeFailedException(publish)
-                    }
+                    sessionMutex.withLock {
+                        session.store(publish)
+                        val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
+                            engine.send(publish)
+                        }.getOrElse {
+                            throw HandshakeFailedException("Did not receive PUBACK for $publish", publish)
+                        }
 
-                    session.acknowledge(publish)
-                    AtLeastOncePublishResponse(publish, puback)
+                        session.acknowledge(publish)
+                        AtLeastOncePublishResponse(publish, puback)
+                    }
                 }
 
                 QoS.EXACTLY_ONE -> {
-                    session.store(publish)
-                    awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
-                        engine.send(publish)
-                    }.getOrElse {
-                        throw HandshakeFailedException(publish)
-                    }
+                    sessionMutex.withLock {
+                        session.store(publish)
+                        awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
+                            engine.send(publish)
+                        }.getOrElse {
+                            throw HandshakeFailedException("Did not receive PUBREC for $publish", publish)
+                        }
 
-                    val pubrel = session.replace(publish)
-                    val pubcomp = awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(publish) }) {
-                        engine.send(pubrel)
-                    }.getOrElse {
-                        throw HandshakeFailedException(publish)
-                    }
-                    session.acknowledge(pubrel)
+                        val pubrel = session.replace(publish)
+                        val pubcomp = awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(publish) }) {
+                            engine.send(pubrel)
+                        }.getOrElse {
+                            throw HandshakeFailedException("Did not receive PUBCOMP for $publish", publish)
+                        }
+                        session.acknowledge(pubrel)
 
-                    ExactlyOnePublishResponse(publish, pubcomp)
+                        ExactlyOnePublishResponse(publish, pubcomp)
+                    }
                 }
             }
         }
@@ -444,7 +453,10 @@ public class MqttClient internal constructor(
                 Result.failure(TimeoutException("Didn't receive requested packet within ${config.ackMessageTimeout}"))
             }
         }
-        request().onFailure { return Result.failure(it) }
+        request().onFailure {
+            waitForResponse.cancel()
+            return Result.failure(it)
+        }
 
         return waitForResponse.await()
     }
@@ -460,6 +472,8 @@ public class MqttClient internal constructor(
                 packetIdentifier = 1u
             }
             packetIdentifier
+        }.also {
+            Logger.v { "Next packet identifier: $it" }
         }
     }
 }
