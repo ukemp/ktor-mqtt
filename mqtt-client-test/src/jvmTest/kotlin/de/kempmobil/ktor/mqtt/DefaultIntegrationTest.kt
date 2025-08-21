@@ -290,6 +290,32 @@ class DefaultIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `publish 1000 messages with QoS 1`() = runBlocking(Dispatchers.Default) {
+        val messages = 1000
+        client = createClient(id = "qos1-publisher")
+        assertTrue(client.connect().isSuccess)
+        val finishedCounter = AtomicInteger(0)
+
+        coroutineScope {
+            repeat(messages) { i ->
+                launch {
+                    val result = client.publish(PublishRequest("/test/publish/qos1") {
+                        desiredQoS = QoS.AT_LEAST_ONCE
+                        payload("payload-$i")
+                    })
+
+                    assertTrue(result.isSuccess, "Publish #$i failed: $result")
+                    assertEquals(QoS.AT_LEAST_ONCE, result.getOrThrow().qoS)
+                    finishedCounter.incrementAndGet()
+                }
+                if (i % 2 == 0) delay(1)  // Give some time to process handshake messages in between
+            }
+        }
+
+        assertEquals(messages, finishedCounter.get(), "Not all publish operations completed.")
+    }
+
+    @Test
     fun `publish 1000 messages with QoS 2`() = runBlocking(Dispatchers.Default) {
         val messages = 1000
         client = createClient(id = "qos2-publisher")
@@ -315,6 +341,32 @@ class DefaultIntegrationTest : IntegrationTestBase() {
         assertEquals(messages, finishedCounter.get(), "Not all publish operations completed.")
     }
 
+    @Test
+    fun `publish 1000 messages with any QoS`() = runBlocking(Dispatchers.Default) {
+        val messages = 1000
+        client = createClient(id = "qos-publisher")
+        assertTrue(client.connect().isSuccess)
+        val finishedCounter = AtomicInteger(0)
+
+        coroutineScope {
+            repeat(messages) { i ->
+                launch {
+                    val qoS = QoS.entries.toTypedArray().random()
+                    val result = client.publish(PublishRequest("/test/publish/qos") {
+                        desiredQoS = qoS
+                        payload("payload-$i")
+                    })
+
+                    assertTrue(result.isSuccess, "Publish #$i failed: $result")
+                    assertEquals(qoS, result.getOrThrow().qoS)
+                    finishedCounter.incrementAndGet()
+                }
+                if (i % 2 == 0) delay(1)  // Give some time to process handshake messages in between
+            }
+        }
+
+        assertEquals(messages, finishedCounter.get(), "Not all publish operations completed.")
+    }
 
     private fun createClient(
         user: String? = MosquittoContainer.USER,

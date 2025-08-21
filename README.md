@@ -56,7 +56,7 @@ client.publish(PublishRequest("topics/test") {
 When the `publish()` method returns successfully, all acknowledgement messages required for the QoS level
 used, will be transmitted between the server and the client. Note that the `desiredQoS` might be
 automatically downgraded, in case the server sent a lower max. QoS in its CONNACK message. The QoS that
-was actually used is the return value of this method.
+was actually used, can be gathered from the returned `PublishResponse`.
 
 `PublishRequest` is a data class, hence you can reuse it, if you just want to change some properties:
 
