@@ -1,6 +1,5 @@
 package de.kempmobil.ktor.mqtt
 
-import de.kempmobil.ktor.mqtt.packet.Packet
 import de.kempmobil.ktor.mqtt.packet.Publish
 import de.kempmobil.ktor.mqtt.packet.Pubrel
 
@@ -18,39 +17,42 @@ public interface SessionStore {
 
     /**
      * Stores an outgoing PUBLISH packet that requires an acknowledgement (QoS 1 or QoS 2).
-     * This packet will be considered "in-flight".
      *
-     * @param publish The PUBLISH packet to store. Must have a non-null packet identifier.
+     * This method must be thread safe.
+     *
+     * @param packet The PUBLISH packet to store. Must have a non-null packet identifier.
+     * @return an in-flight packet with the current time as timestamp and the original packet.
      * @throws IllegalArgumentException if the packet identifier is null.
      */
-    public fun store(publish: Publish)
+    public fun store(source: Publish): InFlightPublish
 
     /**
-     * Replaces a stored outgoing PUBLISH packet with a PUBREL packet. This is part of the QoS 2 flow, occurring after
-     * a PUBREC is received from the server. The new PUBREL packet will be considered "in-flight".
+     * Replaces a stored outgoing in-flight PUBLISH packet with an in-flight PUBREL packet. This is part of the QoS 2
+     * flow, occurring after a PUBREC is received from the server.
      *
-     * @param publish The original PUBLISH packet that is being replaced. Must have a non-null packet identifier.
-     * @return The created PUBREL packet, which should now be sent to the server.
-     * @throws IllegalArgumentException if the packet identifier is null.
+     * This method must be thread safe.
+     *
+     * @param source The original in-flight PUBLISH packet that is being replaced.
+     * @return The created PUBREL in-flight packet
      * @throws NoSuchElementException if no corresponding PUBLISH packet is found in the store.
      */
-    public fun replace(publish: Publish): Pubrel
+    public fun replace(source: InFlightPublish): InFlightPubrel
 
     /**
-     * Removes an outgoing PUBLISH packet from the store. This is called when a corresponding PUBACK (for QoS 1) is
-     * received from the server.
+     * Removes an outgoing in-flight PUBLISH or PUBREL packet from the store.
      *
-     * @param publish The PUBLISH packet that has been acknowledged.
+     * This method must be thread safe.
+     *
+     * @param packet The packet that has been acknowledged.
      */
-    public fun acknowledge(publish: Publish)
+    public fun acknowledge(packet: InFlightPacket)
 
     /**
-     * Removes an outgoing PUBREL packet from the store. This is called when a corresponding PUBCOMP (for QoS 2) is
-     * received from the server.
-     *
-     * @param pubrel The PUBREL packet that has been acknowledged.
+     * Returns the list of all unacknowledged packet of this packet store (PUBLISH and PUBREL). The list must be sorted
+     * in the same order as the packets were added to this, and it must not include PUBLISH packets which are expired
+     * due to their message expiry interval.
      */
-    public fun acknowledge(pubrel: Pubrel)
+    public fun unacknowledgedPackets(): List<InFlightPacket>
 
     // ---- Incoming Message Flow (Server -> Client) ----
 
@@ -79,12 +81,6 @@ public interface SessionStore {
      * @param pubrel the PUBREL packet that has been acknowledged.
      */
     public fun releaseIncomingPacketId(pubrel: Pubrel)
-
-    /**
-     * Returns the list of all unacknowledged packet of this packet store (PUBLISH and PUBREL). The list must be sorted
-     * in the same order as the packets were added to this.
-     */
-    public fun unacknowledgedPackets(): List<Packet>
 
     /**
      * Clears all persisted session state. This should be called when the client connects with `cleanStart = true`.

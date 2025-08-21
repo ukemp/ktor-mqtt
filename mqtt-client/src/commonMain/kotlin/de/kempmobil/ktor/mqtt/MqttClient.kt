@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
 public class MqttClient internal constructor(
@@ -88,8 +89,6 @@ public class MqttClient internal constructor(
     private val isCleanStart: Boolean
         get() = true // TODO
 
-    private val sessionMutex = Mutex()
-
     init {
         scope.launch {
             engine.packetResults.collect { result ->
@@ -114,10 +113,14 @@ public class MqttClient internal constructor(
                     engine.send(createConnect())
                 }.onSuccess { connack ->
                     inspectConnack(connack)
+
+                    // From MQTT spec 3.1.2.11.2: "The Client can avoid implementing its own Session expiry and instead
+                    // rely on the Session Present flag returned from the Server to determine if the Session had expired."
                     if (connack.isSessionPresent) {
                         resumeSession()
+                    } else {
+                        session.clear()
                     }
-                    session.clear()
                 }.getOrElse {
                     throw it
                 }
@@ -186,51 +189,19 @@ public class MqttClient internal constructor(
 
         return createPublish(request).mapCatching { publish ->
             when (publish.qoS) {
-                QoS.AT_MOST_ONCE -> {
-                    engine.send(publish)
-                    AtMostOncePublishResponse(publish)
-                }
-
-                QoS.AT_LEAST_ONCE -> {
-                    sessionMutex.withLock {
-                        session.store(publish)
-                        val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
-                            engine.send(publish)
-                        }.getOrElse {
-                            throw HandshakeFailedException("Did not receive PUBACK for $publish", publish)
-                        }
-
-                        session.acknowledge(publish)
-                        AtLeastOncePublishResponse(publish, puback)
-                    }
-                }
-
-                QoS.EXACTLY_ONE -> {
-                    sessionMutex.withLock {
-                        session.store(publish)
-                        awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
-                            engine.send(publish)
-                        }.getOrElse {
-                            throw HandshakeFailedException("Did not receive PUBREC for $publish", publish)
-                        }
-
-                        val pubrel = session.replace(publish)
-                        val pubcomp = awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(publish) }) {
-                            engine.send(pubrel)
-                        }.getOrElse {
-                            throw HandshakeFailedException("Did not receive PUBCOMP for $publish", publish)
-                        }
-                        session.acknowledge(pubrel)
-
-                        ExactlyOnePublishResponse(publish, pubcomp)
-                    }
-                }
+                QoS.AT_MOST_ONCE -> sendAtMostOnceMessage(publish)
+                QoS.AT_LEAST_ONCE -> sendAtLeastOnceMessage(session.store(publish))
+                QoS.EXACTLY_ONE -> sendExactlyOnceMessage(session.store(publish))
             }
         }
     }
 
-    public suspend fun disconnect(reasonCode: ReasonCode = NormalDisconnection, reason: String? = null) {
-        engine.send(createDisconnect(reasonCode, reason))
+    public suspend fun disconnect(
+        reasonCode: ReasonCode = NormalDisconnection,
+        reason: String? = null,
+        sessionExpiryInterval: SessionExpiryInterval? = config.sessionExpiryInterval
+    ) {
+        engine.send(createDisconnect(reasonCode, reason, sessionExpiryInterval))
         engine.disconnect()
     }
 
@@ -313,10 +284,59 @@ public class MqttClient internal constructor(
         }
     }
 
-    private fun createDisconnect(reasonCode: ReasonCode, reason: String?): Disconnect {
+    private suspend fun sendAtMostOnceMessage(publish: Publish): PublishResponse {
+        engine.send(publish)
+        return AtMostOncePublishResponse(publish)
+    }
+
+    private suspend fun sendAtLeastOnceMessage(inFlight: InFlightPublish): PublishResponse {
+        val publish = inFlight.source
+
+        val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
+            engine.send(publish)
+        }.getOrElse {
+            throw HandshakeFailedException("Did not receive PUBACK for $publish", publish)
+        }
+
+        session.acknowledge(inFlight)
+        return AtLeastOncePublishResponse(publish, puback)
+    }
+
+    private suspend fun sendExactlyOnceMessage(inFlight: InFlightPublish): PublishResponse {
+        val publish = inFlight.source
+
+        awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
+            engine.send(publish)
+        }.getOrElse {
+            throw HandshakeFailedException("Did not receive PUBREC for $publish", publish)
+        }
+
+        val pubrel = session.replace(inFlight)
+        val pubcomp = sendPubrel(pubrel.source)
+        return if (pubcomp != null) {
+            session.acknowledge(pubrel)
+            ExactlyOnePublishResponse(publish, pubcomp)
+        } else {
+            throw HandshakeFailedException("Did not receive PUBCOMP for $publish", publish)
+        }
+    }
+
+    private suspend fun sendPubrel(pubrel: Pubrel): Pubcomp? {
+        return awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(pubrel) }) {
+            engine.send(pubrel)
+        }.getOrElse {
+            null
+        }
+    }
+
+    private fun createDisconnect(
+        reasonCode: ReasonCode,
+        reason: String?,
+        sessionExpiryInterval: SessionExpiryInterval?
+    ): Disconnect {
         return Disconnect(
             reason = reasonCode,
-            sessionExpiryInterval = config.sessionExpiryInterval,
+            sessionExpiryInterval = sessionExpiryInterval,
             reasonString = reason.toReasonString()
         )
     }
@@ -370,8 +390,32 @@ public class MqttClient internal constructor(
         return connack
     }
 
-    private fun resumeSession() {
-        // TODO implement resending of messages
+    @OptIn(ExperimentalTime::class)
+    private suspend fun resumeSession() {
+        session.unacknowledgedPackets().forEach { packet ->
+            try {
+                when (packet) {
+                    is InFlightPublish -> {
+                        when (packet.source.qoS) {
+                            QoS.AT_MOST_ONCE -> Logger.e { "Unexpected packet in session store: $packet" }
+                            QoS.AT_LEAST_ONCE -> sendAtLeastOnceMessage(packet)
+                            QoS.EXACTLY_ONE -> sendExactlyOnceMessage(packet)
+                        }
+                    }
+
+                    is InFlightPubrel -> {
+                        sendPubrel(packet.source)?.also {
+                            session.acknowledge(packet)
+                        }
+                    }
+                }
+            } catch (ex: HandshakeFailedException) {
+                Logger.w(ex) { "Error resuming session, will try next time: $packet" }
+            } catch (ex: Exception) {
+                Logger.e(ex) { "Error resuming session, re-trying next time" }
+                return
+            }
+        }
     }
 
     private suspend fun handlePacketResult(result: Result<Packet>) {

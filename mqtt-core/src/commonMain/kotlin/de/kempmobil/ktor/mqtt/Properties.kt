@@ -5,6 +5,8 @@ import io.ktor.network.sockets.*
 import kotlinx.io.*
 import kotlinx.io.bytestring.ByteString
 import kotlin.jvm.JvmInline
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Represents the MQTT property as defined in chapter 2.2.2 of the MQTT specification.
@@ -176,6 +178,14 @@ public value class MessageExpiryInterval(override val value: UInt) : WritablePro
     }
 }
 
+public fun MessageExpiryInterval.toDuration(): Duration {
+    return value.toInt().seconds
+}
+
+public fun Duration.toMessageExpiryInterval(): MessageExpiryInterval {
+    return MessageExpiryInterval(inWholeSeconds.toUInt())
+}
+
 /**
  * Value class representing the **Content Type** property as defined in the MQTT specification.
  */
@@ -293,6 +303,14 @@ public value class SessionExpiryInterval(override val value: UInt) : WritablePro
     override fun toString(): String {
         return value.toString()
     }
+}
+
+public fun SessionExpiryInterval.toDuration(): Duration {
+    return value.toInt().seconds
+}
+
+public fun Duration.toSessionExpiryInterval(): SessionExpiryInterval {
+    return SessionExpiryInterval(inWholeSeconds.toUInt())
 }
 
 /**
@@ -427,6 +445,14 @@ public value class WillDelayInterval(override val value: UInt) : WritablePropert
     override fun toString(): String {
         return value.toString()
     }
+}
+
+public fun WillDelayInterval.toDuration(): Duration {
+    return value.toInt().seconds
+}
+
+public fun Duration.toWillDelayInterval(): WillDelayInterval {
+    return WillDelayInterval(inWholeSeconds.toUInt())
 }
 
 /**

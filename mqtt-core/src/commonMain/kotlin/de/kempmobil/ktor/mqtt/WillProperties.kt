@@ -70,9 +70,9 @@ public class WillPropertiesBuilder(
 
     public fun build(): WillProperties {
         return WillProperties(
-            willDelayInterval = WillDelayInterval(willDelayInterval.inWholeSeconds.toUInt()),
+            willDelayInterval = willDelayInterval.toWillDelayInterval(),
             payloadFormatIndicator = payloadFormatIndicator,
-            messageExpiryInterval = messageExpiryInterval?.let { MessageExpiryInterval(it.inWholeSeconds.toUInt()) },
+            messageExpiryInterval = messageExpiryInterval?.toMessageExpiryInterval(),
             contentType = contentType?.let { ContentType(it) },
             responseTopic = responseTopic?.let { ResponseTopic(it) },
             correlationData = correlationData?.let { CorrelationData(it) },

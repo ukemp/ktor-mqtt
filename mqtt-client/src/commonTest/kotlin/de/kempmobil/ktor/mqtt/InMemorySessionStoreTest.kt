@@ -6,10 +6,15 @@ import de.kempmobil.ktor.mqtt.util.toTopic
 import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
 import kotlin.test.*
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class InMemorySessionStoreTest {
 
     private lateinit var store: SessionStore
+
+    private val clock = Clock.System
 
     @BeforeTest
     fun setup() {
@@ -24,23 +29,15 @@ class InMemorySessionStoreTest {
     }
 
     @Test
-    fun `cannot replace PUBLISH packet without session identifier`() {
-        val publish = Publish(topic = "topic".toTopic(), payload = ByteString("payload".toByteArray()))
-
-        assertFailsWith<IllegalArgumentException> { store.replace(publish) }
-    }
-
-    @Test
     fun `throw NoSuchElementException when replacing unknown PUBLISH packet`() {
-        assertFailsWith<NoSuchElementException> { store.replace(publishPacket()) }
+        val inFlight = InFlightPublish(publishPacket(), clock.now(), 42)
+        assertFailsWith<NoSuchElementException> { store.replace(inFlight) }
     }
 
     @Test
     fun `replace an existing PUBLISH packet with a PUBREL packet`() {
-        val publish = publishPacket(42u)
-
-        store.store(publish)
-        val pubrel = store.replace(publish)
+        val inFlight = store.store(publishPacket(packetIdentifier = 42u))
+        val pubrel = store.replace(inFlight)
 
         assertEquals(42u, pubrel.packetIdentifier)
     }
@@ -49,8 +46,8 @@ class InMemorySessionStoreTest {
     fun `acknowledged PUBLISH packets are removed from the store`() {
         val publish = publishPacket()
 
-        store.store(publish)
-        store.acknowledge(publish)
+        val inFlight = store.store(publish)
+        store.acknowledge(inFlight)
 
         assertEquals(emptyList(), store.unacknowledgedPackets())
     }
@@ -59,8 +56,8 @@ class InMemorySessionStoreTest {
     fun `acknowledged PUBREL packets are removed from the store`() {
         val publish = publishPacket()
 
-        store.store(publish)
-        val pubrel = store.replace(publish)
+        val inFlight = store.store(publish)
+        val pubrel = store.replace(inFlight)
         store.acknowledge(pubrel)
 
         assertEquals(emptyList(), store.unacknowledgedPackets())
@@ -74,7 +71,7 @@ class InMemorySessionStoreTest {
             store.store(publishPacket(it))
         }
 
-        val unacknowledged: List<UShort> = store.unacknowledgedPackets().map { (it as Publish).packetIdentifier!! }
+        val unacknowledged: List<UShort> = store.unacknowledgedPackets().map { it.packetIdentifier }
         assertEquals(identifiers, unacknowledged)
     }
 
