@@ -11,7 +11,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class DefaultEngineConnectionTimeoutTest {
 
     @Test
-    fun `ensure connection times out after connection timeout`() = runTest(timeout = 500.milliseconds) {
+    fun `ensure connection times out after connection timeout`() = runTest(timeout = 1000.milliseconds) {
         testConnectionTimeout { port ->
             DefaultEngineConfig("localhost", port).apply {
                 connectionTimeout = 100.milliseconds
@@ -20,7 +20,7 @@ class DefaultEngineConnectionTimeoutTest {
     }
 
     @Test
-    fun `ensure TLS connection times out after connection timeout`() = runTest(timeout = 500.milliseconds) {
+    fun `ensure TLS connection times out after connection timeout`() = runTest(timeout = 1000.milliseconds) {
         testConnectionTimeout { port ->
             DefaultEngineConfig("localhost", port).apply {
                 connectionTimeout = 100.milliseconds

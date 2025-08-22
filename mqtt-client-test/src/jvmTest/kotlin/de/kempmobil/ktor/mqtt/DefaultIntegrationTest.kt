@@ -308,7 +308,6 @@ class DefaultIntegrationTest : IntegrationTestBase() {
                     assertEquals(QoS.AT_LEAST_ONCE, result.getOrThrow().qoS)
                     finishedCounter.incrementAndGet()
                 }
-                if (i % 2 == 0) delay(1)  // Give some time to process handshake messages in between
             }
         }
 
@@ -361,7 +360,6 @@ class DefaultIntegrationTest : IntegrationTestBase() {
                     assertEquals(qoS, result.getOrThrow().qoS)
                     finishedCounter.incrementAndGet()
                 }
-                if (i % 2 == 0) delay(1)  // Give some time to process handshake messages in between
             }
         }
 
