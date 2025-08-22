@@ -285,7 +285,7 @@ public class MqttClient internal constructor(
     }
 
     private suspend fun sendAtMostOnceMessage(publish: Publish): PublishResponse {
-        engine.send(publish)
+        engine.send(publish).onFailure { throw it }
         return AtMostOncePublishResponse(publish)
     }
 
@@ -295,7 +295,7 @@ public class MqttClient internal constructor(
         val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
             engine.send(publish)
         }.getOrElse {
-            throw HandshakeFailedException("Did not receive PUBACK for $publish", publish)
+            it.throwHandshakeExceptionForTimeout("PUBACK", publish)
         }
 
         session.acknowledge(inFlight)
@@ -308,17 +308,18 @@ public class MqttClient internal constructor(
         awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
             engine.send(publish)
         }.getOrElse {
-            throw HandshakeFailedException("Did not receive PUBREC for $publish", publish)
+            it.throwHandshakeExceptionForTimeout("PUBREC", publish)
         }
 
         val pubrel = session.replace(inFlight)
-        val pubcomp = sendPubrel(pubrel.source)
-        return if (pubcomp != null) {
-            session.acknowledge(pubrel)
-            ExactlyOnePublishResponse(publish, pubcomp)
-        } else {
-            throw HandshakeFailedException("Did not receive PUBCOMP for $publish", publish)
+        val pubcomp = awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(pubrel.source) }) {
+            engine.send(pubrel.source)
+        }.getOrElse {
+            it.throwHandshakeExceptionForTimeout("PUBCOMP", publish)
         }
+
+        session.acknowledge(pubrel)
+        return ExactlyOnePublishResponse(publish, pubcomp)
     }
 
     private suspend fun sendPubrel(pubrel: Pubrel): Pubcomp? {
@@ -326,6 +327,14 @@ public class MqttClient internal constructor(
             engine.send(pubrel)
         }.getOrElse {
             null
+        }
+    }
+
+    private fun Throwable.throwHandshakeExceptionForTimeout(expected: String, publish: Publish): Nothing {
+        if (this is TimeoutException) {
+            throw HandshakeFailedException("Did not receive $expected for $publish", publish)
+        } else {
+            throw this
         }
     }
 
