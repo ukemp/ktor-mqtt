@@ -87,7 +87,7 @@ public class MqttClient internal constructor(
     private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
 
     private val isCleanStart: Boolean
-        get() = true // TODO
+        get() = session.unacknowledgedPackets().isNotEmpty()
 
     init {
         scope.launch {

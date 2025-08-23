@@ -42,6 +42,7 @@ class MqttClientTest {
 
         session = mock {
             every { clear() } returns Unit
+            every { unacknowledgedPackets() } returns emptyList()
         }
     }
 
