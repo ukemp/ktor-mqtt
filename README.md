@@ -125,8 +125,8 @@ Add the library to dependencies:
 
 ```kotlin
 dependencies {
-  implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.6.3")
-  implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.6.3")
+    implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.7.0")
+    implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.7.0")
 }
 ```
 
@@ -137,8 +137,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-              implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.6.3")
-              implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.6.3")
+                implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.7.0")
+                implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.7.0")
             }
         }
     }
@@ -148,7 +148,9 @@ kotlin {
 ### Android
 
 Ktor and this library are based on [`kotlinx-io`](https://github.com/Kotlin/kotlinx-io/), which is
-available for Android 5.0+ (API level 21+).
+available for Android 5.0+ (API level 21+),
+see [Android](https://github.com/Kotlin/kotlinx-io?tab=readme-ov-file#android)
+in `kotlinx-io`.
 
 ## Using Web Sockets
 
@@ -157,8 +159,8 @@ and **at least one Ktor Http client library**, for example `CIO`:
 
 ```kotlin
 dependencies {
-  implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.6.3")
-  implementation("io.ktor:ktor-client-cio:3.1.3")
+  implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.7.0")
+  implementation("io.ktor:ktor-client-cio:3.2.3")
 }
 ```
 
