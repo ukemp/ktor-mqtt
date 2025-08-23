@@ -60,10 +60,10 @@ public class PublishRequestBuilder(
 
     /**
      * Defines the lifetime of the Application Message. Using `null` means that the message expires when the session
-     * expires. The default value is 1 minute, meaning that if a message of QoS 1 or 2 was not acknowledged within 1
-     * minute, it will not be resented on session restart. For messages of QoS 0 this has no meaning.
+     * expires. The default value is 5 minutes, meaning that if a message of QoS 1 or 2 was not acknowledged within 5
+     * minutes, it will not be resented on session restart. For messages of QoS 0 this has no meaning.
      */
-    public var messageExpiryInterval: Duration? = 1.minutes
+    public var messageExpiryInterval: Duration? = 5.minutes
 
     /**
      * Used as the Topic Name for a response message.
