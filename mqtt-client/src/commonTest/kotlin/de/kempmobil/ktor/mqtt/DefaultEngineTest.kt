@@ -9,7 +9,7 @@ import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -124,9 +124,9 @@ class DefaultEngineTest {
 
     @Test
     fun `when sending a packet it is received by server`() = runTest {
-        val serverPackets = MutableSharedFlow<Packet>(replay = 1)
+        val serverPackets = Channel<Packet>()
         stopServerJob = startServer(reader = {
-            serverPackets.emit(readPacket())
+            serverPackets.send(readPacket())
         })
 
         val expected = Publish(topic = "test-topic".toTopic(), payload = "1234567890".encodeToByteString())
@@ -134,24 +134,22 @@ class DefaultEngineTest {
             engine.start()
             engine.send(expected)
 
-            val actual = serverPackets.first()
+            val actual = serverPackets.receive()
             assertEquals(expected, actual)
         }
     }
 
     @Test
     fun `when the server sends a packet the received packets are updated`() = runTest {
-        val serverPackets = MutableSharedFlow<Packet>(replay = 1)
+        val serverPackets = Channel<Packet>()
         stopServerJob = startServer(writer = {
-            serverPackets.collect {
-                write(it)
-            }
+            write(serverPackets.receive())
         })
 
         val expected = Publish(topic = "test-topic".toTopic(), payload = "1234567890".encodeToByteString())
         MqttEngine().use { engine ->
             engine.start()
-            serverPackets.emit(expected)
+            serverPackets.send(expected)
 
             val actual = engine.packetResults.first()
             assertEquals(expected, actual.getOrNull())
@@ -160,17 +158,15 @@ class DefaultEngineTest {
 
     @Test
     fun `when receiving a malformed packet return a MalformedPacketException`() = runTest {
-        val dataToSend = MutableSharedFlow<ByteArray>(replay = 1)
+        val dataToSend = Channel<ByteArray>()
 
         stopServerJob = startServer(writer = {
-            dataToSend.collect {
-                writeFully(it)
-            }
+            writeFully(dataToSend.receive())
         })
 
         MqttEngine().use { engine ->
             engine.start()
-            dataToSend.emit(byteArrayOf(0, 0, 0))
+            dataToSend.send(byteArrayOf(0, 0, 0))
 
             val result = engine.packetResults.first()
             assertTrue(result.isFailure)
