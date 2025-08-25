@@ -9,47 +9,77 @@ import kotlinx.coroutines.launch
 import kotlinx.dom.appendElement
 import kotlinx.dom.appendText
 import org.w3c.dom.Element
+import org.w3c.dom.HTMLButtonElement
 
-private const val mosquitto = "test.mosquitto.org"
-private const val port = 8091
-
+private val url = Url("wss://test.mosquitto.org:8091")
 private val mainScope = CoroutineScope(Dispatchers.Default)
+private var packetCount = 0
+private var connected = false
 
 public fun main() {
     document.body?.appendMosquitto()
 }
 
 private fun Element.appendMosquitto() {
+    val client = MqttClient(url) {
+        username = "ro"
+        password = "readonly"
+    }
+
     appendElement("div") {
-        val url = Url("wss://$mosquitto:$port")
-        val client = MqttClient(url) {
-            username = "ro"
-            password = "readonly"
+        appendElement("h3") {
+            appendText("Ktor-MQTT WASM Test Page")
         }
-        appendText("Mosquitto Test to $url")
+        appendElement("p") {
+            appendElement("div") { appendText("When pressing start, connect to $url") }
+            appendElement("div") { appendText("and subscribe to all topics.") }
+        }
+        val startStop = appendElement("button") {
+            this as HTMLButtonElement
+            type = "button"
+        }
         val status = appendElement("div") {
-            appendText("Connecting...")
+            appendText("")
         }
-        var packetCount = 0
         val counterNode = appendElement("div") {
             appendText("Packets received: 0")
         }
-
-        // Launch a coroutine in the main scope to handle the async operations.
-        mainScope.launch {
-            val connectResult = client.connect()
-            if (connectResult.isSuccess) {
-                status.textContent = "Connection successful. Subscribing to all topics (#)..."
-                client.subscribe(listOf(TopicFilter(Topic("#"))))
-                status.textContent = "Subscribed successfully. Listening for packets..."
-                client.publishedPackets.collect {
-                    packetCount++
-                    println("Packets received: $packetCount")
-                    counterNode.textContent = "Packets received: $packetCount, last topic: ${it.topic.name}"
+        startStop.addEventListener("click") {
+            if (connected) {
+                mainScope.launch {
+                    client.disconnect()
                 }
             } else {
-                connectResult.exceptionOrNull()?.printStackTrace()
-                status.textContent = "Connection failed: ${connectResult.exceptionOrNull()?.message}"
+                packetCount = 0
+                mainScope.launch {
+                    val connectResult = client.connect()
+                    if (connectResult.isSuccess) {
+                        client.subscribe(listOf(TopicFilter(Topic("#"))))
+                    } else {
+                        connectResult.exceptionOrNull()?.printStackTrace()
+                        status.textContent = "Connection failed: ${connectResult.exceptionOrNull()?.message}"
+                    }
+                }
+            }
+        }
+
+        mainScope.launch {
+            client.connectionState.collect {
+                if (it.isConnected) {
+                    status.textContent = "Connected"
+                    connected = true
+                    (startStop as HTMLButtonElement).textContent = "Stop"
+                } else {
+                    status.textContent = "Not connected"
+                    connected = false
+                    (startStop as HTMLButtonElement).textContent = "Start"
+                }
+            }
+        }
+        mainScope.launch {
+            client.publishedPackets.collect {
+                packetCount++
+                counterNode.textContent = "Packets received: $packetCount, last topic: ${it.topic.name}"
             }
         }
     }
