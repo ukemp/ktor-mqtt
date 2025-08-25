@@ -4,6 +4,7 @@ import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.util.toResponseTopic
 import de.kempmobil.ktor.mqtt.util.toTopic
 import io.ktor.utils.io.core.*
+import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.Test
@@ -12,7 +13,7 @@ import kotlin.test.assertFailsWith
 class PublishTest {
 
     @Test
-    fun `encode and decode returns same packet`() {
+    fun `encode and decode returns same packet`() = runTest {
         assertEncodeDecodeOf(Publish(topic = "test/topic".toTopic(), payload = "123".encodeToByteString()))
         assertEncodeDecodeOf(
             Publish(

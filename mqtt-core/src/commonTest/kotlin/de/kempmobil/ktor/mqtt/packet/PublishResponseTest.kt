@@ -1,13 +1,14 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
 class PublishResponseTest {
 
     @Test
-    fun `encode and decode returns same packet`() {
+    fun `encode and decode returns same packet`() = runTest {
         assertEncodeDecodeOf(Puback(42u, Success))
         assertEncodeDecodeOf(Pubrec(42u, Success))
         assertEncodeDecodeOf(Pubrel(42u, Success))

@@ -1,12 +1,13 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
 class SubscribeTest {
 
     @Test
-    fun `encode and decode returns same packet`() {
+    fun `encode and decode returns same packet`() = runTest {
         assertEncodeDecodeOf(Subscribe(1024u, buildFilterList { add("test/topic") }))
         assertEncodeDecodeOf(
             Subscribe(

@@ -1,13 +1,14 @@
 package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
 class DisconnectTest {
 
     @Test
-    fun `encode and decode returns same packet`() {
+    fun `encode and decode returns same packet`() = runTest {
         assertEncodeDecodeOf(Disconnect(NormalDisconnection))
         assertEncodeDecodeOf(
             Disconnect(
