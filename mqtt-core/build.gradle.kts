@@ -1,5 +1,8 @@
+@file:OptIn(ExperimentalWasmDsl::class)
+
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
 
@@ -32,6 +35,9 @@ kotlin {
             baseName = "base"
             isStatic = true
         }
+    }
+    wasmJs {
+        browser() // Target the browser environment
     }
 
     sourceSets {

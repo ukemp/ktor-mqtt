@@ -25,7 +25,7 @@ import kotlin.time.Duration.Companion.seconds
 class WebSocketEngineTest {
 
     private val defaultHost = "localhost"
-    private val defaultPort = 8080
+    private val defaultPort = 8088
     private val limitedFrameSize = 10L
 
     private val samplePackets = listOf<Packet>(

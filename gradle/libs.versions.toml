@@ -6,6 +6,7 @@ kotlin = "2.2.10"
 ktor = "3.2.3"
 kotlinx-coroutines = "1.10.2"
 kotlinx-io = "0.8.0"
+kotlinx-browser = "0.3.1"
 junit = "5.13.4"
 testcontainers = "1.21.3"
 slf4j = "2.0.17"
@@ -59,6 +60,9 @@ androidx-lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecy
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-compose-material-icons = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "androidx-material" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+
+# WASM libraries
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser-wasm-js", version.ref = "kotlinx-browser" }
 
 [plugins]
 androidLibrary = { id = "com.android.library", version.ref = "agp" }

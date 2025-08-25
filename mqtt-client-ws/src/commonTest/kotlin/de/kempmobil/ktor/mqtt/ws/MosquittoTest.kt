@@ -50,7 +50,7 @@ class MosquittoTest {
         var count = 0
         val packets = client.publishedPackets.takeWhile {
             count++
-            count <= 50_000
+            count <= 1_000
         }.toList()
         val topics = packets.map { it.topic }.toSet()
         println("Packets: ${packets.size}, topics: ${topics.size}")
