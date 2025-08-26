@@ -3,7 +3,7 @@ name: Publish WASM Test Page
 on:
   push:
     branches:
-      - 'add-wasm-support'
+      - 'main'
 env:
   ACTIONS_RUNNER_DEBUG: true
 jobs:
