@@ -2,8 +2,9 @@
 name: Publish WASM Test Page
 on:
   push:
-    branches:
-      - 'main'
+    tags:
+      - '**'
+
 env:
   ACTIONS_RUNNER_DEBUG: true
 jobs:
