@@ -1,6 +1,9 @@
 ---
 name: Test TLS Connection on iOS
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - 'iOS-Connection-Test'
 
 env:
   ACTIONS_RUNNER_DEBUG: true
