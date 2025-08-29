@@ -28,4 +28,4 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build with Gradle
-        run: ./gradlew :mqtt-client:cleanIosX64Test :mqtt-client:iosX64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest"
+        run: ./gradlew :mqtt-client:cleanIosSimulatorArm64Test :mqtt-client:iosSimulatorArm64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest"
