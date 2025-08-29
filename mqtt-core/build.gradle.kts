@@ -79,8 +79,13 @@ dokka {
     }
 }
 
+// Do not delete nor move to the root script, otherwise iOS artifact will miss these values
+group = "de.kempmobil.ktor.mqtt"
+version = libs.versions.ktormqtt.get()
+
 mavenPublishing {
-    coordinates("de.kempmobil.ktor.mqtt", "mqtt-core", libs.versions.ktormqtt.get())
+    // It's not sufficient to call coordinates() here, group and version must also be defined as above
+    coordinates(group.toString(), "mqtt-core", version.toString())
     configure(
         KotlinMultiplatform(
             javadocJar = JavadocJar.Dokka("dokkaGenerate"),
