@@ -8,14 +8,14 @@ This library does not support MQTT 3.
 
 ### Supported Platforms
 
-| Connection Type  |        JVM         |      Android       |        iOS         |       WASM*        |
+| Connection Type  |        JVM         |      Android       |        iOS         |       Wasm*        |
 |------------------|:------------------:|:------------------:|:------------------:|:------------------:|
 | Plain Socket     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | Secure Socket    | :heavy_check_mark: | :heavy_check_mark: |         **         |                    |
 | Websocket        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | Secure Websocket | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 
-\* WASM support is currently experimental, see a simple demo page [here](https://ukemp.github.io/ktor-mqtt/).
+\* Wasm support is currently experimental, see a simple demo page [here](https://ukemp.github.io/ktor-mqtt/).
 
 \** Due to this [Ktor bug](https://youtrack.jetbrains.com/issue/KTOR-2749/Support-for-Raw-TLS-Sockets-on-iOS-KMM).
 
@@ -210,6 +210,22 @@ val client = MqttClient("https://test.mosquitto.org:8081") {
 ```
 
 See the [Ktor documentation](https://ktor.io/docs/client-create-and-configure.html) on how to configure a http client.
+
+## Wasm Support
+
+Wasm Support is currently experimental. Already now it shows the power of Wasm as you get a full features MQTT 5
+client with merely 650kB of compiled Wasm code.
+
+You can launch a test page with:
+
+```bash
+./gradlew wasmJsBrowserProductionRun
+```
+
+Sources are available at [main.kt](mqtt-client-ws/src/wasmJsMain/kotlin/main.kt).
+
+Do not expect Wasm to support plain socket connections in the future. Due to its nature, it will always require a
+(secure) websocket connection to your MQTT broker.
 
 ## Missing features
 
