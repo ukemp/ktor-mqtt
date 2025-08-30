@@ -57,4 +57,4 @@ jobs:
           sleep 5 # Give the broker a moment to start
 
       - name: Run TLS Connection Test
-        run: ./gradlew :mqtt-client:iosSimulatorArm64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest" -Dmqtt.test.host=localhost -Dmqtt.test.port=8883 -Dmqtt.test.tls=true
+        run: ./gradlew :mqtt-client:iosSimulatorArm64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest"

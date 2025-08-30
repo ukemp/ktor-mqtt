@@ -3,7 +3,6 @@ package de.kempmobil.ktor.mqtt
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ConnectionTest {
@@ -21,10 +20,7 @@ class ConnectionTest {
     fun `test unencrypted connection`() = runTest {
         client = MqttClient(mosquitto, 1883) { }
         val result = client.connect()
-        if (result.isFailure) {
-            println("Failed to connect to $mosquitto: ${result.exceptionOrNull()}")
-        }
-        assertEquals(true, result.isSuccess)
+        assertTrue(result.isSuccess, "Failed to connect to: '$mosquitto', ${result.exceptionOrNull()}")
     }
 
     @Test
@@ -35,9 +31,6 @@ class ConnectionTest {
             }
         }
         val result = client.connect()
-        if (result.isFailure) {
-            println("Failed to connect to $mosquitto: ${result.exceptionOrNull()}")
-        }
-        assertTrue(result.isSuccess)
+        assertTrue(result.isSuccess, "Failed to connect to: '$mosquitto', ${result.exceptionOrNull()}")
     }
 }
