@@ -6,6 +6,15 @@ allows connections to MQTT servers via plain sockets or via websockets.
 
 This library does not support MQTT 3.
 
+### Supported Platforms:
+
+| Connection Type  | JVM                | Android            | iOS                | WASM               |
+|------------------|--------------------|--------------------|--------------------|--------------------|
+| Plain Socket     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| Secure Socket    | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
+| Websocket        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| Secure Websocket | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+
 ### Using the library
 
 Creating a client with username password authentication, subscribing to a topic and receiving
