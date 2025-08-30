@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 
 class ConnectionTest {
 
-    private val mosquitto = "test.mosquitto.org"
+    private val mosquitto = "localhost"
 
     private lateinit var client: MqttClient
 
@@ -26,7 +26,7 @@ class ConnectionTest {
 
     @Test
     fun `test TLS connection`() = runTest {
-        client = MqttClient(mosquitto, 8886) {
+        client = MqttClient(mosquitto, 8883) {
             connection {
                 tls { }
             }

@@ -5,8 +5,6 @@ on:
     branches:
       - 'iOS-Connection-Test'
 
-env:
-  ACTIONS_RUNNER_DEBUG: true
 jobs:
   build:
     runs-on: macos-latest
@@ -27,5 +25,33 @@ jobs:
       - name: Setup Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build with Gradle
-        run: ./gradlew :mqtt-client:cleanIosSimulatorArm64Test :mqtt-client:iosSimulatorArm64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest"
+      - name: Install Mosquitto, Generate Certs, and Start Broker
+        run: |
+          brew install mosquitto
+
+          # Generate self-signed certificates for the broker
+          mkdir certs
+          openssl req -new -x509 -days 365 -nodes -out certs/ca.crt -keyout certs/ca.key -subj "/CN=TestCA"
+          openssl req -new -nodes -out certs/server.csr -keyout certs/server.key -subj "/CN=localhost"
+          openssl x509 -req -in certs/server.csr -CA certs/ca.crt -CAkey certs/ca.key -CAcreateserial -out certs/server.crt -days 365
+
+          # Create a configuration file for Mosquitto with both plaintext and TLS listeners
+          cat <<EOF > mosquitto.conf
+          # Plaintext listener
+          listener 1883
+          allow_anonymous true
+
+          # TLS listener
+          listener 8883
+          allow_anonymous true
+          cafile $(pwd)/certs/ca.crt
+          certfile $(pwd)/certs/server.crt
+          keyfile $(pwd)/certs/server.key
+          EOF
+
+          # Start the broker in the background
+          mosquitto -c mosquitto.conf &
+          sleep 5 # Give the broker a moment to start
+
+      - name: Run TLS Connection Test
+        run: ./gradlew :mqtt-client:iosSimulatorArm64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest" -Dmqtt.test.host=localhost -Dmqtt.test.port=8883 -Dmqtt.test.tls=true
