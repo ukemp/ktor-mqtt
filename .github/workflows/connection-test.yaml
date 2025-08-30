@@ -5,6 +5,9 @@ on:
     branches:
       - 'iOS-Connection-Test'
 
+env:
+  ACTIONS_RUNNER_DEBUG: true
+
 jobs:
   build:
     runs-on: macos-latest
