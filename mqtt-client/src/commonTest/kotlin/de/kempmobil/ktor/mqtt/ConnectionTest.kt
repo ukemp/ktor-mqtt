@@ -21,6 +21,9 @@ class ConnectionTest {
     fun `test unencrypted connection`() = runTest {
         client = MqttClient(mosquitto, 1883) { }
         val result = client.connect()
+        if (result.isFailure) {
+            println("Failed to connect to $mosquitto: ${result.exceptionOrNull()}")
+        }
         assertEquals(true, result.isSuccess)
     }
 
@@ -32,6 +35,9 @@ class ConnectionTest {
             }
         }
         val result = client.connect()
+        if (result.isFailure) {
+            println("Failed to connect to $mosquitto: ${result.exceptionOrNull()}")
+        }
         assertTrue(result.isSuccess)
     }
 }
