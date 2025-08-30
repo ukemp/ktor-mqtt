@@ -6,14 +6,18 @@ allows connections to MQTT servers via plain sockets or via websockets.
 
 This library does not support MQTT 3.
 
-### Supported Platforms:
+### Supported Platforms
 
-| Connection Type  | JVM                | Android            | iOS                | WASM               |
-|------------------|--------------------|--------------------|--------------------|--------------------|
+| Connection Type  |        JVM         |      Android       |        iOS         |       WASM*        |
+|------------------|:------------------:|:------------------:|:------------------:|:------------------:|
 | Plain Socket     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| Secure Socket    | :heavy_check_mark: | :heavy_check_mark: |                    |                    |
+| Secure Socket    | :heavy_check_mark: | :heavy_check_mark: |         **         |                    |
 | Websocket        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
 | Secure Websocket | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+
+\* WASM support is currently experimental, see a simple demo page [here](https://ukemp.github.io/ktor-mqtt/).
+
+\** Due to this [Ktor bug](https://youtrack.jetbrains.com/issue/KTOR-2749/Support-for-Raw-TLS-Sockets-on-iOS-KMM).
 
 ### Using the library
 
@@ -168,8 +172,8 @@ and **at least one Ktor Http client library**, for example `CIO`:
 
 ```kotlin
 dependencies {
-  implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.7.0")
-  implementation("io.ktor:ktor-client-cio:3.2.3")
+    implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.7.0")
+    implementation("io.ktor:ktor-client-cio:3.2.3")
 }
 ```
 
