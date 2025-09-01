@@ -35,7 +35,9 @@ jobs:
         run: ./gradlew ${{ matrix.target }}
 
       - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          files: test-results/**/*.xml
+          name: test-results
+          path: '**/build/reports/tests/**/*.html'
+          retention-days: 20
