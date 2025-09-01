@@ -35,7 +35,7 @@ jobs:
         run: ./gradlew ${{ matrix.target }}
 
       - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-results-action@v2
-        if: always() # Always run this step to publish test results, even if tests fail
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
         with:
-          files: '**/build/test-results/**/*.xml'
+          files: test-results/**/*.xml
