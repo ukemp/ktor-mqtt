@@ -19,7 +19,7 @@ dependencies {
     kover(project(":mqtt-core"))
     kover(project(":mqtt-client"))
     kover(project(":mqtt-client-ws"))
-    kover(project(":mqtt-client-test"))
+    //kover(project(":mqtt-client-test"))
 }
 
 // Run for example with ./gradlew koverHtmlReport
