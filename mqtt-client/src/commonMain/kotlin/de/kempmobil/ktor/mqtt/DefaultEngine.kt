@@ -117,16 +117,16 @@ internal class DefaultEngine(private val config: DefaultEngineConfig) : MqttEngi
     }
 
     private suspend fun ByteReadChannel.incomingMessageLoop() {
-        while (receiverJob?.isActive == true) {
+        while (!isClosedForRead) {
             try {
                 _packetResults.emit(Result.success(readPacket()))
-            } catch (ex: CancellationException) {
+            } catch (_: CancellationException) {
                 Logger.v { "Packet reader job has been cancelled, terminating..." }
                 break
-            } catch (ex: ClosedReceiveChannelException) {
+            } catch (_: ClosedReceiveChannelException) {
                 Logger.v { "Read channel has been closed, terminating..." }
                 break
-            } catch (ex: EOFException) {
+            } catch (_: EOFException) {
                 Logger.v { "End of stream detected, terminating..." }
                 break
             } catch (ex: MalformedPacketException) {

@@ -129,7 +129,7 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
                 // When we come here, the connection has been terminated, hence do some cleanup
                 disconnect()
 
-            } catch (ex: CancellationException) {
+            } catch (_: CancellationException) {
                 Logger.v { "Incoming message queue of ${this@WebSocketEngine} has been cancelled" }
                 disconnect()
             } catch (ex: MalformedPacketException) {
