@@ -8,6 +8,7 @@ actual fun createClient(id: String, configurator: MqttClientConfigBuilder<MqttEn
             configurator()
         }
     } else {
+        println("WARNING: Cannot execute JVM integration test, missing ENVIRONMENT variable MQTT_SERVER")
         null
     }
 }

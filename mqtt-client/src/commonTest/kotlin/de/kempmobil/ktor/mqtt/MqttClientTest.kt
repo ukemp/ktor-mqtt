@@ -37,7 +37,7 @@ abstract class MqttClientTest {
     @BeforeTest
     fun setup() {
         connectionState = MutableStateFlow(false)
-        packetResults = MutableSharedFlow()
+        packetResults = MutableSharedFlow(2)
 
         connection = mock {
             every { connected } returns connectionState

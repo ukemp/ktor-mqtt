@@ -176,14 +176,13 @@ class IntegrationTest {
         test: suspend TestScope.(client: MqttClient) -> Unit
     ) {
         val client = createClient("$clientId-${Random.nextUInt()}", configurator)
+
         if (client != null) {
             runTest(timeout = timeout) {
                 client.use {
                     test(it)
                 }
             }
-        } else {
-            println("WARNING did not execute test, missing ENVIRONMENT variable MQTT_SERVER")
         }
     }
 
@@ -197,6 +196,7 @@ class IntegrationTest {
     ) {
         val client1 = createClient("$clientId1-${Random.nextUInt()}", configurator1)
         val client2 = createClient("$clientId2-${Random.nextUInt()}", configurator2)
+
         if ((client1 != null) && (client2 != null)) {
             runTest(timeout = timeout) {
                 try {
@@ -206,8 +206,6 @@ class IntegrationTest {
                     client2.close()
                 }
             }
-        } else {
-            println("WARNING did not execute test, missing ENVIRONMENT variable MQTT_SERVER")
         }
     }
 }
