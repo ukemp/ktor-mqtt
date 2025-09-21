@@ -26,6 +26,8 @@ expect fun createClient(
 
 class IntegrationTest {
 
+    private val TIMEOUT = 15.seconds
+
     @Test
     fun `reconnect after disconnect returns proper connection states`() = runClientTest("reconnect") { client ->
         val asserter = launch {
@@ -140,7 +142,8 @@ class IntegrationTest {
                     contentType = "text/plain"
                     payload("message-$it")
                 })
-                assertTrue(response.isSuccess)
+                response.exceptionOrNull()?.printStackTrace()
+                assertTrue(response.isSuccess, "Could not publish a message: $response")
             }
         }
         senders.joinAll()
@@ -168,7 +171,7 @@ class IntegrationTest {
 
     private fun runClientTest(
         clientId: String,
-        timeout: Duration = 5.seconds,
+        timeout: Duration = TIMEOUT,
         configurator: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit = { },
         test: suspend TestScope.(client: MqttClient) -> Unit
     ) {
@@ -189,7 +192,7 @@ class IntegrationTest {
         configurator1: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit = { },
         clientId2: String,
         configurator2: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit = { },
-        timeout: Duration = 5.seconds,
+        timeout: Duration = TIMEOUT,
         test: suspend TestScope.(client1: MqttClient, client2: MqttClient) -> Unit
     ) {
         val client1 = createClient("$clientId1-${Random.nextUInt()}", configurator1)

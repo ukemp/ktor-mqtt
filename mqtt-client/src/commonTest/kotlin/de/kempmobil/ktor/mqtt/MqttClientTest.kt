@@ -315,7 +315,7 @@ abstract class MqttClientTest {
             desiredQoS = QoS.AT_MOST_ONCE
         })
 
-        assertTrue { result.isSuccess }
+        assertTrue(result.isSuccess, "Could not publish a QoS0 message: $result")
         assertEquals("test/topic", result.getOrThrow().source.topic.name)
     }
 
@@ -335,7 +335,7 @@ abstract class MqttClientTest {
             desiredQoS = QoS.AT_LEAST_ONCE
         })
 
-        assertTrue { result.isSuccess }
+        assertTrue(result.isSuccess, "Could not publish a QoS1 message: $result")
         assertEquals("test/topic", result.getOrThrow().source.topic.name)
         assertNotNull(inFlightPacket)
         verify { session.store(inFlightPacket.source) }
@@ -364,7 +364,7 @@ abstract class MqttClientTest {
             desiredQoS = QoS.EXACTLY_ONE
         })
 
-        assertTrue { result.isSuccess }
+        assertTrue(result.isSuccess, "Could not publish a QoS2 message: $result")
         assertEquals("test/topic", result.getOrThrow().source.topic.name)
         assertNotNull(inFlightPublish)
         assertNotNull(inFlightPubrel)
