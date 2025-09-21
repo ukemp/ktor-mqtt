@@ -45,8 +45,7 @@ jobs:
       - name: Run Tests
         run: ./gradlew :mqtt-client:cleanJvmTest :mqtt-client:jvmTest --tests "de.kempmobil.ktor.mqtt.IntegrationTest"
         env:
-          MQTT_SERVER: mosquitto
-          MQTT_PORT: 1883
+          MQTT_SERVER: localhost
 
       - name: Publish Test Results
         uses: actions/upload-artifact@v4
