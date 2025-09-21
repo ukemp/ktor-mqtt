@@ -13,17 +13,20 @@ jobs:
         image: eclipse-mosquitto:2
         ports:
           - 1883:1883
+          - 8081:8081
         options: --name mosquitto --hostname mosquitto
 
     steps:
       - name: Create Mosquitto Config
-        run: echo -e "listener 1883\nallow_anonymous true" > ${{ github.workspace }}/mosquitto.conf
+        run: echo -e "listener 1883\nallow_anonymous true\nlistener 8081\nprotocol websockets\nallow_anonymous true" > ${{ github.workspace }}/mosquitto.conf
 
-      - name: Copy mosquitto configuration into the container
+      - name: Copy Mosquitto Config into the Container
+        # Mounting is complicated, if possible at all. With docker cp it works, see
+        # https://github.com/orgs/community/discussions/42127
         run: docker cp ${{ github.workspace }}/mosquitto.conf mosquitto:/mosquitto/config/mosquitto.conf
 
       - name: Restart Mosquitto
-        # Restart Mosquitto after volume has been created
+        # Restart Mosquitto after config has been copied
         uses: docker://docker
         with:
           args: docker restart mosquitto
@@ -43,7 +46,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run Tests
-        run: ./gradlew :mqtt-client:cleanJvmTest :mqtt-client:jvmTest --tests "de.kempmobil.ktor.mqtt.IntegrationTest"
+        run: ./gradlew allTests --rerun-tasks
         env:
           MQTT_SERVER: localhost
 
