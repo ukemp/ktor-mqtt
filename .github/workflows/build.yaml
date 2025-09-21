@@ -13,18 +13,10 @@ jobs:
         image: eclipse-mosquitto:2
         ports:
           - 1883:1883
-        volumes:
-          - ${{ github.workspace }}/mqtt-client/src/commonTest/resources/mosquitto:/mosquitto/config/
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Restart Mosquitto
-        # Restart Mosquitto after volumes have been checked out
-        uses: docker://docker
-        with:
-          args: docker restart mosquitto
 
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v4
