@@ -13,8 +13,19 @@ jobs:
         image: eclipse-mosquitto:2
         ports:
           - 1883:1883
+        volumes:
+          - ${{ github.workspace }}/mosquitto:/mosquitto/config/
 
     steps:
+      - name: Create Mosquitto Config
+        run: echo -e "listener 1883\nallow_anonymous true" > ${{ github.workspace }}/mosquitto/mosquitto.conf
+
+      - name: Restart Mosquitto
+        # Restart Mosquitto after volume has been created
+        uses: docker://docker
+        with:
+          args: docker restart mosquitto
+
       - name: Checkout
         uses: actions/checkout@v4
 
