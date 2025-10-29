@@ -34,5 +34,5 @@ rootProject.name = "Ktor-MQTT"
 include(":mqtt-core")
 include(":mqtt-client")
 include(":mqtt-client-ws")
-include(":mqtt-client-test")
+//include(":mqtt-client-test")
 include(":mqtt-app")

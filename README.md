@@ -6,6 +6,20 @@ allows connections to MQTT servers via plain sockets or via websockets.
 
 This library does not support MQTT 3.
 
+### Supported Platforms
+
+| Connection Type  |        JVM         |      Android       |        iOS         |       Wasm*        |
+|------------------|:------------------:|:------------------:|:------------------:|:------------------:|
+| Plain Socket     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| Secure Socket    | :heavy_check_mark: | :heavy_check_mark: |         **         |                    |
+| Websocket        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
+| Secure Websocket | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+
+\* Wasm support is currently experimental, see a simple demo page [here](https://ukemp.github.io/ktor-mqtt/).
+
+\** Will be available when
+this [Ktor bug](https://youtrack.jetbrains.com/issue/KTOR-2749/Support-for-Raw-TLS-Sockets-on-iOS-KMM) is resolved.
+
 ### Using the library
 
 Creating a client with username password authentication, subscribing to a topic and receiving
@@ -125,8 +139,8 @@ Add the library to dependencies:
 
 ```kotlin
 dependencies {
-    implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.7.1")
-    implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.7.1")
+    implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.7.0")
+    implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.7.0")
 }
 ```
 
@@ -137,8 +151,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.7.1")
-                implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.7.1")
+                implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.7.0")
+                implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.7.0")
             }
         }
     }
@@ -159,8 +173,8 @@ and **at least one Ktor Http client library**, for example `CIO`:
 
 ```kotlin
 dependencies {
-    implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.7.1")
-  implementation("io.ktor:ktor-client-cio:3.2.3")
+    implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.7.0")
+    implementation("io.ktor:ktor-client-cio:3.2.3")
 }
 ```
 
@@ -197,6 +211,22 @@ val client = MqttClient("https://test.mosquitto.org:8081") {
 ```
 
 See the [Ktor documentation](https://ktor.io/docs/client-create-and-configure.html) on how to configure a http client.
+
+## Wasm Support
+
+Wasm Support is currently experimental. Already now it shows the power of Wasm as you get a full features MQTT 5
+client with merely 650kB of compiled Wasm code.
+
+You can launch a test page with:
+
+```bash
+./gradlew wasmJsBrowserProductionRun
+```
+
+Sources are available at [main.kt](mqtt-client-ws/src/wasmJsMain/kotlin/main.kt).
+
+Do not expect Wasm to support plain socket connections in the future. Due to its nature, it will always require a
+(secure) websocket connection to your MQTT broker.
 
 ## Missing features
 

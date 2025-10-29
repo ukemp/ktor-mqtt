@@ -19,8 +19,12 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
+/**
+ * This test is abstract, as mocking does not work reliable in WASM yet. Inheriting test classes are available in
+ * jvmTest and nativeTest.
+ */
 @OptIn(ExperimentalTime::class)
-class MqttClientTest {
+abstract class MqttClientTest {
 
     private lateinit var connection: MqttEngine
 
@@ -33,7 +37,7 @@ class MqttClientTest {
     @BeforeTest
     fun setup() {
         connectionState = MutableStateFlow(false)
-        packetResults = MutableSharedFlow()
+        packetResults = MutableSharedFlow(2)
 
         connection = mock {
             every { connected } returns connectionState
@@ -311,7 +315,7 @@ class MqttClientTest {
             desiredQoS = QoS.AT_MOST_ONCE
         })
 
-        assertTrue { result.isSuccess }
+        assertTrue(result.isSuccess, "Could not publish a QoS0 message: $result")
         assertEquals("test/topic", result.getOrThrow().source.topic.name)
     }
 
@@ -331,7 +335,7 @@ class MqttClientTest {
             desiredQoS = QoS.AT_LEAST_ONCE
         })
 
-        assertTrue { result.isSuccess }
+        assertTrue(result.isSuccess, "Could not publish a QoS1 message: $result")
         assertEquals("test/topic", result.getOrThrow().source.topic.name)
         assertNotNull(inFlightPacket)
         verify { session.store(inFlightPacket.source) }
@@ -360,7 +364,7 @@ class MqttClientTest {
             desiredQoS = QoS.EXACTLY_ONE
         })
 
-        assertTrue { result.isSuccess }
+        assertTrue(result.isSuccess, "Could not publish a QoS2 message: $result")
         assertEquals("test/topic", result.getOrThrow().source.topic.name)
         assertNotNull(inFlightPublish)
         assertNotNull(inFlightPubrel)

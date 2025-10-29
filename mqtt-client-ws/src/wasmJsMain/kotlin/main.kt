@@ -36,13 +36,6 @@ private fun Element.appendMosquitto() {
     }
 
     appendElement("div") {
-        appendElement("h3") {
-            appendText("Ktor-MQTT WASM Test Page")
-        }
-        appendElement("p") {
-            appendElement("div") { appendText("When pressing start, connect to $url") }
-            appendElement("div") { appendText("and subscribe to all topics.") }
-        }
         val startStop = appendElement("button") {
             this as HTMLButtonElement
             type = "button"

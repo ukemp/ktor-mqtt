@@ -19,14 +19,19 @@ import kotlin.time.Duration.Companion.seconds
 
 class DefaultEngineTest {
 
-    private val defaultHost = "localhost"
-    private val defaultPort = 12345
+    companion object {
+        private const val host = "localhost"
+        private var port = 12345
+    }
 
     private var stopServerJob: Job? = null
 
     @AfterTest
     fun cleanup() {
         stopServer()
+
+        // Use a new port for the next test in case the previous socket is not closed quickly enough
+        port++
     }
 
     private fun stopServer() {
@@ -190,7 +195,7 @@ class DefaultEngineTest {
     // ---- Helper functions -------------------------------------------------------------------------------------------
 
     @Suppress("TestFunctionName")
-    private fun MqttEngine(host: String = defaultHost, port: Int = defaultPort): MqttEngine {
+    private fun MqttEngine(): MqttEngine {
         Logger.configureLogging {
             minSeverity = Severity.Verbose
         }
@@ -205,7 +210,7 @@ class DefaultEngineTest {
         writer: (suspend ByteWriteChannel.() -> Unit)? = null
     ): Job {
         val selectorManager = SelectorManager(Dispatchers.Default)
-        val serverSocket = aSocket(selectorManager).tcp().bind(defaultHost, defaultPort)
+        val serverSocket = aSocket(selectorManager).tcp().bind(host, port)
         var socket: Socket? = null
 
         backgroundScope.launch {
@@ -222,7 +227,7 @@ class DefaultEngineTest {
             } catch (_: CancellationException) {
                 // ignore
             } catch (ex: Exception) {
-                fail("Cannot create server socket [$defaultHost:$defaultPort]", ex)
+                fail("Cannot create server socket [$host:$port]", ex)
             }
         }
 

@@ -15,6 +15,7 @@ import io.ktor.server.websocket.*
 import io.ktor.utils.io.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.Buffer
@@ -24,8 +25,10 @@ import kotlin.time.Duration.Companion.seconds
 
 class WebSocketEngineTest {
 
-    private val defaultHost = "localhost"
-    private val defaultPort = 8088
+    companion object {
+        private const val host = "localhost"
+        private var port = 8088
+    }
     private val limitedFrameSize = 10L
 
     private val samplePackets = listOf<Packet>(
@@ -126,22 +129,24 @@ class WebSocketEngineTest {
 
     @Test
     fun `when the server sends packets they are received by the engine`() = runTest {
-        val packetsToSend = MutableSharedFlow<Packet>(replay = 30)
+        val packetsToSend = Channel<List<Packet>>()
 
         cleanupJob = startServer(session = senderSession(packetsToSend))
         MqttEngine().use { engine ->
             engine.start()
-            samplePackets.forEach { packetsToSend.emit(it) }
+            packetsToSend.send(samplePackets)
 
             val received = mutableListOf<Packet>()
             engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
             assertEquals(samplePackets, received)
+
+            packetsToSend.send(emptyList()) // Signal to close the server connection
         }
     }
 
     @Test
     fun `when the server sends packets in more than one frame they are received by the client`() = runTest {
-        val packetsToSend = MutableSharedFlow<Packet>(replay = 30)
+        val packetsToSend = Channel<List<Packet>>()
 
         cleanupJob = startServer(
             session = senderSessionWithLimitedFrameSize(packetsToSend),
@@ -149,11 +154,13 @@ class WebSocketEngineTest {
         )
         MqttEngine().use { engine ->
             engine.start()
-            samplePackets.forEach { packetsToSend.emit(it) }
+            packetsToSend.send(samplePackets)
 
             val received = mutableListOf<Packet>()
             engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
             assertEquals(samplePackets, received)
+
+            packetsToSend.send(emptyList()) // Signal to close the server connection
         }
     }
 
@@ -164,14 +171,14 @@ class WebSocketEngineTest {
         Logger.configureLogging {
             minSeverity = Severity.Verbose
         }
-        return WebSocketEngine(WebSocketEngineConfig(Url("http://$defaultHost:$defaultPort")))
+        return WebSocketEngine(WebSocketEngineConfig(Url("http://$host:$port")))
     }
 
     private fun startServer(
         session: (suspend DefaultWebSocketServerSession.() -> Unit)? = null,
         frameSize: Long = Long.MAX_VALUE
     ): Job {
-        val server = embeddedServer(CIO, port = defaultPort) {
+        val server = embeddedServer(CIO, port = port) {
             install(WebSockets)
             routing {
                 webSocket("/") {
@@ -209,31 +216,39 @@ class WebSocketEngineTest {
         return func
     }
 
-    private fun senderSession(packets: MutableSharedFlow<Packet>): suspend DefaultWebSocketServerSession.() -> Unit {
+    private fun senderSession(channel: Channel<List<Packet>>): suspend DefaultWebSocketServerSession.() -> Unit {
         val func: (suspend DefaultWebSocketServerSession.() -> Unit) = {
-            packets.collect { packet ->
-                with(Buffer()) {
-                    write(packet)
-                    outgoing.send(Frame.Binary(fin = true, packet = this))
+            for (packets in channel) {
+                if (packets.isEmpty()) {
+                    break
+                }
+                for (packet in packets) {
+                    with(Buffer()) {
+                        write(packet)
+                        outgoing.send(Frame.Binary(fin = true, packet = this))
+                    }
                 }
             }
         }
         return func
     }
 
-    private fun senderSessionWithLimitedFrameSize(packets: MutableSharedFlow<Packet>): suspend DefaultWebSocketServerSession.() -> Unit {
+    private fun senderSessionWithLimitedFrameSize(channel: Channel<List<Packet>>): suspend DefaultWebSocketServerSession.() -> Unit {
         val func: (suspend DefaultWebSocketServerSession.() -> Unit) = {
-            packets.collect { packet ->
-                with(Buffer()) {
-                    write(packet)
-                    val frame = Buffer()
-                    var frames = 0
-                    while (size > 0) {
-                        frames++
-                        readAtMostTo(frame, size.coerceAtMost(limitedFrameSize))
-                        outgoing.send(Frame.Binary(fin = true, packet = frame))
+            for (packets in channel) {
+                if (packets.isEmpty()) break
+                for (packet in packets) {
+                    with(Buffer()) {
+                        write(packet)
+                        val frame = Buffer()
+                        var frames = 0
+                        while (size > 0) {
+                            frames++
+                            readAtMostTo(frame, size.coerceAtMost(limitedFrameSize))
+                            outgoing.send(Frame.Binary(fin = true, packet = frame))
+                        }
+                        println("Sent packet in $frames frames")
                     }
-                    println("Sent packet in $frames frames")
                 }
             }
         }
