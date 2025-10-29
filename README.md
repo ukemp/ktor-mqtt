@@ -17,7 +17,8 @@ This library does not support MQTT 3.
 
 \* Wasm support is currently experimental, see a simple demo page [here](https://ukemp.github.io/ktor-mqtt/).
 
-\** Due to this [Ktor bug](https://youtrack.jetbrains.com/issue/KTOR-2749/Support-for-Raw-TLS-Sockets-on-iOS-KMM).
+\** Will be available when
+this [Ktor bug](https://youtrack.jetbrains.com/issue/KTOR-2749/Support-for-Raw-TLS-Sockets-on-iOS-KMM) is resolved.
 
 ### Using the library
 
