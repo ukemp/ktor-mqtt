@@ -2,7 +2,7 @@
 name: Build and Test Ktor MQTT Library
 on:
   push:
-    branches: [ "add-wasm-support" ]
+    branches: [ "main" ]
 
 jobs:
   test-linux:
