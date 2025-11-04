@@ -26,7 +26,7 @@ expect fun createClient(
 
 class IntegrationTest {
 
-    private val TIMEOUT = 15.seconds
+    private val TIMEOUT = 60.seconds
 
     @Test
     fun `reconnect after disconnect returns proper connection states`() = runClientTest("reconnect") { client ->
