@@ -17,6 +17,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 expect fun createClient(
@@ -64,7 +65,11 @@ class IntegrationTest {
 
     @Test
     fun `publish and receive messages with QoS 1`() {
-        runClientTest(clientId1 = "sender1", clientId2 = "receiver1") { sender: MqttClient, receiver: MqttClient ->
+        runClientTest(clientId1 = "sender1", configurator1 = {
+            ackMessageTimeout = 1.minutes
+        }, clientId2 = "receiver1", configurator2 = {
+            ackMessageTimeout = 1.minutes
+        }) { sender: MqttClient, receiver: MqttClient ->
             publishReceiveTest(QoS.AT_LEAST_ONCE, sender, receiver)
         }
     }
