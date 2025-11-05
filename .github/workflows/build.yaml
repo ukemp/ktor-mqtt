@@ -58,7 +58,7 @@ jobs:
         if: (!cancelled())
         with:
           files: |
-            test-results/**/*.xml
+            **/build/test-results/**/*.xml
 
 #  test-macos:
 #    name: Test on macOS
