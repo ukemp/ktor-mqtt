@@ -94,6 +94,19 @@ abstract class MqttClientTest {
     }
 
     @Test
+    fun `packet identifiers are in range from 1 to 65535`() {
+        val client = createClient(connection)
+        val identifiers = hashSetOf<Int>()
+        repeat(65_800) {
+            identifiers.add(client.nextPacketIdentifier().toInt())
+        }
+        val max = UShort.MAX_VALUE.toInt()
+        assertEquals(1, identifiers.min())
+        assertEquals(max, identifiers.max())
+        assertEquals(max, identifiers.size)
+    }
+
+    @Test
     fun `connect succeeds when receiving successful connack packet`() = runTest {
         everySuspend { connection.start() } returns Result.success(Unit)
         everySuspend { connection.send(ofType<Connect>()) } returns Result.success(Unit)

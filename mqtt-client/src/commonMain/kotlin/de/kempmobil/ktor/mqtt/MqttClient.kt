@@ -4,8 +4,9 @@ import de.kempmobil.ktor.mqtt.packet.*
 import de.kempmobil.ktor.mqtt.util.Logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.updateAndFetch
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -88,8 +89,8 @@ public class MqttClient internal constructor(
     // bursts of responses from concurrent requests.
     private val receivedPackets = MutableSharedFlow<Packet>(replay = 16)
 
-    private var packetIdentifier: UShort = 0u
-    private val packetIdentifierMutex = Mutex()
+    @OptIn(ExperimentalAtomicApi::class)
+    private var packetIdentifier = AtomicInt(0)
 
     private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
 
@@ -241,7 +242,7 @@ public class MqttClient internal constructor(
         )
     }
 
-    private suspend fun createSubscribe(
+    private fun createSubscribe(
         filters: List<TopicFilter>,
         subscriptionIdentifier: SubscriptionIdentifier?,
         userProperties: UserProperties
@@ -254,7 +255,7 @@ public class MqttClient internal constructor(
         )
     }
 
-    private suspend fun createUnsubscribe(topics: List<Topic>, userProperties: UserProperties): Unsubscribe {
+    private fun createUnsubscribe(topics: List<Topic>, userProperties: UserProperties): Unsubscribe {
         return Unsubscribe(
             packetIdentifier = nextPacketIdentifier(),
             topics = topics,
@@ -262,7 +263,7 @@ public class MqttClient internal constructor(
         )
     }
 
-    private suspend fun createPublish(request: PublishRequest, isDupMessage: Boolean = false): Result<Publish> {
+    private fun createPublish(request: PublishRequest, isDupMessage: Boolean = false): Result<Publish> {
         return if (request.topicAlias != null && request.topicAlias.value > serverTopicAliasMaximum.value) {
             Result.failure(TopicAliasException("Server maximum topic alias is: $serverTopicAliasMaximum, but you requested: ${request.topicAlias}"))
         } else {
@@ -526,16 +527,18 @@ public class MqttClient internal constructor(
         return awaitResponseOf({ it.type == type }, request)
     }
 
-    private suspend fun nextPacketIdentifier(): UShort {
-        return packetIdentifierMutex.withLock {
-            packetIdentifier = (packetIdentifier + 1u).toUShort()
-            if (packetIdentifier == 0u.toUShort()) {
-                packetIdentifier = 1u
+    @OptIn(ExperimentalAtomicApi::class)
+    internal fun nextPacketIdentifier(): UShort {
+        return packetIdentifier.updateAndFetch { p ->
+            val next = p + 1
+            if (next > UShort.MAX_VALUE.toInt()) {
+                1 // Zero is not allowed as packet identifier
+            } else {
+                next
             }
-            packetIdentifier
         }.also {
             Logger.v { "Next packet identifier: $it" }
-        }
+        }.toUShort()
     }
 }
 
