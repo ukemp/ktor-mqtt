@@ -104,43 +104,39 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
         val channel = ByteChannel(autoFlush = true)
         val reader = launch {
             while (!channel.isClosedForRead) {
-                _packetResults.emit(Result.success(channel.readPacket()))
+                val result = try {
+                    Result.success(channel.readPacket())
+                } catch (ex: MalformedPacketException) {
+                    Result.failure(ex)
+                } catch (_: CancellationException) {
+                    break
+                }
+                _packetResults.emit(result)
             }
         }
 
         try {
             for (frame in incoming) {
-                try {
-                    when (frame) {
-                        // Note that in non-raw mode, we should never receive Close, Ping or Pong frames
-                        is Frame.Binary -> {
-                            Logger.v { "Received data frame of size: ${frame.data.size}" }
-                            channel.writeFully(frame.readBytes())
-                        }
-
-                        else -> {
-                            // TODO: Close the network connection when receiving a non-binary frame [MQTT-6.0.0-1]
-                            Logger.e { "Received unexpected frame type: $frame" }
-                        }
+                when (frame) {
+                    // Note that in non-raw mode, we should never receive Close, Ping or Pong frames
+                    is Frame.Binary -> {
+                        Logger.v { "Received data frame of size: ${frame.data.size}" }
+                        channel.writeFully(frame.readBytes())
                     }
-                } catch (ex: MalformedPacketException) {
-                    // Continue with the loop, so that the client can decide what to do
-                    _packetResults.emit(Result.failure(ex))
-                } catch (_: CancellationException) {
-                    Logger.v { "Incoming message queue of ${this@WebSocketEngine} has been cancelled" }
-                    break
-                } catch (ex: Exception) {
-                    Logger.e(throwable = ex) { "Error while receiving messages: " + ex::class }
-                    break
+
+                    else -> {
+                        // TODO: Close the network connection when receiving a non-binary frame [MQTT-6.0.0-1]
+                        Logger.e { "Received unexpected frame type: $frame" }
+                    }
                 }
             }
-        } catch (ex: CancellationException) {
+        } catch (_: CancellationException) {
             Logger.v { "Incoming message queue of ${this@WebSocketEngine} has been cancelled" }
-            throw ex
         } catch (ex: Exception) {
             Logger.e(throwable = ex) { "Error while receiving messages: " + ex::class }
         } finally {
             Logger.d { "Incoming message loop terminated (no more web socket frames available)" }
+
             // When we come here, the connection has been terminated, hence do some cleanup
             disconnect()
             reader.cancel()
