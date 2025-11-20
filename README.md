@@ -6,6 +6,8 @@ allows connections to MQTT servers via plain sockets or via websockets.
 
 This library does not support MQTT 3.
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ukemp/ktor-mqtt)
+
 ### Supported Platforms
 
 | Connection Type  |        JVM         |      Android       |        iOS         |       Wasm*        |
