@@ -104,12 +104,19 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
         val channel = ByteChannel(autoFlush = true)
         val reader = launch {
             while (!channel.isClosedForRead) {
-                _packetResults.emit(Result.success(channel.readPacket()))
+                val result = try {
+                    Result.success(channel.readPacket())
+                } catch (ex: MalformedPacketException) {
+                    Result.failure(ex)
+                } catch (_: CancellationException) {
+                    break
+                }
+                _packetResults.emit(result)
             }
         }
 
-        for (frame in incoming) {
-            try {
+        try {
+            for (frame in incoming) {
                 when (frame) {
                     // Note that in non-raw mode, we should never receive Close, Ping or Pong frames
                     is Frame.Binary -> {
@@ -122,22 +129,18 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
                         Logger.e { "Received unexpected frame type: $frame" }
                     }
                 }
-            } catch (ex: MalformedPacketException) {
-                // Continue with the loop, so that the client can decide what to do
-                _packetResults.emit(Result.failure(ex))
-            } catch (_: CancellationException) {
-                Logger.v { "Incoming message queue of ${this@WebSocketEngine} has been cancelled" }
-                break
-            } catch (ex: Exception) {
-                Logger.e(throwable = ex) { "Error while receiving messages: " + ex::class }
-                break
             }
-        }
-        Logger.d { "Incoming message loop terminated (no more web socket frames available)" }
+        } catch (_: CancellationException) {
+            Logger.v { "Incoming message queue of ${this@WebSocketEngine} has been cancelled" }
+        } catch (ex: Exception) {
+            Logger.e(throwable = ex) { "Error while receiving messages: " + ex::class }
+        } finally {
+            Logger.d { "Incoming message loop terminated (no more web socket frames available)" }
 
-        // When we come here, the connection has been terminated, hence do some cleanup
-        disconnect()
-        reader.cancel()
+            // When we come here, the connection has been terminated, hence do some cleanup
+            disconnect()
+            reader.cancel()
+        }
     }
 
     private suspend fun DefaultClientWebSocketSession.doSend(packet: Packet): Result<Unit> {
