@@ -1,9 +1,9 @@
 [versions]
-ktormqtt = "0.8.0"
+ktormqtt = "0.8.1"
 
 agp = "8.12.3"
 kotlin = "2.2.21"
-ktor = "3.3.1"
+ktor = "3.3.2"
 kotlinx-coroutines = "1.10.2"
 kotlinx-io = "0.8.0"
 kotlinx-browser = "0.5.0"
@@ -14,7 +14,7 @@ kermit = "2.0.8"
 mockery = "2.10.2"
 versions = "0.53.0"
 kover = "0.9.3"
-vanniktech = "0.34.0"
+vanniktech = "0.35.0"
 dokka = "2.1.0"
 
 # Multiplatform app library versions
