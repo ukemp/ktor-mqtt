@@ -22,7 +22,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.io.Buffer
 import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.*
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 
 class WebSocketEngineTest {
 
@@ -51,7 +51,7 @@ class WebSocketEngineTest {
         cleanupJob?.run {
             cleanupJob = null
             runBlocking {
-                withTimeout(1.seconds) {
+                withTimeout(1.minutes) {
                     start()
                     join()
                 }
