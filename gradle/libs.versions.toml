@@ -11,7 +11,7 @@ junit = "5.13.4"
 testcontainers = "1.21.3"
 slf4j = "2.0.17"
 kermit = "2.0.8"
-mockery = "2.10.2"
+mokkery = "3.0.0"
 versions = "0.53.0"
 kover = "0.9.3"
 vanniktech = "0.35.0"
@@ -68,7 +68,7 @@ kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser-wasm-js", ve
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-mockery = { id = "dev.mokkery", version.ref = "mockery" }
+mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 versions = { id = "com.github.ben-manes.versions", version.ref = "versions" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 vanniktech = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech" }
