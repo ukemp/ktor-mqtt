@@ -8,6 +8,7 @@ import de.kempmobil.ktor.mqtt.util.toReasonString
 import de.kempmobil.ktor.mqtt.util.toTopic
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.application.hooks.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.routing.*
@@ -174,12 +175,20 @@ class WebSocketEngineTest {
         return WebSocketEngine(WebSocketEngineConfig(Url("http://$host:$port")))
     }
 
-    private fun startServer(
+    private suspend fun startServer(
         session: (suspend DefaultWebSocketServerSession.() -> Unit)? = null,
         frameSize: Long = Long.MAX_VALUE
     ): Job {
+        val isConnected = MutableStateFlow(false)
+        val plugin = createApplicationPlugin(name = "MonitoringPlugin") {
+            on(MonitoringEvent(ApplicationStarted)) { _ ->
+                isConnected.value = true
+            }
+        }
+
         val server = embeddedServer(CIO, port = port) {
             install(WebSockets)
+            install(plugin)
             routing {
                 webSocket("/") {
                     maxFrameSize = frameSize
@@ -188,7 +197,10 @@ class WebSocketEngineTest {
                     }
                 }
             }
-        }.start(wait = false)
+        }.start(wait = false)  // wait = true would block the start() call!
+
+        // Wait for the server to start
+        isConnected.first { it }
 
         // Don't use TestScope here, as this might get canceled after test execution!
         return CoroutineScope(Dispatchers.Default).launch(start = CoroutineStart.LAZY) {
