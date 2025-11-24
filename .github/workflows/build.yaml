@@ -1,57 +1,35 @@
----
-name: Build and Test Ktor MQTT Library
+name: Build
+
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
-  test-linux:
-    name: Test on Linux
-    runs-on: ubuntu-latest
+  build:
     permissions:
-      checks: write
-      pull-requests: write
-    services:
-      mosquitto:
-        image: eclipse-mosquitto:2
-        ports:
-          - 1883:1883
-          - 8081:8081
-        options: --name mosquitto --hostname mosquitto
+      checks: write  # Required for publishing the test results
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Create Mosquitto Config
-        run: echo -e "listener 1883\nallow_anonymous true\nlistener 8081\nprotocol websockets\nallow_anonymous true" > ${{ github.workspace }}/mosquitto.conf
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-      - name: Copy Mosquitto Config into the Container
-        # Mounting is complicated, if possible at all. With docker cp it works, see
-        # https://github.com/orgs/community/discussions/42127
-        run: docker cp ${{ github.workspace }}/mosquitto.conf mosquitto:/mosquitto/config/mosquitto.conf
-
-      - name: Restart Mosquitto
-        # Restart Mosquitto after config has been copied
-        uses: docker://docker
-        with:
-          args: docker restart mosquitto
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v4
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
-          distribution: "zulu"
+          # List of distributions: https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
+          distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Setup Gradle cache
-        uses: gradle/actions/setup-gradle@v4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
 
-      - name: Run Tests
-        run: ./gradlew allTests --rerun-tasks
-        env:
-          MQTT_SERVER: localhost
+      - name: Run all tests
+        run: ./gradlew allTests
 
       - name: Publish Test Results
         uses: mikepenz/action-junit-report@v5
@@ -59,46 +37,3 @@ jobs:
         with:
           report_paths: '**/build/test-results/**/TEST-*.xml'
           include_passed: true
-
-#  test-macos:
-#    name: Test on macOS
-#    runs-on: macos-latest
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#
-#      - name: Validate Gradle Wrapper
-#        uses: gradle/actions/wrapper-validation@v4
-#
-#      - name: Setup JDK 17
-#        uses: actions/setup-java@v4
-#        with:
-#          java-version: '17'
-#          distribution: "zulu"
-#
-#      - name: Setup Gradle cache
-#        uses: gradle/actions/setup-gradle@v4
-#
-#      - name: Create Mosquitto Config
-#        run: echo -e "listener 1883\nallow_anonymous true" > mosquitto.conf
-#
-#      - name: Install and Start Mosquitto
-#        run: |
-#          brew install mosquitto
-#          # Start the broker in the background using the config file
-#          mosquitto -c mosquitto.conf &
-#          sleep 5 # Give the broker a moment to start up
-#
-#      - name: Run Tests
-#        run: ./gradlew allTests
-#        env:
-#          MQTT_SERVER: localhost
-#          MQTT_PORT: 1883
-#
-#      - name: Publish Test Results
-#        uses: actions/upload-artifact@v4
-#        if: always()
-#        with:
-#          name: test-results-macos
-#          path: '**/build/reports/tests/**/*.html'
-#          retention-days: 20

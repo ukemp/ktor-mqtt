@@ -90,7 +90,7 @@ public class MqttClient internal constructor(
     private val receivedPackets = MutableSharedFlow<Packet>(replay = 16)
 
     @OptIn(ExperimentalAtomicApi::class)
-    private var packetIdentifier = AtomicInt(0)
+    private val packetIdentifier = AtomicInt(0)
 
     private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
 
