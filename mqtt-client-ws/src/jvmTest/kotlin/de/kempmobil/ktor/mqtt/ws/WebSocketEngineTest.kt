@@ -109,8 +109,12 @@ class WebSocketEngineTest {
             assertTrue(engine.connected.value, "Engine should be connected after start")
 
             engine.disconnect()
-            withTimeout(10.seconds) {
-                engine.connected.first { !it }
+
+            // withTimeout not surrounded by withContext will only wait for virtual time, i.e. no time
+            withContext(Dispatchers.Default.limitedParallelism(1)) {
+                withTimeout(3.seconds) {
+                    engine.connected.first { !it }
+                }
             }
 
             assertFalse(engine.connected.value, "Engine should be disconnected after disconnect()")
