@@ -22,7 +22,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.io.Buffer
 import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.*
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class WebSocketEngineTest {
 
@@ -51,7 +51,7 @@ class WebSocketEngineTest {
         cleanupJob?.run {
             cleanupJob = null
             runBlocking {
-                withTimeout(1.minutes) {
+                withTimeout(30.seconds) {
                     start()
                     join()
                 }
@@ -102,14 +102,18 @@ class WebSocketEngineTest {
     fun `when disconnecting a connected session the connection state is updated`() = runTest {
         cleanupJob = startServer()
         MqttEngine().use { engine ->
-            val result = engine.start()
+            assertFalse(engine.connected.value, "Engine should not be connected before start")
 
+            val result = engine.start()
             assertTrue(result.isSuccess)
-            assertTrue(engine.connected.value)
+            assertTrue(engine.connected.value, "Engine should be connected after start")
 
             engine.disconnect()
+            withTimeout(10.seconds) {
+                engine.connected.first { !it }
+            }
 
-            assertFalse(engine.connected.first())
+            assertFalse(engine.connected.value, "Engine should be disconnected after disconnect()")
         }
     }
 
