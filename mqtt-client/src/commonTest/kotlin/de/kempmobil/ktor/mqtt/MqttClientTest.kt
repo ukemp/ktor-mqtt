@@ -19,12 +19,8 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
-/**
- * This test is abstract, as mocking does not work reliable in WASM yet. Inheriting test classes are available in
- * jvmTest and nativeTest.
- */
 @OptIn(ExperimentalTime::class)
-abstract class MqttClientTest {
+class MqttClientTest {
 
     private lateinit var connection: MqttEngine
 
