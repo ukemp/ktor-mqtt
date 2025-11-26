@@ -163,13 +163,17 @@ class WebSocketEngineTest {
         )
         MqttEngine().use { engine ->
             engine.start()
+            val received = mutableListOf<Packet>()
+
+            val collectJob = launch {
+                engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
+            }
             packetsToSend.send(samplePackets)
 
-            val received = mutableListOf<Packet>()
-            engine.packetResults.take(samplePackets.size).map { it.getOrThrow() }.toList(received)
-            assertEquals(samplePackets, received)
-
+            collectJob.join()
             packetsToSend.send(emptyList()) // Signal to close the server connection
+
+            assertEquals(samplePackets, received)
         }
     }
 
