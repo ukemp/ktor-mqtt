@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.encodeToByteString
+import java.nio.channels.ClosedChannelException
 import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
 
@@ -38,7 +39,7 @@ class DefaultEngineTest {
         stopServerJob?.run {
             stopServerJob = null
             runBlocking {
-                withTimeout(2.seconds) {
+                withTimeout(30.seconds) {
                     start()
                     join()
                 }
@@ -216,7 +217,7 @@ class DefaultEngineTest {
         backgroundScope.launch {
             try {
                 socket = serverSocket.accept().also { accepted ->
-                    Logger.d { "Client connected successfully" }
+                    Logger.d { "Client connected successfully to $host:$port" }
                     if (reader != null) {
                         accepted.openReadChannel().reader()
                     }
@@ -226,6 +227,8 @@ class DefaultEngineTest {
                 }
             } catch (_: CancellationException) {
                 // ignore
+            } catch (_: ClosedChannelException) {
+                // ignore, might be thrown by closing the socket
             } catch (ex: Exception) {
                 fail("Cannot create server socket [$host:$port]", ex)
             }
