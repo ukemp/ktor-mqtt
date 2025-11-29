@@ -4,6 +4,9 @@ import co.touchlab.kermit.Severity
 import de.kempmobil.ktor.mqtt.packet.*
 import de.kempmobil.ktor.mqtt.util.Logger
 import de.kempmobil.ktor.mqtt.util.toTopic
+import dev.mokkery.answering.calls
+import dev.mokkery.everySuspend
+import dev.mokkery.mock
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
@@ -16,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.encodeToByteString
 import java.nio.channels.ClosedChannelException
 import kotlin.test.*
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class DefaultEngineTest {
@@ -191,6 +195,24 @@ class DefaultEngineTest {
             assertTrue(result.isFailure)
             assertIs<ConnectionException>(result.exceptionOrNull())
         }
+    }
+
+    @Test
+    fun `ensure connection times out after connection timeout`() = runTest(timeout = 2.seconds) {
+        val config = DefaultEngineConfig("localhost", 1234).apply {
+            connectionTimeout = 100.milliseconds
+        }
+        val socketHandler = mock<SocketHandler> {
+            everySuspend { openSocket(config) } calls {
+                // Block this coroutine to trigger a connectionTimeout:
+                suspendCancellableCoroutine { }
+            }
+        }
+        val engine = DefaultEngine(config, socketHandler)
+        val connected = engine.start()
+
+        assertFalse(connected.isSuccess, "Connection should not be successful")
+        assertIs<ConnectionException>(connected.exceptionOrNull())
     }
 
     // ---- Helper functions -------------------------------------------------------------------------------------------
