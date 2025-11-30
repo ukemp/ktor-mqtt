@@ -18,8 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.io.Buffer
 
@@ -28,12 +28,10 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig) : Mqtt
     private val client: HttpClient = config.http()
 
     private val _packetResults = MutableSharedFlow<Result<Packet>>()
-    override val packetResults: SharedFlow<Result<Packet>>
-        get() = _packetResults
+    override val packetResults = _packetResults.asSharedFlow()
 
     private val _connected = MutableStateFlow(false)
-    override val connected: StateFlow<Boolean>
-        get() = _connected
+    override val connected = _connected.asStateFlow()
 
     private val scope = CoroutineScope(config.dispatcher)
 

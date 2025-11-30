@@ -14,8 +14,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.io.EOFException
@@ -24,12 +24,10 @@ internal class DefaultEngine(private val config: DefaultEngineConfig, socketHand
     MqttEngine {
 
     private val _packetResults = MutableSharedFlow<Result<Packet>>()
-    override val packetResults: SharedFlow<Result<Packet>>
-        get() = _packetResults
+    override val packetResults = _packetResults.asSharedFlow()
 
     private val _connected = MutableStateFlow(false)
-    override val connected: StateFlow<Boolean>
-        get() = _connected
+    override val connected = _connected.asStateFlow()
 
     private val socketHandler = socketHandler ?: SocketHandlerImpl(config.dispatcher)
 
