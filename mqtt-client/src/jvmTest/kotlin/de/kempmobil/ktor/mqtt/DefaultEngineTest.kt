@@ -222,7 +222,7 @@ class DefaultEngineTest {
         Logger.configureLogging {
             minSeverity = Severity.Verbose
         }
-        return DefaultEngine(DefaultEngineConfig(host, port))
+        return DefaultEngine(DefaultEngineConfig(host, port), replay = 16)
     }
 
     /**

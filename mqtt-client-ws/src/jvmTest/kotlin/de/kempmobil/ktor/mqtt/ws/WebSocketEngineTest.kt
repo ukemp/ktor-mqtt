@@ -184,7 +184,7 @@ class WebSocketEngineTest {
         Logger.configureLogging {
             minSeverity = Severity.Verbose
         }
-        return WebSocketEngine(WebSocketEngineConfig(Url("http://$host:$port")))
+        return WebSocketEngine(WebSocketEngineConfig(Url("http://$host:$port")), 16)
     }
 
     private suspend fun startServer(

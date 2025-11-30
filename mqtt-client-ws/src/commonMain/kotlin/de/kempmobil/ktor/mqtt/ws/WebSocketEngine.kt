@@ -23,11 +23,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.io.Buffer
 
-internal class WebSocketEngine(private val config: WebSocketEngineConfig) : MqttEngine {
+/**
+ * @property config the engine config
+ * @param replay the size of the replay cache for [packetResults], mainly used for testing
+ */
+internal class WebSocketEngine(private val config: WebSocketEngineConfig, replay: Int = 0) : MqttEngine {
 
     private val client: HttpClient = config.http()
 
-    private val _packetResults = MutableSharedFlow<Result<Packet>>()
+    private val _packetResults = MutableSharedFlow<Result<Packet>>(replay = replay)
     override val packetResults = _packetResults.asSharedFlow()
 
     private val _connected = MutableStateFlow(false)

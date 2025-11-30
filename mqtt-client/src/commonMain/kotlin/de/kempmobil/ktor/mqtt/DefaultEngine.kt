@@ -20,10 +20,19 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.io.EOFException
 
-internal class DefaultEngine(private val config: DefaultEngineConfig, socketHandler: SocketHandler? = null) :
+/**
+ * @property config the engine config
+ * @param socketHandler use a [SocketHandler] other than the default one, mainly used for testing
+ * @param replay the size of the replay cache for [packetResults], mainly used for testing
+ */
+internal class DefaultEngine(
+    private val config: DefaultEngineConfig,
+    socketHandler: SocketHandler? = null,
+    replay: Int = 0
+) :
     MqttEngine {
 
-    private val _packetResults = MutableSharedFlow<Result<Packet>>()
+    private val _packetResults = MutableSharedFlow<Result<Packet>>(replay = replay)
     override val packetResults = _packetResults.asSharedFlow()
 
     private val _connected = MutableStateFlow(false)
