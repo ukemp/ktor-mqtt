@@ -29,7 +29,12 @@ kotlin {
     listOf(
         iosX64(),
         iosArm64(),
-        iosSimulatorArm64()
+        iosSimulatorArm64(),
+        macosX64(),
+        macosArm64(),
+        tvosX64(),
+        tvosArm64(),
+        tvosSimulatorArm64()
     ).forEach {
         it.binaries.framework {
             baseName = "base"
