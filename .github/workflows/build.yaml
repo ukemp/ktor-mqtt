@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ add-macos-tvos ]
 
 jobs:
   build:
