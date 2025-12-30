@@ -8,14 +8,7 @@ env:
   ACTIONS_RUNNER_DEBUG: true
 jobs:
   build:
-    strategy:
-      matrix:
-        include:
-          - target: publishAllPublicationsToMavenCentral --no-configuration-cache
-            os: macos-latest
-          - target: publishAllPublicationsToMavenCentral --no-configuration-cache
-            os: ubuntu-latest
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
@@ -39,4 +32,4 @@ jobs:
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_SECRET_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSWORD }}
-        run: ./gradlew ${{ matrix.target }}
+        run: ./gradlew publishAllPublicationsToMavenCentral --no-configuration-cache
