@@ -7,7 +7,7 @@ import kotlin.test.assertTrue
 
 class ConnectionTest {
 
-    private val server = "broker.hivemq.com"
+    private val server = "broker.emqx.io"
 
     private lateinit var client: MqttClient
 
