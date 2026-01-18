@@ -43,3 +43,4 @@ jobs:
         with:
           report_paths: '**/build/test-results/**/TEST-*.xml'
           include_passed: true
+          detailed_summary: true
