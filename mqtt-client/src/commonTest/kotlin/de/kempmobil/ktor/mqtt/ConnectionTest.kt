@@ -3,12 +3,11 @@ package de.kempmobil.ktor.mqtt
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ConnectionTest {
 
-    private val mosquitto = "broker.hivemq.com"
+    private val server = "broker.hivemq.com"
 
     private lateinit var client: MqttClient
 
@@ -19,22 +18,27 @@ class ConnectionTest {
 
     @Test
     fun `test unencrypted connection`() = runTest {
-        client = MqttClient(mosquitto, 1883) { }
+        val port = 1883
+        client = MqttClient(server, port) { }
         val result = client.connect()
-        assertEquals(true, result.isSuccess)
+        assertTrue(
+            result.isSuccess,
+            "Error connecting to ${server}:${port}\n${result.exceptionOrNull()?.stackTraceToString()}"
+        )
     }
 
     @Test
     fun `test TLS connection`() = runTest {
-        client = MqttClient(mosquitto, 8883) {
+        val port = 8883
+        client = MqttClient(server, port) {
             connection {
                 tls { }
             }
         }
         val result = client.connect()
-        if (result.isFailure) {
-            result.exceptionOrNull()?.printStackTrace()
-        }
-        assertTrue(result.isSuccess)
+        assertTrue(
+            result.isSuccess,
+            "Error connecting to ${server}:${port}\n${result.exceptionOrNull()?.stackTraceToString()}"
+        )
     }
 }
