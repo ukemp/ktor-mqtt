@@ -85,9 +85,9 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig, replay
     }
 
     override suspend fun disconnect() {
+        _connected.emit(false)
         wsSession?.close()
         receiverJob?.cancel()
-        _connected.emit(false)
     }
 
     override fun close() {
