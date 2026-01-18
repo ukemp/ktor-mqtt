@@ -1,0 +1,44 @@
+name: Connection Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    permissions:
+      checks: write  # Required for publishing the test results
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run ConnectionTest
+        run: |
+          ./gradlew cleanTest \
+          :mqtt-client:jvmTest --tests "de.kempmobil.ktor.mqtt.ConnectionTest" \
+          :mqtt-client:testDebugUnitTest --tests "de.kempmobil.ktor.mqtt.ConnectionTest" \
+          :mqtt-client:iosX64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest" \
+          :mqtt-client:iosSimulatorArm64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest" \
+          :mqtt-client:macosX64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest" \
+          :mqtt-client:macosArm64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest" \
+          :mqtt-client:tvosX64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest" \
+          :mqtt-client:tvosSimulatorArm64Test --tests "de.kempmobil.ktor.mqtt.ConnectionTest" \
+          --continue
+
+      - name: Publish Test Results
+        uses: mikepenz/action-junit-report@v5
+        if: success() || failure() # always run even if the previous step fails
+        with:
+          report_paths: '**/build/test-results/**/TEST-*.xml'
+          include_passed: true

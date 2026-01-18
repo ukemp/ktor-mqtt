@@ -1,12 +1,14 @@
 package de.kempmobil.ktor.mqtt
 
 import kotlinx.coroutines.test.runTest
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
-@Ignore
 class ConnectionTest {
 
-    private val mosquitto = "test.mosquitto.org"
+    private val mosquitto = "broker.hivemq.com"
 
     private lateinit var client: MqttClient
 
@@ -24,12 +26,15 @@ class ConnectionTest {
 
     @Test
     fun `test TLS connection`() = runTest {
-        client = MqttClient(mosquitto, 8886) {
+        client = MqttClient(mosquitto, 8883) {
             connection {
                 tls { }
             }
         }
         val result = client.connect()
+        if (result.isFailure) {
+            result.exceptionOrNull()?.printStackTrace()
+        }
         assertTrue(result.isSuccess)
     }
 }
