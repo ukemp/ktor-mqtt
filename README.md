@@ -10,14 +10,14 @@ This library does not support MQTT 3.
 
 ### Supported Platforms
 
-| Connection Type  |        JVM         |      Android       |        iOS         |       Wasm*        |
-|------------------|:------------------:|:------------------:|:------------------:|:------------------:|
-| Plain Socket     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| Secure Socket    | :heavy_check_mark: | :heavy_check_mark: |         **         |                    |
-| Websocket        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                    |
-| Secure Websocket | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Connection Type  |        JVM         |      Android       |       Apple*       | [Wasm](#wasm-support) |
+|------------------|:------------------:|:------------------:|:------------------:|:---------------------:|
+| Plain Socket     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                       |
+| Secure Socket    | :heavy_check_mark: | :heavy_check_mark: |         **         |                       |
+| Websocket        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                       |
+| Secure Websocket | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |  :heavy_check_mark:   |
 
-\* Wasm support is currently experimental, see a simple demo page [here](https://ukemp.github.io/ktor-mqtt/).
+\* iOS, macOS, tvOS.
 
 \** Will be available when
 this [Ktor bug](https://youtrack.jetbrains.com/issue/KTOR-2749/Support-for-Raw-TLS-Sockets-on-iOS-KMM) is resolved.
@@ -141,8 +141,8 @@ Add the library to dependencies:
 
 ```kotlin
 dependencies {
-    implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.8.1")
-    implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.8.1")
+  implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.8.2")
+  implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.8.2")
 }
 ```
 
@@ -153,8 +153,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.8.1")
-                implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.8.1")
+              implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.8.2")
+              implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.8.2")
             }
         }
     }
@@ -175,8 +175,8 @@ and **at least one Ktor Http client library**, for example `CIO`:
 
 ```kotlin
 dependencies {
-    implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.8.1")
-    implementation("io.ktor:ktor-client-cio:3.3.2")
+  implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.8.2")
+  implementation("io.ktor:ktor-client-cio:3.3.3")
 }
 ```
 
