@@ -2,18 +2,36 @@ package de.kempmobil.ktor.mqtt
 
 import de.kempmobil.ktor.mqtt.packet.Publish
 
-public open class MqttException internal constructor(message: String? = null, cause: Throwable? = null) :
+public sealed class MqttException(message: String? = null, cause: Throwable? = null) :
     RuntimeException(message, cause)
 
+/**
+ * Thrown when a received packet could not be parsed.
+ */
 public class MalformedPacketException(message: String? = null) :
     MqttException(message)
 
+/**
+ * Thrown when a protocol error is detected. For example the server sent a "receive maximum" value of 0 (zero).
+ */
+public class ProtocolErrorException(message: String? = null) :
+    MqttException(message)
+
+/**
+ * Indicates that a server connection cannot be established or was disconnected.
+ */
 public class ConnectionException(message: String? = null, cause: Throwable? = null) :
     MqttException(message = message, cause = cause)
 
+/**
+ * Indicates that a packet was not received within the expected time.
+ */
 public class TimeoutException(message: String) :
     MqttException(message)
 
+/**
+ * Indicates that the topic alias value of a publish request exceed the "Topic Alias Maximum" sent by the server.
+ */
 public class TopicAliasException(message: String?) :
     MqttException(message)
 

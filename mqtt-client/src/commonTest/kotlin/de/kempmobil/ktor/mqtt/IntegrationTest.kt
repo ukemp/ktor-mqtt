@@ -115,11 +115,8 @@ class IntegrationTest {
         sender.assertConnected()
         receiver.assertConnected()
 
-        // TODO: once chapter 4.9 "Flow Control" is implemented, we can use any value instead of the receive maximum.
-        //   This is only required, because we run each sender in its own coroutine scope, if we'd run the sender fully
-        //   sequential, then all messages are acknowledged before sending a new message and hence we can send any number
-        //   of messages!
-        val messages = receiver.receiveMaximum.toInt().coerceAtMost(100)
+        // Make sure to send more messages in parallel than the "receive maximum" of the server to test chap. 4.9
+        val messages = receiver.receiveMaximum.toInt() * 5
 
         receiver.subscribe(buildFilterList {
             add(topic = topic, qoS = qoS)

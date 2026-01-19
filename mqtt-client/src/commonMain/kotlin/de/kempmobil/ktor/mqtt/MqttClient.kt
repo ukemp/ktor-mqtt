@@ -4,6 +4,7 @@ import de.kempmobil.ktor.mqtt.packet.*
 import de.kempmobil.ktor.mqtt.util.Logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Semaphore
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.updateAndFetch
@@ -65,6 +66,10 @@ public class MqttClient internal constructor(
     public val receiveMaximum: UShort
         get() = _receiveMaximum
     private var _receiveMaximum = UShort.MAX_VALUE
+        set(value) {
+            field = value
+            sendQuota = Semaphore(value.toInt())
+        }
 
     /**
      * Provides the connection state of this MQTT client. When the state is [Connected] this implies that an IP
@@ -91,6 +96,9 @@ public class MqttClient internal constructor(
 
     @OptIn(ExperimentalAtomicApi::class)
     private val packetIdentifier = AtomicInt(0)
+
+    // Initialize with the default receive maximum
+    private var sendQuota = Semaphore(65535)
 
     private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
 
@@ -298,6 +306,7 @@ public class MqttClient internal constructor(
     }
 
     private suspend fun sendAtLeastOnceMessage(inFlight: InFlightPublish): PublishResponse {
+        sendQuota.acquire()
         val publish = inFlight.source
 
         val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
@@ -311,6 +320,7 @@ public class MqttClient internal constructor(
     }
 
     private suspend fun sendExactlyOnceMessage(inFlight: InFlightPublish): PublishResponse {
+        sendQuota.acquire()
         val publish = inFlight.source
 
         awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
@@ -394,6 +404,9 @@ public class MqttClient internal constructor(
 
             _subscriptionIdentifierAvailable = connack.subscriptionIdentifierAvailable.isAvailable()
             _receiveMaximum = connack.receiveMaximum?.value ?: UShort.MAX_VALUE
+            if (_receiveMaximum == 0.toUShort()) {
+                throw ProtocolErrorException("Server sent a Receive Maximum of value 0")
+            }
 
             Logger.i {
                 "Received server parameters: " +
@@ -401,7 +414,8 @@ public class MqttClient internal constructor(
                         "keepAlive=$keepAlive, " +
                         "serverTopicAliasMaximum=${serverTopicAliasMaximum.value}, " +
                         "assignedClientIdentifier=${connack.assignedClientIdentifier?.value ?: "''"}, " +
-                        "subscriptionIdentifierAvailable=$_subscriptionIdentifierAvailable"
+                        "subscriptionIdentifierAvailable=$_subscriptionIdentifierAvailable, " +
+                        "receiveMaximum=$_receiveMaximum"
             }
         }
 
@@ -494,9 +508,36 @@ public class MqttClient internal constructor(
                 session.releaseIncomingPacketId(packet)
             }
 
+            is Puback -> {
+                releaseSendQuotaSafe()  // See chapter 4.9 Flow Control
+                receivedPackets.emit(packet)
+            }
+
+            is Pubcomp -> {
+                releaseSendQuotaSafe()  // See chapter 4.9 Flow Control
+                receivedPackets.emit(packet)
+            }
+
+            is Pubrec -> {
+                // See chapter 4.9 Flow Control
+                if (packet.reason >= UnspecifiedError) {
+                    releaseSendQuotaSafe()
+                }
+                receivedPackets.emit(packet)
+            }
+
             else -> {
                 receivedPackets.emit(packet)
             }
+        }
+    }
+
+    private fun releaseSendQuotaSafe() {
+        // "The attempt to increment above the initial send quota might be caused by the
+        // re-transmission of a PUBREL packet after a new Network Connection is established."
+        try {
+            sendQuota.release()
+        } catch (_: IllegalStateException) {
         }
     }
 
