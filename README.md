@@ -212,7 +212,7 @@ val client = MqttClient("https://test.mosquitto.org:8081") {
 }
 ```
 
-See the [Ktor documentation](https://ktor.io/docs/client-create-and-configure.html) on how to configure a http client.
+See the [Ktor documentation](https://ktor.io/docs/client-create-and-configure.html) on how to configure an http client.
 
 ## Wasm Support
 
@@ -235,5 +235,4 @@ Do not expect Wasm to support plain socket connections in the future. Due to its
 What's currently missing:
 
 - Handling of `Authentication Method` and `Authentication Data` fields in the `CONNACK` message
-- Handling of the `Maximum Packet Size`, `Wildcard Subscription Available`,
-  `Shared Subscription Available` flags in the `CONNACK` message
+- Handling of the `Wildcard Subscription Available`, `Shared Subscription Available` flags in the `CONNACK` message

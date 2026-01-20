@@ -79,6 +79,15 @@ public class MqttClient internal constructor(
     private var _isRetainAvailable = true
 
     /**
+     * The value of 'Maximum Packet Size' from the CONNACK message of the server.
+     *
+     * Note that this value is only reported here, packets are not checked for their size before being sent.
+     */
+    public val maxPacketSize: UInt
+        get() = _maxPacketSize
+    private var _maxPacketSize = UInt.MAX_VALUE
+
+    /**
      * Provides the connection state of this MQTT client. When the state is [Connected] this implies that an IP
      * connectivity has been established AND that the server responded with a success CONNACK message.
      */
@@ -416,6 +425,7 @@ public class MqttClient internal constructor(
             }
 
             _isRetainAvailable = connack.retainAvailable?.value ?: true
+            _maxPacketSize = connack.maximumPacketSize?.value ?: UInt.MAX_VALUE
 
             Logger.i {
                 "Received server parameters: " +
@@ -425,7 +435,8 @@ public class MqttClient internal constructor(
                         "assignedClientIdentifier=${connack.assignedClientIdentifier?.value ?: "''"}, " +
                         "subscriptionIdentifierAvailable=$_subscriptionIdentifierAvailable, " +
                         "receiveMaximum=$_receiveMaximum, " +
-                        "retainAvailable=$_isRetainAvailable"
+                        "retainAvailable=$_isRetainAvailable, " +
+                        "maximumPacketSize=$_maxPacketSize"
             }
         }
 
