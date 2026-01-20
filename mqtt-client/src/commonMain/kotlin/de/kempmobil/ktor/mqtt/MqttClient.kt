@@ -72,6 +72,13 @@ public class MqttClient internal constructor(
         }
 
     /**
+     * The value of 'Retain Available' from the CONNACK message of the server.
+     */
+    public val isRetainAvailable: Boolean
+        get() = _isRetainAvailable
+    private var _isRetainAvailable = true
+
+    /**
      * Provides the connection state of this MQTT client. When the state is [Connected] this implies that an IP
      * connectivity has been established AND that the server responded with a success CONNACK message.
      */
@@ -283,7 +290,7 @@ public class MqttClient internal constructor(
                 Publish(
                     isDupMessage = if (actualQoS == QoS.AT_MOST_ONCE) false else isDupMessage,  // MQTT-3.3.1-2
                     qoS = actualQoS,
-                    isRetainMessage = request.isRetainMessage,
+                    isRetainMessage = _isRetainAvailable && request.isRetainMessage,
                     packetIdentifier = if (actualQoS == QoS.AT_MOST_ONCE) null else nextPacketIdentifier(),
                     topic = request.topic,
                     payloadFormatIndicator = request.payloadFormatIndicator,
@@ -408,6 +415,8 @@ public class MqttClient internal constructor(
                 throw ProtocolErrorException("Server sent a Receive Maximum of value 0")
             }
 
+            _isRetainAvailable = connack.retainAvailable?.value ?: true
+
             Logger.i {
                 "Received server parameters: " +
                         "maxQoS=$maxQos, " +
@@ -415,7 +424,8 @@ public class MqttClient internal constructor(
                         "serverTopicAliasMaximum=${serverTopicAliasMaximum.value}, " +
                         "assignedClientIdentifier=${connack.assignedClientIdentifier?.value ?: "''"}, " +
                         "subscriptionIdentifierAvailable=$_subscriptionIdentifierAvailable, " +
-                        "receiveMaximum=$_receiveMaximum"
+                        "receiveMaximum=$_receiveMaximum, " +
+                        "retainAvailable=$_isRetainAvailable"
             }
         }
 

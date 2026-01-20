@@ -55,6 +55,11 @@ public class PublishRequestBuilder(
 
     /**
      * Defines the retain flag in the publish header.
+     *
+     * Note that this flag only has effect, if the server supports retained messages. If the server is not supporting
+     * retained messages, this flag will be set to `false` in the published packet.
+     *
+     * @see MqttClient.isRetainAvailable
      */
     public var isRetainMessage: Boolean = false
 

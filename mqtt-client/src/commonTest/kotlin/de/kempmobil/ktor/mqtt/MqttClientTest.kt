@@ -382,6 +382,37 @@ class MqttClientTest {
         verify { session.acknowledge(inFlightPubrel) }
     }
 
+    @Test
+    fun `when the server does not support retained messages the retained flag is cleared`() = runTest {
+        everySuspend { connection.start() } returns Result.success(Unit)
+        everySuspend { connection.send(ofType<Connect>()) } returns Result.success(Unit)
+        everySuspend { connection.send(ofType<Publish>()) } returns Result.success(Unit)
+
+        val connack = Connack(
+            isSessionPresent = false,
+            reason = Success,
+            topicAliasMaximum = TopicAliasMaximum(42u),
+            maximumQoS = MaximumQoS(1),
+            retainAvailable = RetainAvailable(false)  // 1. Server says it doesn't support retain
+        )
+        connectionState.emit(true)
+
+        val client = createClient(connection)
+        val connect = sendPacket(connack) {
+            client.connect()
+        }
+
+        assertTrue(connect.isSuccess)
+
+        val result = client.publish(PublishRequest("test/topic") {
+            desiredQoS = QoS.AT_MOST_ONCE
+            isRetainMessage = true  // 2. Client requests to retain a message
+        })
+
+        assertTrue(result.isSuccess, "Could not publish a QoS0 message: $result")
+        assertFalse(result.getOrThrow().source.isRetainMessage)  // 3. the actual message is not retained
+    }
+
     // ---- Helper functions -------------------------------------------------------------------------------------------
 
     private fun createClient(connection: MqttEngine, id: String? = null): MqttClient {
