@@ -79,6 +79,17 @@ public class MqttClient internal constructor(
     private var _isRetainAvailable = true
 
     /**
+     * The value of 'Wildcard Subscription Available' from the CONNACK message of the server.
+     *
+     * Note that this value is only reported here, the [subscribe] method does not check for wild cards in its
+     * method arguments. The server will send a DISCONNECT with reason [WildcardSubscriptionsNotSupported] when a wild
+     * card subscription was requested for a server who is not supporting it.
+     */
+    public val isWildcardSubscriptionAvailable: Boolean
+        get() = _isWildcardSubscriptionAvailable
+    private var _isWildcardSubscriptionAvailable = true
+
+    /**
      * The value of 'Maximum Packet Size' from the CONNACK message of the server.
      *
      * Note that this value is only reported here, packets are not checked for their size before being sent.
@@ -175,7 +186,7 @@ public class MqttClient internal constructor(
         subscriptionIdentifier: SubscriptionIdentifier? = null,
         userProperties: UserProperties = UserProperties.EMPTY
     ): Result<Suback> {
-        val identifier = if ((subscriptionIdentifier != null) && !subscriptionIdentifierAvailable) {
+        val identifier = if ((subscriptionIdentifier != null) && !_subscriptionIdentifierAvailable) {
             Logger.w(throwable = IllegalArgumentException("Ignoring $subscriptionIdentifier")) {
                 "Ignoring subscription identifier, as the server doesn't support it"
             }
@@ -425,6 +436,7 @@ public class MqttClient internal constructor(
             }
 
             _isRetainAvailable = connack.retainAvailable?.value ?: true
+            _isWildcardSubscriptionAvailable = connack.wildcardSubscriptionAvailable?.value ?: true
             _maxPacketSize = connack.maximumPacketSize?.value ?: UInt.MAX_VALUE
 
             Logger.i {
