@@ -117,6 +117,7 @@ class IntegrationTest {
 
         // Make sure to send more messages in parallel than the "receive maximum" of the server to test chap. 4.9
         val messages = receiver.receiveMaximum.toInt() * 5
+        println("Sending $messages message with QoS $qoS to server with a receive maximum of ${receiver.receiveMaximum}")
 
         receiver.subscribe(buildFilterList {
             add(topic = topic, qoS = qoS)

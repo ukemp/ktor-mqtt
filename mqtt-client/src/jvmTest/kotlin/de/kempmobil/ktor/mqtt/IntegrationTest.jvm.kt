@@ -2,8 +2,10 @@ package de.kempmobil.ktor.mqtt
 
 actual fun createClient(id: String, configurator: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit): MqttClient? {
     val server = System.getenv("MQTT_SERVER")
+    val port = 1883
     return if (server != null) {
-        MqttClient(server, 1883) {
+        println("Creating MQTT client ($id) for: $server:$port")
+        MqttClient(server, port) {
             clientId = id
             configurator()
         }

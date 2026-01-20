@@ -306,7 +306,7 @@ public class MqttClient internal constructor(
     }
 
     private suspend fun sendAtLeastOnceMessage(inFlight: InFlightPublish): PublishResponse {
-        sendQuota.acquire()
+        acquireSendQuotaSafe()
         val publish = inFlight.source
 
         val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
@@ -320,7 +320,7 @@ public class MqttClient internal constructor(
     }
 
     private suspend fun sendExactlyOnceMessage(inFlight: InFlightPublish): PublishResponse {
-        sendQuota.acquire()
+        acquireSendQuotaSafe()
         val publish = inFlight.source
 
         awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
@@ -532,12 +532,21 @@ public class MqttClient internal constructor(
         }
     }
 
+    private suspend fun acquireSendQuotaSafe() {
+        try {
+            sendQuota.acquire()
+        } catch (ex: CancellationException) {
+            throw ConnectionException("PUBLISH cancelled while waiting for send quota", ex)
+        }
+    }
+
     private fun releaseSendQuotaSafe() {
-        // "The attempt to increment above the initial send quota might be caused by the
-        // re-transmission of a PUBREL packet after a new Network Connection is established."
         try {
             sendQuota.release()
         } catch (_: IllegalStateException) {
+            // "The attempt to increment above the initial send quota might be caused by the
+            // re-transmission of a PUBREL packet after a new Network Connection is established."
+            // Hence, we might call release() too often, which results in this IllegalStateException.
         }
     }
 
