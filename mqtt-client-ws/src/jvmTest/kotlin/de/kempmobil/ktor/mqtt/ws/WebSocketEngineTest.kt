@@ -48,6 +48,7 @@ class WebSocketEngineTest {
 
     @AfterTest
     fun cleanup() {
+        port++
         cleanupJob?.run {
             cleanupJob = null
             runBlocking {
@@ -179,7 +180,6 @@ class WebSocketEngineTest {
 
     // ---- Helper functions -------------------------------------------------------------------------------------------
 
-    @Suppress("TestFunctionName")
     private fun MqttEngine(): MqttEngine {
         Logger.configureLogging {
             minSeverity = Severity.Verbose
