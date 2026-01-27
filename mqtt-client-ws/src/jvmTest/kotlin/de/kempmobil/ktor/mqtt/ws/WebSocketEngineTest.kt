@@ -206,6 +206,10 @@ class WebSocketEngineTest {
                     maxFrameSize = frameSize
                     if (session != null) {
                         session()
+                    } else {
+                        // Keep the websocket open, to let tests to run to completion
+                        for (frame in incoming) {
+                        }
                     }
                 }
             }
