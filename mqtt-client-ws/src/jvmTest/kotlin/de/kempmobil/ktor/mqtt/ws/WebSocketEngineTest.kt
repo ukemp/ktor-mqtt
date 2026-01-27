@@ -75,8 +75,8 @@ class WebSocketEngineTest {
         MqttEngine().use { engine ->
             val result = engine.start()
 
-            assertTrue(result.isSuccess)
-            assertTrue(engine.connected.value)
+            assertTrue(result.isSuccess, "Starting engine should not return a failure")
+            assertTrue(engine.connected.value, "Engine should be connected after start")
         }
     }
 
@@ -86,8 +86,8 @@ class WebSocketEngineTest {
         MqttEngine().use { engine ->
             val result = engine.start()
 
-            assertTrue(result.isSuccess)
-            assertTrue(engine.connected.value)
+            assertTrue(result.isSuccess, "Starting engine should not return a failure")
+            assertTrue(engine.connected.value, "Engine should be connected after start")
 
             cleanupJob?.start()
             cleanupJob?.join()
@@ -106,7 +106,7 @@ class WebSocketEngineTest {
             assertFalse(engine.connected.value, "Engine should not be connected before start")
 
             val result = engine.start()
-            assertTrue(result.isSuccess)
+            assertTrue(result.isSuccess, "Starting engine should not return a failure")
             assertTrue(engine.connected.value, "Engine should be connected after start")
 
             engine.disconnect()
