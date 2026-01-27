@@ -11,6 +11,10 @@ public data class TopicFilter(
     }
 }
 
+public fun List<TopicFilter>.hasSharedTopic(): Boolean = any { it.filter.isShared() }
+
+public fun List<TopicFilter>.hasWildcard(): Boolean = any { it.filter.containsWildcard() }
+
 public fun buildFilterList(init: TopicFilterBuilder.() -> Unit): List<TopicFilter> {
     return TopicFilterBuilder().also(init).build()
 }

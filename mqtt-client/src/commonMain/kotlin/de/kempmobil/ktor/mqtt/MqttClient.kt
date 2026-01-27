@@ -81,13 +81,26 @@ public class MqttClient internal constructor(
     /**
      * The value of 'Wildcard Subscription Available' from the CONNACK message of the server.
      *
-     * Note that this value is only reported here, the [subscribe] method does not check for wild cards in its
-     * method arguments. The server will send a DISCONNECT with reason [WildcardSubscriptionsNotSupported] when a wild
-     * card subscription was requested for a server who is not supporting it.
+     * Note that this value is only reported here, the [subscribe] method merely logs a warning message if a wildcard
+     * subscription is requested, when the server does not support it. The server should send a DISCONNECT with reason
+     * [WildcardSubscriptionsNotSupported] when a wild card subscription was requested for a server who is not
+     * supporting it.
      */
     public val isWildcardSubscriptionAvailable: Boolean
         get() = _isWildcardSubscriptionAvailable
     private var _isWildcardSubscriptionAvailable = true
+
+    /**
+     * The value of 'Shared Subscription Available' from the CONNACK message of the server.
+     *
+     * Note that this value is only reported here, the [subscribe] method merely logs a warning message if a shared
+     * subscription is requested, when the server does not support it. The server should send a DISCONNECT with reason
+     * [SharedSubscriptionsNotSupported] when a wild card subscription was requested for a server who is not supporting
+     * it.
+     */
+    public val isSharedSubscriptionAvailable: Boolean
+        get() = _isSharedSubscriptionAvailable
+    private var _isSharedSubscriptionAvailable = true
 
     /**
      * The value of 'Maximum Packet Size' from the CONNACK message of the server.
@@ -186,6 +199,18 @@ public class MqttClient internal constructor(
         subscriptionIdentifier: SubscriptionIdentifier? = null,
         userProperties: UserProperties = UserProperties.EMPTY
     ): Result<Suback> {
+        if (!_isWildcardSubscriptionAvailable && filters.hasWildcard()) {
+            Logger.w {
+                "Requesting at least one wildcard subscription ($filters), but the server does not support it. " +
+                        "This will likely result in a DISCONNECT message from the server."
+            }
+        }
+        if (!_isSharedSubscriptionAvailable && filters.hasSharedTopic()) {
+            Logger.w {
+                "Requesting at least one shared subscription ($filters), but the server does not support it. " +
+                        "This will likely result in a DISCONNECT message from the server."
+            }
+        }
         val identifier = if ((subscriptionIdentifier != null) && !_subscriptionIdentifierAvailable) {
             Logger.w(throwable = IllegalArgumentException("Ignoring $subscriptionIdentifier")) {
                 "Ignoring subscription identifier, as the server doesn't support it"
@@ -437,6 +462,7 @@ public class MqttClient internal constructor(
 
             _isRetainAvailable = connack.retainAvailable?.value ?: true
             _isWildcardSubscriptionAvailable = connack.wildcardSubscriptionAvailable?.value ?: true
+            _isSharedSubscriptionAvailable = connack.sharedSubscriptionAvailable?.value ?: true
             _maxPacketSize = connack.maximumPacketSize?.value ?: UInt.MAX_VALUE
 
             Logger.i {

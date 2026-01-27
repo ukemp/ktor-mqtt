@@ -229,10 +229,3 @@ Sources are available at [main.kt](mqtt-client-ws/src/wasmJsMain/kotlin/main.kt)
 
 Do not expect Wasm to support plain socket connections in the future. Due to its nature, it will always require a
 (secure) websocket connection to your MQTT broker.
-
-## Missing features
-
-What's currently missing:
-
-- Handling of `Authentication Method` and `Authentication Data` fields in the `CONNACK` message
-- Handling of the `Shared Subscription Available` flags in the `CONNACK` message

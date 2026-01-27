@@ -31,12 +31,11 @@ public value class Topic(public val name: String) {
      * returns `consumer1` as the share name and `sport/tennis/+` as the filter.
      */
     public fun shareNameAndFilter(): Pair<String, Topic> {
-        val m = shareRegex.find(name)
-        if (m != null) {
+        shareRegex.find(name)?.let { m ->
             return m.groupValues[1] to Topic(m.groupValues[2])
-        } else {
-            throw IllegalStateException("'$name' is not a valid shared subscription")
         }
+
+        throw IllegalStateException("'$name' is not a valid shared subscription")
     }
 
     public fun isNotBlank(): Boolean = name.isNotBlank()
