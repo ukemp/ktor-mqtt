@@ -68,7 +68,7 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig, replay
                 }
                 headers[HttpHeaders.SecWebSocketProtocol] = "mqtt"
             }.also {
-                _connected.emit(true)
+                _connected.value = true
                 receiverJob = scope.launch {
                     it.incomingMessagesLoop()
                 }
@@ -85,7 +85,7 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig, replay
     }
 
     override suspend fun disconnect() {
-        _connected.emit(false)
+        _connected.value = false
         wsSession?.close()
         receiverJob?.cancel()
     }

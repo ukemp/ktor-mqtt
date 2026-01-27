@@ -56,7 +56,7 @@ internal class DefaultEngine(
                 val socket = withTimeout(config.connectionTimeout) {
                     socketHandler.openSocket(config)
                 }
-                _connected.emit(true)
+                _connected.value = true
                 socket
             }.await().also { socket ->
                 sendChannel = socket.openWriteChannel()
@@ -148,7 +148,7 @@ internal class DefaultEngine(
     }
 
     private suspend fun disconnected() {
-        _connected.emit(false)
+        _connected.value = false
         receiverJob?.cancel()
         socket?.close()
         sendChannel?.flushAndClose()
