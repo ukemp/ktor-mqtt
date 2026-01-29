@@ -474,7 +474,9 @@ public class MqttClient internal constructor(
                         "subscriptionIdentifierAvailable=$_subscriptionIdentifierAvailable, " +
                         "receiveMaximum=$_receiveMaximum, " +
                         "retainAvailable=$_isRetainAvailable, " +
-                        "maximumPacketSize=$_maxPacketSize"
+                        "maximumPacketSize=$_maxPacketSize, " +
+                        "wildcardSubscriptionAvailable=$_isWildcardSubscriptionAvailable, " +
+                        "sharedSubscriptionAvailable=$_isSharedSubscriptionAvailable"
             }
         }
 
