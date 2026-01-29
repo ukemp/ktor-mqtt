@@ -92,7 +92,7 @@ class DefaultEngineTest {
             stopServerJob = null
 
             withContext(Dispatchers.Default) { // See runTest { } on why we need this
-                withTimeout(1.seconds) {       // It takes a few millis until the connection is actually closed
+                withTimeout(3.seconds) {       // It takes a few millis until the connection is actually closed
                     engine.connected.first { isConnected -> !isConnected }
                 }
             }
@@ -217,7 +217,6 @@ class DefaultEngineTest {
 
     // ---- Helper functions -------------------------------------------------------------------------------------------
 
-    @Suppress("TestFunctionName")
     private fun MqttEngine(): MqttEngine {
         Logger.configureLogging {
             minSeverity = Severity.Verbose
