@@ -590,6 +590,10 @@ public fun ReasonString?.ifNull(reasonCode: ReasonCode): String {
 @JvmInline
 public value class ReceiveMaximum(override val value: UShort) : WritableProperty<UShort>, Property<UShort> {
 
+    init {
+        malformedWhen(value == 0.toUShort()) { "The Receive Maximum must not be zero." }
+    }
+
     /**
      * The identifier value of this property is: `0x21`
      */
@@ -726,6 +730,10 @@ public value class UserProperty(override val value: StringPair) : WritableProper
  */
 @JvmInline
 public value class MaximumPacketSize(override val value: UInt) : WritableProperty<UInt>, Property<UInt> {
+
+    init {
+        malformedWhen(value == 0.toUInt()) { "The Maximum Packet Size must not be zero." }
+    }
 
     /**
      * The identifier value of this property is: `0x27`

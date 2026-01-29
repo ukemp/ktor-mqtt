@@ -12,12 +12,6 @@ public class MalformedPacketException(message: String? = null) :
     MqttException(message)
 
 /**
- * Indicates that a protocol error was detected. For example the server sent a "receive maximum" value of 0.
- */
-public class ProtocolErrorException(message: String? = null) :
-    MqttException(message)
-
-/**
  * Indicates that a server connection cannot be established or was disconnected.
  */
 public class ConnectionException(message: String? = null, cause: Throwable? = null) :

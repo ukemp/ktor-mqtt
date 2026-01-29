@@ -456,10 +456,6 @@ public class MqttClient internal constructor(
 
             _subscriptionIdentifierAvailable = connack.subscriptionIdentifierAvailable.isAvailable()
             _receiveMaximum = connack.receiveMaximum?.value ?: UShort.MAX_VALUE
-            if (_receiveMaximum == 0.toUShort()) {
-                throw ProtocolErrorException("Server sent a Receive Maximum of value 0")
-            }
-
             _isRetainAvailable = connack.retainAvailable?.value ?: true
             _isWildcardSubscriptionAvailable = connack.wildcardSubscriptionAvailable?.value ?: true
             _isSharedSubscriptionAvailable = connack.sharedSubscriptionAvailable?.value ?: true
