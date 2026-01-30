@@ -219,13 +219,10 @@ See the [Ktor documentation](https://ktor.io/docs/client-create-and-configure.ht
 Wasm Support is currently experimental. Already now it shows the power of Wasm as you get a full features MQTT 5
 client with merely 650kB of compiled Wasm code.
 
-You can launch a test page with:
+You can view a simple test page [here](https://ukemp.github.io/ktor-mqtt/) or you can launch it via:
 
 ```bash
 ./gradlew wasmJsBrowserProductionRun
 ```
 
 Sources are available at [main.kt](mqtt-client-ws/src/wasmJsMain/kotlin/main.kt).
-
-Do not expect Wasm to support plain socket connections in the future. Due to its nature, it will always require a
-(secure) websocket connection to your MQTT broker.
