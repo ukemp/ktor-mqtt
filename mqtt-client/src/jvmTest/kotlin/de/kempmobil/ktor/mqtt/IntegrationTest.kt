@@ -32,9 +32,7 @@ class IntegrationTest {
         @JvmStatic
         @BeforeClass
         fun startServer() {
-            if (System.getenv("RUN_INTEGRATION_TEST") != null) {
-                mosquitto = MosquittoContainer().also { it.start() }
-            }
+            mosquitto = MosquittoContainer().also { it.start() }
         }
 
         @JvmStatic
