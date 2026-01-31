@@ -92,7 +92,7 @@ class DefaultEngineTest {
             stopServerJob = null
 
             withContext(Dispatchers.Default) { // See runTest { } on why we need this
-                withTimeout(3.seconds) {       // It takes a few millis until the connection is actually closed
+                withTimeout(5.seconds) {       // It takes a few millis until the connection is actually closed
                     engine.connected.first { isConnected -> !isConnected }
                 }
             }

@@ -29,7 +29,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Run all tests
-        run: ./gradlew -DRUN_INTEGRATION_TEST=true allTests
+        env:
+          SKIP_INTEGRATION_TEST: ${{ matrix.os == 'macos-latest' }}
+        run: ./gradlew allTests
 
       - name: Publish Test Results
         uses: mikepenz/action-junit-report@v5

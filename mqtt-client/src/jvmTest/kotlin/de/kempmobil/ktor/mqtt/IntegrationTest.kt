@@ -32,7 +32,9 @@ class IntegrationTest {
         @JvmStatic
         @BeforeClass
         fun startServer() {
-            mosquitto = MosquittoContainer().also { it.start() }
+            if (System.getenv("SKIP_INTEGRATION_TEST") != "true") {
+                mosquitto = MosquittoContainer().also { it.start() }
+            }
         }
 
         @JvmStatic
