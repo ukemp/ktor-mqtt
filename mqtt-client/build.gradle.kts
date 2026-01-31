@@ -65,6 +65,12 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.core)
             }
         }
+        jvmTest {
+            dependencies {
+                implementation(libs.testcontainers)
+                implementation(libs.testcontainers.junit)
+            }
+        }
     }
 }
 

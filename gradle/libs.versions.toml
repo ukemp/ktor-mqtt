@@ -10,6 +10,7 @@ kotlinx-browser = "0.5.0"
 slf4j = "2.0.17"
 kermit = "2.0.8"
 mokkery = "3.1.1"
+testcontainers = "2.0.2"
 versions = "0.53.0"
 kover = "0.9.4"
 vanniktech = "0.36.0"
@@ -40,6 +41,8 @@ ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.re
 ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }
 ktor-network-tls = { module = "io.ktor:ktor-network-tls", version.ref = "ktor" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
+testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter", version.ref = "testcontainers" }
 
 # JVM Integration test libraries
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

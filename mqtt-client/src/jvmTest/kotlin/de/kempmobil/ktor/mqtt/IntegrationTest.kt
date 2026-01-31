@@ -1,5 +1,6 @@
 package de.kempmobil.ktor.mqtt
 
+import co.touchlab.kermit.Severity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
@@ -10,6 +11,8 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import kotlinx.io.bytestring.decodeToString
+import org.junit.AfterClass
+import org.junit.BeforeClass
 import kotlin.random.Random
 import kotlin.random.nextUInt
 import kotlin.test.Test
@@ -20,12 +23,25 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-expect fun createClient(
-    id: String,
-    configurator: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit = { }
-): MqttClient?
-
 class IntegrationTest {
+
+    companion object {
+
+        lateinit var mosquitto: MosquittoContainer
+
+        @JvmStatic
+        @BeforeClass
+        fun startServer() {
+            mosquitto = MosquittoContainer().also { it.start() }
+        }
+
+        @JvmStatic
+        @AfterClass
+        fun stopServer() {
+            println(mosquitto.logs)
+            mosquitto.stop()
+        }
+    }
 
     private val TIMEOUT = 60.seconds
 
@@ -109,6 +125,21 @@ class IntegrationTest {
     }
 
     // ---- Helper functions -------------------------------------------------------------------------------------------
+
+    private fun createClient(
+        id: String,
+        configurator: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit
+    ): MqttClient? {
+        return MqttClient(mosquitto.host, mosquitto.defaultPort) {
+            username = MosquittoContainer.USER
+            password = MosquittoContainer.PASSWORD
+            clientId = id
+            logging {
+                minSeverity = Severity.Info
+            }
+            configurator()
+        }
+    }
 
     private suspend fun TestScope.publishReceiveTest(qoS: QoS, sender: MqttClient, receiver: MqttClient) {
         val topic = "topic/${sender.clientId}/${qoS.value}"
