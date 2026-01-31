@@ -27,23 +27,72 @@ class IntegrationTest {
 
     companion object {
 
-        lateinit var mosquitto: MosquittoContainer
+        var runTests = System.getenv("RUN_INTEGRATION_TEST") != null
+        var defaultPort = 0
+        var tlsPort = 0
+        var defaultPortNoAuth = 0
+        var mosquitto: MosquittoContainer? = null
 
         @JvmStatic
         @BeforeClass
         fun startServer() {
-            mosquitto = MosquittoContainer().also { it.start() }
+            if (runTests) {
+                mosquitto = MosquittoContainer().also { it.start() }
+                defaultPort = mosquitto!!.defaultPort
+                tlsPort = mosquitto!!.tlsPort
+                defaultPortNoAuth = mosquitto!!.defaultPortNoAuth
+            }
         }
 
         @JvmStatic
         @AfterClass
         fun stopServer() {
-            println(mosquitto.logs)
-            mosquitto.stop()
+            println(mosquitto?.logs)
+            mosquitto?.stop()
         }
     }
 
     private val TIMEOUT = 60.seconds
+    private val user = MosquittoContainer.USER
+    private val passwd = MosquittoContainer.PASSWORD
+
+    @Test
+    fun `connect successfully`() = runConnectionTest(username = user, password = passwd) { client ->
+        val connected = client.connect()
+
+        assertTrue(connected.isSuccess)
+        assertEquals(Success, connected.getOrThrow().reason)
+    }
+
+    @Test
+    fun `connect successfully via TLS`() = runConnectionTest(
+        username = user,
+        password = passwd,
+        port = tlsPort
+    ) { client ->
+        val connected = client.connect()
+
+        assertTrue(connected.isSuccess)
+        assertEquals(Success, connected.getOrThrow().reason)
+    }
+
+    @Test
+    fun `connect returns NotAuthorized when using wrong credentials`() =
+        runConnectionTest(username = user, password = "invalid") { client ->
+            val connected = client.connect()
+
+            assertTrue(connected.isSuccess)
+            assertEquals(NotAuthorized, connected.getOrThrow().reason)
+        }
+
+    @Test
+    fun `connect successfully without credentials on anonymous port`() =
+        runConnectionTest(username = null, password = null, port = defaultPortNoAuth) { client ->
+            val connected = client.connect()
+
+            assertTrue(connected.isSuccess)
+            assertEquals(Success, connected.getOrThrow().reason)
+        }
 
     @Test
     fun `reconnect after disconnect returns proper connection states`() = runClientTest("reconnect") { client ->
@@ -127,17 +176,31 @@ class IntegrationTest {
     // ---- Helper functions -------------------------------------------------------------------------------------------
 
     private fun createClient(
-        id: String,
+        clientId: String,
+        username: String?,
+        password: String?,
+        port: Int = defaultPort,
         configurator: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit
     ): MqttClient? {
-        return MqttClient(mosquitto.host, mosquitto.defaultPort) {
-            username = MosquittoContainer.USER
-            password = MosquittoContainer.PASSWORD
-            clientId = id
-            logging {
-                minSeverity = Severity.Info
+        return if (runTests) {
+            MqttClient(mosquitto!!.host, port) {
+                logging {
+                    minSeverity = Severity.Verbose
+                }
+                if (port == tlsPort) {
+                    connection {
+                        tls {
+                            trustManager = NoTrustManager
+                        }
+                    }
+                }
+                this.username = username
+                this.password = password
+                this.clientId = clientId
+                configurator()
             }
-            configurator()
+        } else {
+            null
         }
     }
 
@@ -199,13 +262,40 @@ class IntegrationTest {
             }
     }
 
+    private fun runConnectionTest(
+        username: String?,
+        password: String?,
+        port: Int = defaultPort,
+        test: suspend TestScope.(client: MqttClient) -> Unit
+    ) {
+        val client = createClient(
+            "connect-${Random.nextUInt()}",
+            username = username,
+            password = password,
+            port = port,
+            configurator = { })
+
+        if (client != null) {
+            runTest(timeout = TIMEOUT) {
+                client.use {
+                    test(it)
+                }
+            }
+        }
+    }
+
     private fun runClientTest(
         clientId: String,
         timeout: Duration = TIMEOUT,
         configurator: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit = { },
         test: suspend TestScope.(client: MqttClient) -> Unit
     ) {
-        val client = createClient("$clientId-${Random.nextUInt()}", configurator)
+        val client = createClient(
+            "$clientId-${Random.nextUInt()}",
+            username = user,
+            password = passwd,
+            configurator = configurator
+        )
 
         if (client != null) {
             runTest(timeout = timeout) {
@@ -228,8 +318,14 @@ class IntegrationTest {
         timeout: Duration = TIMEOUT,
         test: suspend TestScope.(client1: MqttClient, client2: MqttClient) -> Unit
     ) {
-        val client1 = createClient("$clientId1-${Random.nextUInt()}", configurator1)
-        val client2 = createClient("$clientId2-${Random.nextUInt()}", configurator2)
+        val client1 = createClient(
+            "$clientId1-${Random.nextUInt()}", username = user,
+            password = passwd, configurator = configurator1
+        )
+        val client2 = createClient(
+            "$clientId2-${Random.nextUInt()}", username = user,
+            password = passwd, configurator = configurator2
+        )
 
         if ((client1 != null) && (client2 != null)) {
             runTest(timeout = timeout) {
