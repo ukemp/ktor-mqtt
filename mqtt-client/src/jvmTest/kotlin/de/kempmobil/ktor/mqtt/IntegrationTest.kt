@@ -27,28 +27,23 @@ class IntegrationTest {
 
     companion object {
 
-        var runTests = System.getenv("RUN_INTEGRATION_TEST") != null
-        var defaultPort = 0
-        var tlsPort = 0
-        var defaultPortNoAuth = 0
         var mosquitto: MosquittoContainer? = null
 
         @JvmStatic
         @BeforeClass
         fun startServer() {
-            if (runTests) {
+            if (System.getenv("RUN_INTEGRATION_TEST") != null) {
                 mosquitto = MosquittoContainer().also { it.start() }
-                defaultPort = mosquitto!!.defaultPort
-                tlsPort = mosquitto!!.tlsPort
-                defaultPortNoAuth = mosquitto!!.defaultPortNoAuth
             }
         }
 
         @JvmStatic
         @AfterClass
         fun stopServer() {
-            println(mosquitto?.logs)
-            mosquitto?.stop()
+            mosquitto?.let {
+                println(it.logs)
+                it.stop()
+            }
         }
     }
 
@@ -68,7 +63,7 @@ class IntegrationTest {
     fun `connect successfully via TLS`() = runConnectionTest(
         username = user,
         password = passwd,
-        port = tlsPort
+        port = mosquitto?.tlsPort ?: 0
     ) { client ->
         val connected = client.connect()
 
@@ -87,7 +82,7 @@ class IntegrationTest {
 
     @Test
     fun `connect successfully without credentials on anonymous port`() =
-        runConnectionTest(username = null, password = null, port = defaultPortNoAuth) { client ->
+        runConnectionTest(username = null, password = null, port = mosquitto?.defaultPortNoAuth ?: 0) { client ->
             val connected = client.connect()
 
             assertTrue(connected.isSuccess)
@@ -179,15 +174,15 @@ class IntegrationTest {
         clientId: String,
         username: String?,
         password: String?,
-        port: Int = defaultPort,
+        port: Int = mosquitto?.defaultPort ?: 0,
         configurator: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit
     ): MqttClient? {
-        return if (runTests) {
-            MqttClient(mosquitto!!.host, port) {
+        return mosquitto?.let { container ->
+            MqttClient(container.host, port) {
                 logging {
                     minSeverity = Severity.Verbose
                 }
-                if (port == tlsPort) {
+                if (port == (mosquitto?.tlsPort ?: 0)) {
                     connection {
                         tls {
                             trustManager = NoTrustManager
@@ -199,7 +194,7 @@ class IntegrationTest {
                 this.clientId = clientId
                 configurator()
             }
-        } else {
+        } ?: run {
             null
         }
     }
@@ -265,7 +260,7 @@ class IntegrationTest {
     private fun runConnectionTest(
         username: String?,
         password: String?,
-        port: Int = defaultPort,
+        port: Int = mosquitto?.defaultPort ?: 0,
         test: suspend TestScope.(client: MqttClient) -> Unit
     ) {
         val client = createClient(
