@@ -7,9 +7,7 @@ import io.ktor.utils.io.core.*
 import kotlinx.io.bytestring.ByteString
 import kotlin.test.*
 import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
 class InMemorySessionStoreTest {
 
     private lateinit var store: SessionStore

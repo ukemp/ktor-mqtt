@@ -10,8 +10,6 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.updateAndFetch
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
-
 
 public class MqttClient internal constructor(
     private val config: MqttClientConfig,
@@ -479,7 +477,6 @@ public class MqttClient internal constructor(
         return connack
     }
 
-    @OptIn(ExperimentalTime::class)
     private suspend fun resumeSession() {
         session.unacknowledgedPackets().forEach { packet ->
             try {
