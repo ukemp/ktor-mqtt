@@ -1,3 +1,9 @@
+// The ByteWriteChannel and ByteReadChannel versions are only required in `Packet` once,
+// while the Source and Sink versions are used throughout packet parsing and writing.
+// The duplicated code isn't nice, but due to the nature of parsing and writing cannot be
+// avoided.
+@file:Suppress("DuplicatedCode")
+
 package de.kempmobil.ktor.mqtt.util
 
 import de.kempmobil.ktor.mqtt.MalformedPacketException

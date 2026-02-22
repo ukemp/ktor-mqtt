@@ -141,8 +141,8 @@ Add the library to dependencies:
 
 ```kotlin
 dependencies {
-  implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.8.2")
-  implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.8.2")
+  implementation("de.kempmobil.ktor.mqtt:mqtt-core:1.0.0")
+  implementation("de.kempmobil.ktor.mqtt:mqtt-client:1.0.0")
 }
 ```
 
@@ -153,8 +153,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-              implementation("de.kempmobil.ktor.mqtt:mqtt-core:0.8.2")
-              implementation("de.kempmobil.ktor.mqtt:mqtt-client:0.8.2")
+              implementation("de.kempmobil.ktor.mqtt:mqtt-core:1.0.0")
+              implementation("de.kempmobil.ktor.mqtt:mqtt-client:1.0.0")
             }
         }
     }
@@ -175,8 +175,8 @@ and **at least one Ktor Http client library**, for example `CIO`:
 
 ```kotlin
 dependencies {
-  implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:0.8.2")
-  implementation("io.ktor:ktor-client-cio:3.3.3")
+  implementation("de.kempmobil.ktor.mqtt:mqtt-client-ws:1.0.0")
+  implementation("io.ktor:ktor-client-cio:3.4.0")
 }
 ```
 
