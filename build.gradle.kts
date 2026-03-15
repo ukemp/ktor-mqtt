@@ -3,11 +3,12 @@ import com.vanniktech.maven.publish.MavenPublishBaseExtension
 
 plugins {
     //trick: for the same plugin versions in all sub-modules
-    alias(libs.plugins.androidLibrary) apply false
+    alias(libs.plugins.androidMultiplatformLibrary) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
-    alias(libs.plugins.org.jetbrains.kotlin.jvm) apply false
-    alias(libs.plugins.jetbrainsCompose) apply false
-    alias(libs.plugins.compose.compiler) apply false
+    alias(libs.plugins.kotlinJvm) apply false
+    alias(libs.plugins.composeMultiplatform) apply false
+    alias(libs.plugins.composeCompiler) apply false
+    alias(libs.plugins.androidApplication) apply false
     alias(libs.plugins.versions)
     alias(libs.plugins.kover)
     alias(libs.plugins.vanniktech)
@@ -21,7 +22,6 @@ dependencies {
     kover(project(":mqtt-core"))
     kover(project(":mqtt-client"))
     kover(project(":mqtt-client-ws"))
-    //kover(project(":mqtt-client-test"))
 }
 
 // Run for example with ./gradlew koverHtmlReport

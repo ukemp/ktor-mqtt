@@ -10,7 +10,7 @@ import java.net.URI
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.mokkery)
     alias(libs.plugins.kover)
     alias(libs.plugins.vanniktech)
