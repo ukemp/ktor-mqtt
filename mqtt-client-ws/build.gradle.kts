@@ -19,15 +19,21 @@ plugins {
 kotlin {
     explicitApi()
     jvm()
-    androidTarget {
-        compilations {
-            compilerOptions {
-                jvmTarget.set(JvmTarget.JVM_1_8)
-            }
-        }
-        publishLibraryVariants("release", "debug")
-    }
+    android {
+        namespace = "de.kempmobil.ktor.mqtt.client.ws"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
 
+        compilerOptions {
+            jvmTarget.set(
+                JvmTarget.JVM_1_8
+            )
+        }
+        withHostTest { }  // Enables unit tests for Android
+    }
+//    androidTarget {
+//        publishLibraryVariants("release", "debug")
+//    }
     listOf(
         iosX64(),
         iosArm64(),
@@ -89,14 +95,6 @@ kotlin {
                 implementation(libs.kotlinx.browser)
             }
         }
-    }
-}
-
-android {
-    namespace = "de.kempmobil.ktor.mqtt.client.ws"
-    compileSdk = 34
-    defaultConfig {
-        minSdk = 21
     }
 }
 
