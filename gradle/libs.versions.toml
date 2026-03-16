@@ -1,5 +1,5 @@
 [versions]
-ktormqtt = "1.0.0"
+ktormqtt = "1.1.0-agp9"
 
 agp = "9.1.0"
 kotlin = "2.3.10"
