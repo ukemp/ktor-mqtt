@@ -32,9 +32,6 @@ kotlin {
         }
         withHostTest { }  // Enables unit tests for Android
     }
-//    androidTarget {
-//        publishLibraryVariants("release", "debug")
-//    }
     listOf(
         iosX64(),
         iosArm64(),
