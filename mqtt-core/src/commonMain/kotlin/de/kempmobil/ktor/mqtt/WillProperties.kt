@@ -57,15 +57,15 @@ public class WillPropertiesBuilder(
     public var messageExpiryInterval: Duration? = null,
     public var contentType: String? = null,
     public var responseTopic: String? = null,
-    public var correlationData: ByteString? = null
+    public var correlationData: ByteString? = null,
+    public var userProperties: UserProperties = UserProperties.EMPTY,
 ) {
-    private val userPropertiesBuilder = UserPropertiesBuilder()
 
     /**
-     * Creates the user properties of this will properties.
+     * Creates the user properties of this will properties using a builder
      */
     public fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
-        userPropertiesBuilder.init()
+        userProperties = UserPropertiesBuilder().apply(init).build()
     }
 
     public fun build(): WillProperties {
@@ -76,7 +76,7 @@ public class WillPropertiesBuilder(
             contentType = contentType?.let { ContentType(it) },
             responseTopic = responseTopic?.let { ResponseTopic(it) },
             correlationData = correlationData?.let { CorrelationData(it) },
-            userProperties = userPropertiesBuilder.build()
+            userProperties = userProperties,
         )
     }
 }

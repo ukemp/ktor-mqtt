@@ -77,8 +77,8 @@ public fun <T : MqttEngineConfig> buildConfig(
 public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     private val engineFactory: MqttEngineFactory<T>
 ) {
-    private var userPropertiesBuilder: UserPropertiesBuilder? = null
-    private var willMessageBuilder: WillMessageBuilder? = null
+    public var userProperties: UserProperties = UserProperties.EMPTY
+    public var willMessage: WillMessage? = null
     private var engine: MqttEngine? = null
     private var loggerConfig: (MutableLoggerConfig.() -> Unit)? = null
 
@@ -107,10 +107,11 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     }
 
     /**
-     * Build user properties used in the CONNECT packet of this client.
+     * Set user properties used in the CONNECT packet of this client.
+     * Replaces previously set [userProperties].
      */
     public fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
-        userPropertiesBuilder = UserPropertiesBuilder().also(init)
+        userProperties = UserPropertiesBuilder().also(init).build()
     }
 
     /**
@@ -119,7 +120,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
      * @param topic the topic name of the last will message of this client
      */
     public fun willMessage(topic: String, init: WillMessageBuilder.() -> Unit) {
-        willMessageBuilder = WillMessageBuilder(topic).also(init)
+        willMessage = WillMessageBuilder(topic).also(init).build()
     }
 
     public fun build(): MqttClientConfig {
@@ -134,9 +135,9 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
             dispatcher = dispatcher,
             clientId = clientId,
             ackMessageTimeout = ackMessageTimeout,
-            willMessage = willMessageBuilder?.build(),
-            willOqS = willMessageBuilder?.willOqS ?: QoS.AT_MOST_ONCE,
-            retainWillMessage = willMessageBuilder?.retainWillMessage ?: false,
+            willMessage = willMessage,
+            willOqS = willMessage?.willQoS ?: QoS.AT_MOST_ONCE,
+            retainWillMessage = willMessage?.retainWillMessage ?: false,
             keepAliveSeconds = keepAliveSeconds,
             username = username,
             password = password,
@@ -148,7 +149,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
             requestProblemInformation = RequestProblemInformation(requestProblemInformation),
             authenticationMethod = authenticationMethod?.let { AuthenticationMethod(it) },
             authenticationData = authenticationData?.let { AuthenticationData(it) },
-            userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
+            userProperties = userProperties,
             sessionStoreProvider = sessionStoreProvider
         )
     }

@@ -9,6 +9,8 @@ import kotlinx.io.bytestring.encodeToByteString
 public data class WillMessage(
     public val topic: Topic,
     public val payload: ByteString,
+    public val willQoS: QoS = QoS.AT_MOST_ONCE,
+    public val retainWillMessage: Boolean = false,
     public val properties: WillProperties
 )
 

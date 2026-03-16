@@ -95,7 +95,7 @@ public class PublishRequestBuilder(
 
     internal var payload: ByteString = EMPTY_PAYLOAD
 
-    internal var userProperties: UserProperties = UserProperties.EMPTY
+    public var userProperties: UserProperties = UserProperties.EMPTY
 
     /**
      * Define text as payload and sets the [PayloadFormatIndicator] to `UTF_8`.
