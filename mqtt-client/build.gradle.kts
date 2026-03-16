@@ -2,13 +2,14 @@
 
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import com.vanniktech.maven.publish.SourcesJar
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.mokkery)
     alias(libs.plugins.kover)
     alias(libs.plugins.vanniktech)
@@ -18,15 +19,22 @@ plugins {
 kotlin {
     explicitApi()
     jvm()
-    androidTarget {
-        compilations {
-            compilerOptions {
-                jvmTarget.set(JvmTarget.JVM_1_8)
-            }
-        }
-        publishLibraryVariants("release", "debug")
-    }
 
+    android {
+        namespace = "de.kempmobil.ktor.mqtt.client"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
+
+        compilerOptions {
+            jvmTarget.set(
+                JvmTarget.JVM_1_8
+            )
+        }
+        withHostTest { }  // Enables unit tests for Android
+    }
+//    androidTarget {
+//        publishLibraryVariants("release", "debug")
+//    }
     listOf(
         iosX64(),
         iosArm64(),
@@ -74,14 +82,6 @@ kotlin {
     }
 }
 
-android {
-    namespace = "de.kempmobil.ktor.mqtt.client"
-    compileSdk = 34
-    defaultConfig {
-        minSdk = 21
-    }
-}
-
 dokka {
     moduleName.set("Ktor-MQTT Client v${libs.versions.ktormqtt.get()}")
     dokkaSourceSets.configureEach {
@@ -104,7 +104,7 @@ mavenPublishing {
     configure(
         KotlinMultiplatform(
             javadocJar = JavadocJar.Dokka("dokkaGenerate"),
-            sourcesJar = true,
+            sourcesJar = SourcesJar.Sources(),
             androidVariantsToPublish = listOf("debug", "release"),
         )
     )
