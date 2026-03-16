@@ -11,7 +11,7 @@ import kotlinx.io.readUShort
 public data class Connect(
     val isCleanStart: Boolean,
     val willMessage: WillMessage?,
-    val willOqS: QoS,
+    val willQqS: QoS,
     val retainWillMessage: Boolean,
     val keepAliveSeconds: UShort,
     val clientId: String,
@@ -29,7 +29,7 @@ public data class Connect(
 ) : AbstractPacket(PacketType.CONNECT) {
 
     init {
-        wellFormedWhen((willMessage != null) || (willOqS == QoS.AT_MOST_ONCE)) {
+        wellFormedWhen((willMessage != null) || (willQqS == QoS.AT_MOST_ONCE)) {
             "If the Will Flag is set to 0, then the Will QoS MUST be set to 0 (0x00) [MQTT-3.1.2-11]"
         }
         malformedWhen(willMessage == null && retainWillMessage) {
@@ -39,7 +39,7 @@ public data class Connect(
 
     override fun toString(): String {
         // Overwritten to prevent printing of password
-        return "Connect(isCleanStart=$isCleanStart, willMessage=$willMessage, willOqS=$willOqS, retainWillMessage=$retainWillMessage, " +
+        return "Connect(isCleanStart=$isCleanStart, willMessage=$willMessage, willOqS=$willQqS, retainWillMessage=$retainWillMessage, " +
                 "keepAliveSeconds=$keepAliveSeconds, clientId='$clientId', userName=$userName, password=********, " +
                 "sessionExpiryInterval=$sessionExpiryInterval, receiveMaximum=$receiveMaximum, maximumPacketSize=$maximumPacketSize, " +
                 "topicAliasMaximum=$topicAliasMaximum, requestResponseInformation=$requestResponseInformation, " +
@@ -114,7 +114,7 @@ internal fun Source.readConnect(): Connect {
     return Connect(
         isCleanStart = bits.isCleanStartFlagSet,
         willMessage = willMessage,
-        willOqS = bits.willQoS,
+        willQqS = bits.willQoS,
         retainWillMessage = bits.isRetainWillMessageFlagSet,
         keepAliveSeconds = keepAliveSeconds,
         clientId = clientId,
@@ -137,7 +137,7 @@ private val Connect.bits: Byte
         var bits = if (isCleanStart) 2 else 0
         if (willMessage != null) {
             // When there is not will message, the QoS and retain flags must be zero, hence evaluate them here:
-            bits = (bits or 4) or (willOqS.value shl 3)
+            bits = (bits or 4) or (willQqS.value shl 3)
             if (retainWillMessage) bits = bits or (1 shl 5)
         }
         if (password != null) bits = bits or (1 shl 6)

@@ -93,7 +93,7 @@ class ConnectTest {
         val connect = Connect(
             isCleanStart = true,
             willMessage = willMessage,
-            willOqS = QoS.AT_LEAST_ONCE,
+            willQqS = QoS.AT_LEAST_ONCE,
             retainWillMessage = false,
             keepAliveSeconds = 67.toUShort(),
             clientId = "client-id",
@@ -150,7 +150,7 @@ class ConnectTest {
         val connect = Connect(
             isCleanStart = true,
             willMessage = willMessage,
-            willOqS = QoS.AT_LEAST_ONCE,
+            willQqS = QoS.AT_LEAST_ONCE,
             retainWillMessage = false,
             keepAliveSeconds = 67.toUShort(),
             clientId = "client-id",
