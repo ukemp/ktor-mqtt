@@ -282,7 +282,7 @@ public class MqttClient internal constructor(
         return Connect(
             isCleanStart = isCleanStart,
             willMessage = config.willMessage,
-            willOqS = config.willOqS,
+            willQqS = config.willQqS,
             retainWillMessage = config.retainWillMessage,
             keepAliveSeconds = config.keepAliveSeconds,
             clientId = config.clientId,

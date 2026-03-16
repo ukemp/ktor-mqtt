@@ -81,8 +81,32 @@ public class UserPropertiesBuilder {
 
     private val userProperties = mutableListOf<StringPair>()
 
+    /**
+     * Shortcut for adding key and value to this builder. Hence
+     * ```
+     * userProperties {
+     *     "key-1" to "value-1"
+     *     "key-2" to "value-2"
+     * }
+     * ```
+     * adds 2 properties.
+     */
     public infix fun String.to(value: String) {
         userProperties.add(StringPair(this, value))
+    }
+
+    /**
+     * Adds a property with the specified key and value to this builder.
+     */
+    public fun add(key: String, value: String) {
+        userProperties.add(StringPair(key, value))
+    }
+
+    /**
+     * Adds all key/value pairs from the list to this builder.
+     */
+    public fun addAll(properties: List<Pair<String, String>>) {
+        userProperties.addAll(properties.map { StringPair(it.first, it.second) })
     }
 
     public fun build(): UserProperties {
