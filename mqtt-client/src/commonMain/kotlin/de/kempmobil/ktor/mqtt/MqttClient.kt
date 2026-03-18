@@ -140,9 +140,6 @@ public class MqttClient internal constructor(
 
     private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
 
-    private val isCleanStart: Boolean
-        get() = session.unacknowledgedPackets().isNotEmpty()
-
     init {
         scope.launch {
             engine.packetResults.collect { result ->
@@ -154,17 +151,22 @@ public class MqttClient internal constructor(
     /**
      * Tries to connect to the MQTT server and send a CONNECT message.
      *
+     * @param isCleanStart when set to `true` the `Clean Start` flag in the CONNACK packet will be set to `1`. Also, the
+     *        [SessionStore] is cleared.
      * @return the connection result. Note that even when the result returns a Connack packet, the client may still not
      *         be successfully connected, as the server may send a CONNACK with an error message.
      * @see connectionState
      */
-    public suspend fun connect(): Result<Connack> {
+    public suspend fun connect(isCleanStart: Boolean = false): Result<Connack> {
         connackFlow.emit(null)
 
+        if (isCleanStart) {
+            session.clear()
+        }
         return engine.start()
             .mapCatching {
                 awaitResponseOf<Connack>(PacketType.CONNACK) {
-                    engine.send(createConnect())
+                    engine.send(createConnect(isCleanStart))
                 }.onSuccess { connack ->
                     inspectConnack(connack)
 
@@ -173,7 +175,7 @@ public class MqttClient internal constructor(
                     if (connack.isSessionPresent) {
                         resumeSession()
                     } else {
-                        session.clear()
+                        session.clear() // Probably redundant, just to be sure...
                     }
                 }.getOrElse {
                     throw it
@@ -278,7 +280,7 @@ public class MqttClient internal constructor(
 
     // ---- Helper methods ---------------------------------------------------------------------------------------------
 
-    private fun createConnect(): Connect {
+    private fun createConnect(isCleanStart: Boolean): Connect {
         return Connect(
             isCleanStart = isCleanStart,
             willMessage = config.willMessage,
