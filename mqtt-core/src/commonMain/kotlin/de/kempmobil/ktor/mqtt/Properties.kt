@@ -179,7 +179,7 @@ public value class MessageExpiryInterval(override val value: UInt) : WritablePro
 }
 
 public fun MessageExpiryInterval.toDuration(): Duration {
-    return value.toInt().seconds
+    return value.toLong().seconds
 }
 
 public fun Duration.toMessageExpiryInterval(): MessageExpiryInterval {
@@ -305,8 +305,17 @@ public value class SessionExpiryInterval(override val value: UInt) : WritablePro
     }
 }
 
+/**
+ * Converts this `SessionExpiryInterval` to its corresponding [Duration].
+ *
+ * @return the duration, returns [Duration.INFINITE], if this represents an infinite duration
+ */
 public fun SessionExpiryInterval.toDuration(): Duration {
-    return value.toInt().seconds
+    return if (doesNotExpire) {
+        Duration.INFINITE
+    } else {
+        value.toLong().seconds
+    }
 }
 
 public fun Duration.toSessionExpiryInterval(): SessionExpiryInterval {
@@ -448,7 +457,7 @@ public value class WillDelayInterval(override val value: UInt) : WritablePropert
 }
 
 public fun WillDelayInterval.toDuration(): Duration {
-    return value.toInt().seconds
+    return value.toLong().seconds
 }
 
 public fun Duration.toWillDelayInterval(): WillDelayInterval {
