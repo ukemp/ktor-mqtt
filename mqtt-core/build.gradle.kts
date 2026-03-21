@@ -49,6 +49,10 @@ kotlin {
         browser() // Target the browser environment
     }
 
+    js {
+        browser()
+    }
+
     sourceSets {
         commonMain {
             dependencies {
