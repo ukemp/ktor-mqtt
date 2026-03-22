@@ -50,6 +50,9 @@ kotlin {
     wasmJs {
         browser() // Target the browser environment
     }
+    js {
+        browser()
+    }
 
     sourceSets {
         commonMain {

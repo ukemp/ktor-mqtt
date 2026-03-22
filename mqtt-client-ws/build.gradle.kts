@@ -59,6 +59,10 @@ kotlin {
             }
         }
     }
+    js {
+        binaries.executable()
+        browser()
+    }
 
     sourceSets {
         commonMain {
@@ -90,7 +94,12 @@ kotlin {
         }
         wasmJsMain {
             dependencies {
-                implementation(libs.kotlinx.browser)
+                implementation(libs.kotlinx.browser.wasm)
+            }
+        }
+        jsMain {
+            dependencies {
+                implementation(libs.kotlinx.browser.js)
             }
         }
     }

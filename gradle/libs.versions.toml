@@ -62,7 +62,8 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMul
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 
 # Wasm libraries
-kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser-wasm-js", version.ref = "kotlinx-browser" }
+kotlinx-browser-wasm = { module = "org.jetbrains.kotlinx:kotlinx-browser-wasm-js", version.ref = "kotlinx-browser" }
+kotlinx-browser-js = { module = "org.jetbrains.kotlinx:kotlinx-browser-js", version.ref = "kotlinx-browser" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
