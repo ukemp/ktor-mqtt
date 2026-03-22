@@ -6,11 +6,11 @@
     <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
 </head>
 <body>
-<script src="mqtt-client-ws.js"></script>
 <h3>Ktor-MQTT JS Test Page</h3>
 <div>
     This page uses Kotlin/JS to create a direct connection from this page to an MQTT broker via secure websocket. It
     connects to test.mosquitto.org, subscribes to all available topics and prints some summary data.
 </div>
-<div></div>
+<div id="mqtt-content"></div>
+<script src="mqtt-client-ws.js"></script>
 </body>
