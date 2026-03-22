@@ -26,7 +26,7 @@ private var connected = false
 private var started: Instant? = null
 
 public fun main() {
-    document.body?.appendMosquitto()
+    document.getElementById("mqtt-content")?.appendMosquitto()
 }
 
 private fun Element.appendMosquitto() {
@@ -35,7 +35,7 @@ private fun Element.appendMosquitto() {
         password = "readonly"
     }
 
-    appendElement("div") {
+    appendElement("p") {
         val startStop = appendElement("button") {
             this as HTMLButtonElement
             type = "button"

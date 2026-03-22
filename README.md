@@ -10,12 +10,12 @@ This library does not support MQTT 3.
 
 ### Supported Platforms
 
-| Connection Type  |        JVM         |      Android       |       Apple*       | [Wasm](#wasm-support) |
-|------------------|:------------------:|:------------------:|:------------------:|:---------------------:|
-| Plain Socket     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                       |
-| Secure Socket    | :heavy_check_mark: | :heavy_check_mark: |         **         |                       |
-| Websocket        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                       |
-| Secure Websocket | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |  :heavy_check_mark:   |
+| Connection Type  |        JVM         |      Android       |       Apple*       | [Kotlin/Wasm](#wasm-support) |     Kotlin/JS      |
+|------------------|:------------------:|:------------------:|:------------------:|:----------------------------:|:------------------:|
+| Plain Socket     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                              |                    |
+| Secure Socket    | :heavy_check_mark: | :heavy_check_mark: |         **         |                              |                    |
+| Websocket        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |                              |                    |
+| Secure Websocket | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |      :heavy_check_mark:      | :heavy_check_mark: |
 
 \* iOS, macOS, tvOS.
 
