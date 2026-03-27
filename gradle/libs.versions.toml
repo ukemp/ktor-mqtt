@@ -1,20 +1,20 @@
 [versions]
-ktormqtt = "1.1.0-agp9"
+ktormqtt = "1.1.0"
 
 agp = "9.1.0"
-kotlin = "2.3.10"
-ktor = "3.4.0"
+kotlin = "2.3.20"
+ktor = "3.4.2"
 kotlinx-coroutines = "1.10.2"
 kotlinx-io = "0.9.0"
 kotlinx-browser = "0.5.0"
 slf4j = "2.0.17"
-kermit = "2.0.8"
-mokkery = "3.2.0"
-testcontainers = "2.0.3"
+kermit = "2.1.0"
+mokkery = "3.3.0"
+testcontainers = "2.0.4"
 versions = "0.53.0"
-kover = "0.9.7"
+kover = "0.9.8"
 vanniktech = "0.36.0"
-dokka = "2.1.0"
+dokka = "2.2.0"
 
 # Multiplatform app library versions
 android-compileSdk = "36"
