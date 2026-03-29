@@ -60,8 +60,9 @@ kotlin {
         }
     }
     js {
+        browser {}
+        nodejs {}
         binaries.executable()
-        browser()
     }
 
     sourceSets {

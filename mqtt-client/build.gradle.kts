@@ -51,7 +51,9 @@ kotlin {
         browser() // Target the browser environment
     }
     js {
-        browser()
+        browser {}
+        nodejs {}
+        binaries.executable()
     }
 
     sourceSets {

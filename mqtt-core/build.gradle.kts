@@ -50,7 +50,8 @@ kotlin {
     }
 
     js {
-        browser()
+        browser {}
+        nodejs {}
     }
 
     sourceSets {
