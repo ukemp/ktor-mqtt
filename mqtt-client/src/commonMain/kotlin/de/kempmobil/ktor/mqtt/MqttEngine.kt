@@ -32,7 +32,7 @@ public interface MqttEngine : AutoCloseable {
      * When the client is not connected, when this method is called or when sending the packet will
      * fail for some other reason, the returned result will be a failure.
      */
-    public suspend fun send(packet: Packet): Result<Unit>
+    public suspend fun send(packet: Packet): Result<Long>
 
     /**
      * Disconnect this engine from its remote. The engine will be reusable after this call for reconnections.

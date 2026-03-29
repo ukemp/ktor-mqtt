@@ -11,8 +11,9 @@ import io.ktor.utils.io.*
 import kotlinx.io.Sink
 import kotlinx.io.Source
 
-internal fun Sink.writeVariableByteInt(value: Int) {
+internal fun Sink.writeVariableByteInt(value: Int): Long {
     var x = value
+    var written = 0L
     do {
         var encodedByte = x.rem(128)
         x /= 128
@@ -20,11 +21,15 @@ internal fun Sink.writeVariableByteInt(value: Int) {
             encodedByte = encodedByte or 128
         }
         writeByte(encodedByte.toByte())
+        written++
     } while (x > 0)
+
+    return written
 }
 
-internal suspend fun ByteWriteChannel.writeVariableByteInt(value: Int) {
+internal suspend fun ByteWriteChannel.writeVariableByteInt(value: Int): Long {
     var x = value
+    var written = 0L
     do {
         var encodedByte = x.rem(128)
         x /= 128
@@ -32,7 +37,10 @@ internal suspend fun ByteWriteChannel.writeVariableByteInt(value: Int) {
             encodedByte = encodedByte or 128
         }
         writeByte(encodedByte.toByte())
+        written++
     } while (x > 0)
+
+    return written
 }
 
 internal fun Source.readVariableByteInt(): Int {

@@ -79,7 +79,7 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig, replay
         }
     }
 
-    override suspend fun send(packet: Packet): Result<Unit> {
+    override suspend fun send(packet: Packet): Result<Long> {
         return wsSession?.doSend(packet)
             ?: Result.failure(ConnectionException("Not connected to ${config.url}"))
     }
@@ -145,12 +145,12 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig, replay
         }
     }
 
-    private suspend fun DefaultClientWebSocketSession.doSend(packet: Packet): Result<Unit> {
+    private suspend fun DefaultClientWebSocketSession.doSend(packet: Packet): Result<Long> {
         Logger.d { "Sending $packet..." }
 
         return try {
             with(Buffer()) {
-                write(packet)
+                val length = write(packet)
 
                 if (size <= maxFrameSize) {
                     outgoing.send(Frame.Binary(fin = true, packet = this))
@@ -161,8 +161,8 @@ internal class WebSocketEngine(private val config: WebSocketEngineConfig, replay
                         outgoing.send(Frame.Binary(fin = true, packet = frame))
                     }
                 }
+                Result.success(length)
             }
-            Result.success(Unit)
         } catch (ex: Exception) {
             Logger.w(throwable = ex) { "Write socket error detected" }
             Result.failure(ex)

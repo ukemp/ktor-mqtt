@@ -65,20 +65,26 @@ public suspend fun ByteReadChannel.readPacket(): Packet {
 /**
  * Writes the bytes of the specified packet to this byte write channel.
  */
-public suspend fun ByteWriteChannel.write(packet: Packet) {
+public suspend fun ByteWriteChannel.write(packet: Packet): Long {
     val bytes = buildPacket {
         writeBody(packet)
     }
-    writeFixedHeader(packet, bytes.remaining.toInt())
+    var length = bytes.remaining
+    length += writeFixedHeader(packet, length.toInt())
     writePacket(bytes)
+
+    return length
 }
 
-public fun Sink.write(packet: Packet) {
+public fun Sink.write(packet: Packet): Long {
     val bytes = buildPacket {
         writeBody(packet)
     }
-    writeFixedHeader(packet, bytes.remaining.toInt())
+    var length = bytes.remaining
+    length += writeFixedHeader(packet, bytes.remaining.toInt())
     writePacket(bytes)
+
+    return length
 }
 
 /**
@@ -104,14 +110,14 @@ private fun Sink.writeBody(packet: Packet) {
     }
 }
 
-private fun Sink.writeFixedHeader(packet: Packet, remainingLength: Int) {
+private fun Sink.writeFixedHeader(packet: Packet, remainingLength: Int): Long {
     check(packet.headerFlags < 16) { "Header flags may only contain 4 bits: ${packet.headerFlags}" }
     writeByte(((packet.type.value shl 4) or packet.headerFlags).toByte())
-    writeVariableByteInt(remainingLength)
+    return writeVariableByteInt(remainingLength) + 1
 }
 
-private suspend fun ByteWriteChannel.writeFixedHeader(packet: Packet, remainingLength: Int) {
+private suspend fun ByteWriteChannel.writeFixedHeader(packet: Packet, remainingLength: Int): Long {
     check(packet.headerFlags < 16) { "Header flags may only contain 4 bits: ${packet.headerFlags}" }
     writeByte(((packet.type.value shl 4) or packet.headerFlags).toByte())
-    writeVariableByteInt(remainingLength)
+    return writeVariableByteInt(remainingLength) + 1
 }

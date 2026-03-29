@@ -73,7 +73,7 @@ internal class DefaultEngine(
         }
     }
 
-    override suspend fun send(packet: Packet): Result<Unit> {
+    override suspend fun send(packet: Packet): Result<Long> {
         return sendChannel?.doSend(packet)
             ?: Result.failure(ConnectionException("Not connected to ${config.host}:${config.port}"))
     }
@@ -123,15 +123,14 @@ internal class DefaultEngine(
         disconnected()
     }
 
-    private suspend fun ByteWriteChannel.doSend(packet: Packet): Result<Unit> {
+    private suspend fun ByteWriteChannel.doSend(packet: Packet): Result<Long> {
         Logger.d { "Sending $packet..." }
 
         return try {
             writeMutex.withLock {
-                write(packet)
-                flush()
+                Result.success(write(packet))
+                    .also { flush() }
             }
-            Result.success(Unit)
         } catch (ex: CancellationException) {
             Logger.v { "Packet writer job has been cancelled during write operation" }
             disconnected()
