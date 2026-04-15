@@ -1,11 +1,11 @@
 [versions]
 ktormqtt = "1.1.0"
 
-agp = "9.1.0"
-kotlin = "2.3.20"
-ktor = "3.4.2"
+agp = "8.13.0"
+kotlin = "2.2.20"
+ktor = "3.3.0"
 kotlinx-coroutines = "1.10.2"
-kotlinx-io = "0.9.0"
+kotlinx-io = "0.8.2"
 kotlinx-browser = "0.5.0"
 slf4j = "2.0.17"
 kermit = "2.1.0"
@@ -68,6 +68,7 @@ kotlinx-browser-js = { module = "org.jetbrains.kotlinx:kotlinx-browser-js", vers
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 versions = { id = "com.github.ben-manes.versions", version.ref = "versions" }
