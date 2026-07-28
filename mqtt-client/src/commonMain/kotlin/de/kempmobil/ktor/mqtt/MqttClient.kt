@@ -510,8 +510,8 @@ public class MqttClient internal constructor(
                     is InFlightPublish -> {
                         when (packet.source.qoS) {
                             QoS.AT_MOST_ONCE -> Logger.e { "Unexpected packet in session store: $packet" }
-                            QoS.AT_LEAST_ONCE -> sendAtLeastOnceMessage(packet)
-                            QoS.EXACTLY_ONE -> sendExactlyOnceMessage(packet)
+                            QoS.AT_LEAST_ONCE -> sendAtLeastOnceMessage(packet.asRedelivery())
+                            QoS.EXACTLY_ONE -> sendExactlyOnceMessage(packet.asRedelivery())
                         }
                     }
 
@@ -528,6 +528,14 @@ public class MqttClient internal constructor(
                 return
             }
         }
+    }
+
+    /**
+     * The DUP flag must be set when re-delivering a PUBLISH packet [MQTT-3.3.1-1]. Timestamp and key are kept, so
+     * the redelivery still matches its entry in the [SessionStore].
+     */
+    private fun InFlightPublish.asRedelivery(): InFlightPublish {
+        return InFlightPublish(source.copy(isDupMessage = true), timestamp, key)
     }
 
     private suspend fun handlePacketResult(result: Result<Packet>) {
