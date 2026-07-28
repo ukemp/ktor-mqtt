@@ -65,8 +65,13 @@ public class MqttClient internal constructor(
         get() = _receiveMaximum
     private var _receiveMaximum = UShort.MAX_VALUE
         set(value) {
-            field = value
-            sendQuota = Semaphore(value.toInt())
+            // Replacing the semaphore strands publishers already suspended in acquire() on the old instance and
+            // forgets the permits held by in-flight messages, hence keep it when the value is unchanged (the
+            // common case when reconnecting to the same server).
+            if (field != value) {
+                field = value
+                sendQuota = Semaphore(value.toInt())
+            }
         }
 
     /**
