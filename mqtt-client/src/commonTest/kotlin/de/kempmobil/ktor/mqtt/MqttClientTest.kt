@@ -240,6 +240,26 @@ class MqttClientTest {
         assertSame(suback, result.getOrNull())
     }
 
+    @Test
+    fun `a response arriving before its request is sent is not matched as the answer`() = runTest {
+        everySuspend { engine.send(ofType<Subscribe>()) } returns Result.success(Unit)
+
+        val client = createClient(engine)
+        val marker = async { client.publishedPackets.first() }
+        testScheduler.advanceUntilIdle()
+
+        // A stale SUBACK arrives while no request is outstanding (e.g. an answer to a request from a previous
+        // connection). The first subscribe of this client will use the same packet identifier (1).
+        packetResults.emit(Result.success(Suback(packetIdentifier = 1u, reasons = listOf(GrantedQoS0))))
+        packetResults.emit(Result.success(Publish(topic = "marker".toTopic(), payload = "".encodeToByteString())))
+        marker.await() // Both stale packets have now been consumed by the client
+
+        val result = client.subscribe(buildFilterList { add("test/topic") })
+
+        assertTrue(result.isFailure, "A SUBACK the server sent before the SUBSCRIBE cannot be its answer")
+        assertIs<TimeoutException>(result.exceptionOrNull())
+    }
+
     // ---- UNSUBSCRIBE tests ------------------------------------------------------------------------------------------
 
     @Test
