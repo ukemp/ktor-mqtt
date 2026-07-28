@@ -7,6 +7,7 @@ import dev.mokkery.answering.calls
 import dev.mokkery.answering.returns
 import dev.mokkery.matcher.any
 import dev.mokkery.matcher.ofType
+import dev.mokkery.verify.VerifyMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -391,6 +392,32 @@ class MqttClientTest {
         verify { session.store(inFlightPublish.source) }
         verify { session.replace(inFlightPublish) }
         verify { session.acknowledge(inFlightPubrel) }
+    }
+
+    @Test
+    fun `publish a QoS 2 message aborts the handshake when the PUBREC carries an error`() = runTest {
+        val client = createClient(engine)
+        connectionState.emit(true)
+        everySuspend { engine.send(ofType<Publish>()) } calls {
+            packetResults.emit(Result.success(Pubrec(1u, UnspecifiedError)))
+            Result.success(Unit)
+        }
+        everySuspend { engine.send(ofType<Pubrel>()) } returns Result.success(Unit)
+        every { session.store(any()) } calls { (publish: Publish) ->
+            InFlightPublish(publish, Clock.System.now(), 1)
+        }
+        every { session.replace(any()) } calls { (inFlight: InFlightPublish) ->
+            InFlightPubrel(inFlight, 1.toLong())
+        }
+        every { session.acknowledge(any()) } returns Unit
+
+        val result = client.publish(PublishRequest("test/topic") {
+            desiredQoS = QoS.EXACTLY_ONE
+        })
+
+        assertTrue(result.isFailure, "A PUBREC with an error reason means the message was not delivered")
+        verifySuspend(VerifyMode.not) { engine.send(ofType<Pubrel>()) } // MQTT-4.3.3-1
+        verify { session.acknowledge(any()) } // The rejected message must not be retransmitted on session resume
     }
 
     @Test
