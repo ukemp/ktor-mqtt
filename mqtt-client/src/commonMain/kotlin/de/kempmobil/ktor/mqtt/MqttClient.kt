@@ -161,7 +161,7 @@ public class MqttClient internal constructor(
         connackFlow.emit(null)
 
         if (isCleanStart) {
-            session.clear()
+            clearSession()
         }
         return engine.start()
             .mapCatching {
@@ -175,7 +175,7 @@ public class MqttClient internal constructor(
                     if (connack.isSessionPresent) {
                         resumeSession()
                     } else {
-                        session.clear() // Probably redundant, just to be sure...
+                        clearSession() // Probably redundant when clean start was requested, just to be sure...
                     }
                 }.getOrElse {
                     throw it
@@ -279,6 +279,14 @@ public class MqttClient internal constructor(
     }
 
     // ---- Helper methods ---------------------------------------------------------------------------------------------
+
+    private fun clearSession() {
+        session.clear()
+
+        // The identifiers of incoming QoS 2 messages are session state as well: without clearing them, a new message
+        // of the next session reusing a remembered identifier would be swallowed as a duplicate.
+        publishReceivedPackets.clear()
+    }
 
     private fun createConnect(isCleanStart: Boolean): Connect {
         return Connect(
