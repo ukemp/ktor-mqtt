@@ -375,10 +375,17 @@ public class MqttClient internal constructor(
         acquireSendQuotaSafe()
         val publish = inFlight.source
 
-        awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
+        val pubrec = awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
             engine.send(publish)
         }.getOrElse {
             it.throwHandshakeExceptionForTimeout("PUBREC", publish)
+        }
+
+        if (pubrec.reason >= UnspecifiedError) {
+            // The server rejected the message, hence the PUBREL must not be sent [MQTT-4.3.3-1] and the message
+            // must not be retransmitted on session resume either.
+            session.acknowledge(inFlight)
+            throw HandshakeFailedException("Received PUBREC with reason ${pubrec.reason} for $publish", publish)
         }
 
         val pubrel = session.replace(inFlight)
