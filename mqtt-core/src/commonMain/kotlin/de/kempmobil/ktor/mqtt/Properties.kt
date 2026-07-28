@@ -246,7 +246,8 @@ public value class CorrelationData(override val value: ByteString) : WritablePro
     override val writeValue: Sink.(ByteString) -> Unit
         get() = ByteStringWriter
 
-    override fun byteCount(): Int = value.size + 1
+    // 1 identifier byte + the 2 byte length prefix written by writeMqttByteString + the data itself
+    override fun byteCount(): Int = value.size + 3
 
     override fun toString(): String {
         return value.toString()
@@ -404,7 +405,8 @@ public value class AuthenticationData(override val value: ByteString) : Writable
     override val writeValue: Sink.(ByteString) -> Unit
         get() = ByteStringWriter
 
-    override fun byteCount(): Int = value.size + 1
+    // 1 identifier byte + the 2 byte length prefix written by writeMqttByteString + the data itself
+    override fun byteCount(): Int = value.size + 3
 
     override fun toString(): String {
         return value.toString()
