@@ -423,6 +423,32 @@ class MqttClientTest {
     }
 
     @Test
+    fun `a publish that is never acknowledged returns its send quota permit`() = runTest(timeout = 5.seconds) {
+        val connack = Connack(isSessionPresent = false, reason = Success, receiveMaximum = ReceiveMaximum(1u))
+        everySuspend { engine.start() } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Connect>()) } calls {
+            packetResults.emit(Result.success(connack))
+            Result.success(Unit)
+        }
+        everySuspend { engine.send(ofType<Publish>()) } returns Result.success(Unit) // Never acknowledged
+        every { session.store(any()) } calls { (publish: Publish) ->
+            InFlightPublish(publish, Clock.System.now(), 1)
+        }
+        connectionState.emit(true)
+
+        val client = createClient(engine)
+        assertTrue(client.connect().isSuccess)
+
+        val first = client.publish(PublishRequest("test/topic") { desiredQoS = QoS.AT_LEAST_ONCE })
+        assertIs<HandshakeFailedException>(first.exceptionOrNull())
+
+        // With a receive maximum of 1, the timed out message above must have returned its quota permit,
+        // otherwise this second publish waits for the permit forever
+        val second = client.publish(PublishRequest("test/topic") { desiredQoS = QoS.AT_LEAST_ONCE })
+        assertIs<HandshakeFailedException>(second.exceptionOrNull())
+    }
+
+    @Test
     fun `when the server does not support retained messages the retained flag is cleared`() = runTest {
         everySuspend { engine.start() } returns Result.success(Unit)
         everySuspend { engine.send(ofType<Connect>()) } returns Result.success(Unit)
