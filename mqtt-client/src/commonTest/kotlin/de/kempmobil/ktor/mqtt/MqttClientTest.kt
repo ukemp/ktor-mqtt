@@ -9,7 +9,10 @@ import dev.mokkery.matcher.any
 import dev.mokkery.matcher.ofType
 import dev.mokkery.verify.VerifyMode
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.encodeToByteString
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +21,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -449,6 +453,42 @@ class MqttClientTest {
     }
 
     @Test
+    fun `a reconnect with an unchanged receive maximum keeps waiting publishers alive`() = runTest(timeout = 5.seconds) {
+        val connack = Connack(isSessionPresent = false, reason = Success, receiveMaximum = ReceiveMaximum(1u))
+        everySuspend { engine.start() } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Connect>()) } calls {
+            packetResults.emit(Result.success(connack))
+            Result.success(Unit)
+        }
+        everySuspend { engine.send(ofType<Publish>()) } returns Result.success(Unit) // Never acknowledged
+        every { session.store(any()) } calls { (publish: Publish) ->
+            InFlightPublish(publish, Clock.System.now(), 1)
+        }
+        connectionState.emit(true)
+
+        val client = createClient(engine, ackTimeout = 500.milliseconds)
+        assertTrue(client.connect().isSuccess)
+
+        // The first publish takes the only quota permit and waits for its PUBACK...
+        val holder = async(Dispatchers.Default) {
+            client.publish(PublishRequest("test/topic") { desiredQoS = QoS.AT_LEAST_ONCE })
+        }
+        withContext(Dispatchers.Default) { delay(100.milliseconds) }
+
+        // ...so the second publish suspends, waiting for the permit
+        val waiter = async(Dispatchers.Default) {
+            client.publish(PublishRequest("test/topic") { desiredQoS = QoS.AT_LEAST_ONCE })
+        }
+        withContext(Dispatchers.Default) { delay(100.milliseconds) }
+
+        // A reconnect must not strand the waiting publisher: once the first publish times out and returns
+        // its permit, the second one proceeds (and then times out in the same way)
+        assertTrue(client.connect().isSuccess)
+        assertIs<HandshakeFailedException>(holder.await().exceptionOrNull())
+        assertIs<HandshakeFailedException>(waiter.await().exceptionOrNull())
+    }
+
+    @Test
     fun `when the server does not support retained messages the retained flag is cleared`() = runTest {
         everySuspend { engine.start() } returns Result.success(Unit)
         everySuspend { engine.send(ofType<Connect>()) } returns Result.success(Unit)
@@ -519,10 +559,14 @@ class MqttClientTest {
         )
     }
 
-    private fun createClient(connection: MqttEngine, id: String? = null): MqttClient {
+    private fun createClient(
+        connection: MqttEngine,
+        id: String? = null,
+        ackTimeout: Duration = 100.milliseconds
+    ): MqttClient {
         val config = buildConfig(DefaultEngineFactory("", 0)) {
             connection { }
-            ackMessageTimeout = 100.milliseconds
+            ackMessageTimeout = ackTimeout
             clientId = id ?: ""
         }
         return MqttClient(config, connection, session)
