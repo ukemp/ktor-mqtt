@@ -9,6 +9,7 @@ import dev.mokkery.matcher.any
 import dev.mokkery.matcher.ofType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
+import kotlinx.io.bytestring.encodeToByteString
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -17,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -424,7 +426,45 @@ class MqttClientTest {
         assertFalse(result.getOrThrow().source.isRetainMessage)  // 3. the actual message is not retained
     }
 
+    @Test
+    fun `a clean session does not treat new incoming QoS 2 packet ids as duplicates`() = runTest(timeout = 5.seconds) {
+        every { session.hasIncomingPacketId(any()) } returns false
+        every { session.rememberIncomingPacketId(any()) } returns true
+        everySuspend { engine.start() } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Connect>()) } calls {
+            packetResults.emit(Result.success(Connack(isSessionPresent = false, reason = Success)))
+            Result.success(Unit)
+        }
+        everySuspend { engine.send(ofType<Pubrec>()) } returns Result.success(Unit)
+        connectionState.emit(true)
+
+        val client = createClient(engine)
+
+        // An incoming QoS 2 message whose PUBREL never arrives, e.g. because the connection was lost
+        val first = async { client.publishedPackets.first() }
+        testScheduler.advanceUntilIdle()
+        packetResults.emit(Result.success(qos2Publish("before restart")))
+        assertEquals("before restart".encodeToByteString(), first.await().payload)
+
+        // After a clean start, the server may assign the same packet identifier to a brand-new message
+        assertTrue(client.connect(isCleanStart = true).isSuccess)
+
+        val second = async { client.publishedPackets.first() }
+        testScheduler.advanceUntilIdle()
+        packetResults.emit(Result.success(qos2Publish("after restart")))
+        assertEquals("after restart".encodeToByteString(), second.await().payload)
+    }
+
     // ---- Helper functions -------------------------------------------------------------------------------------------
+
+    private fun qos2Publish(payload: String): Publish {
+        return Publish(
+            qoS = QoS.EXACTLY_ONE,
+            packetIdentifier = 1u,
+            topic = "test/topic".toTopic(),
+            payload = payload.encodeToByteString()
+        )
+    }
 
     private fun createClient(connection: MqttEngine, id: String? = null): MqttClient {
         val config = buildConfig(DefaultEngineFactory("", 0)) {
