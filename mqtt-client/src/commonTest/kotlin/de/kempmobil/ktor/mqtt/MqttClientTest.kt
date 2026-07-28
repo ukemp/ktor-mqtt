@@ -8,13 +8,11 @@ import dev.mokkery.answering.returns
 import dev.mokkery.matcher.any
 import dev.mokkery.matcher.ofType
 import dev.mokkery.verify.VerifyMode
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.io.bytestring.encodeToByteString
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 import kotlin.time.Clock
@@ -107,21 +105,21 @@ class MqttClientTest {
 
     @Test
     fun `connect succeeds when receiving successful connack packet`() = runTest {
-        everySuspend { engine.start() } returns Result.success(Unit)
-        everySuspend { engine.send(ofType<Connect>()) } returns Result.success(Unit)
-
         val connack = Connack(
             isSessionPresent = false,
             reason = Success,
             topicAliasMaximum = TopicAliasMaximum(42u),
             maximumQoS = MaximumQoS(1)
         )
+        everySuspend { engine.start() } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Connect>()) } calls {
+            packetResults.emit(Result.success(connack))
+            Result.success(Unit)
+        }
         connectionState.emit(true)
 
         val client = createClient(engine)
-        val result = sendPacket(connack) {
-            client.connect()
-        }
+        val result = client.connect()
 
         assertTrue(result.isSuccess)
         assertEquals(connack, result.getOrNull())
@@ -147,20 +145,20 @@ class MqttClientTest {
     @Test
     fun `assigned client ID overrides the local client ID if empty`() = runTest {
         // See also MQTT-3.2.2-16
-        everySuspend { engine.start() } returns Result.success(Unit)
-        everySuspend { engine.send(ofType<Connect>()) } returns Result.success(Unit)
-
         val connack = Connack(
             isSessionPresent = false,
             reason = Success,
             assignedClientIdentifier = AssignedClientIdentifier("server-client-id")
         )
+        everySuspend { engine.start() } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Connect>()) } calls {
+            packetResults.emit(Result.success(connack))
+            Result.success(Unit)
+        }
         connectionState.emit(true)
 
         val client = createClient(engine, "")
-        val result = sendPacket(connack) {
-            client.connect()
-        }
+        val result = client.connect()
 
         assertTrue(result.isSuccess)
         assertEquals("server-client-id", client.clientId)
@@ -168,22 +166,22 @@ class MqttClientTest {
 
     @Test
     fun `connect fails when receiving unsuccessful connack packet and client disconnects`() = runTest {
-        everySuspend { engine.start() } returns Result.success(Unit)
-        everySuspend { engine.send(ofType<Connect>()) } returns Result.success(Unit)
-        everySuspend { engine.disconnect() } returns Unit
-
         val connack = Connack(
             isSessionPresent = false,
             reason = NotAuthorized,
             topicAliasMaximum = TopicAliasMaximum(42u),
             maximumQoS = MaximumQoS(1)
         )
+        everySuspend { engine.start() } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Connect>()) } calls {
+            packetResults.emit(Result.success(connack))
+            Result.success(Unit)
+        }
+        everySuspend { engine.disconnect() } returns Unit
         connectionState.emit(true)
 
         val client = createClient(engine)
-        val result = sendPacket(connack) {
-            client.connect()
-        }
+        val result = client.connect()
 
         assertTrue(result.isSuccess)
 
@@ -221,20 +219,21 @@ class MqttClientTest {
 
     @Test
     fun `subscribe succeeds when receiving suback packet`() = runTest {
-        everySuspend { engine.send(ofType<Subscribe>()) } returns Result.success(Unit)
-
         val suback = Suback(
             packetIdentifier = 1u,
             reasons = listOf(GrantedQoS0, TopicFilterInvalid)
         )
+        everySuspend { engine.send(ofType<Subscribe>()) } calls {
+            packetResults.emit(Result.success(suback))
+            Result.success(Unit)
+        }
+
         val filters = buildFilterList {
             add("test/topic1")
             add("test/topic2")
         }
         val client = createClient(engine)
-        val result = sendPacket(suback) {
-            client.subscribe(filters)
-        }
+        val result = client.subscribe(filters)
 
         assertTrue(result.isSuccess)
         assertSame(suback, result.getOrNull())
@@ -288,17 +287,18 @@ class MqttClientTest {
 
     @Test
     fun `unsubscribe succeeds when receiving unsuback packet`() = runTest {
-        everySuspend { engine.send(ofType<Unsubscribe>()) } returns Result.success(Unit)
-
         val unsuback = Unsuback(
             packetIdentifier = 1u,
             reasons = listOf(GrantedQoS0, TopicFilterInvalid)
         )
+        everySuspend { engine.send(ofType<Unsubscribe>()) } calls {
+            packetResults.emit(Result.success(unsuback))
+            Result.success(Unit)
+        }
+
         val filters = listOf("test/topic".toTopic())
         val client = createClient(engine)
-        val result = sendPacket(unsuback) {
-            client.unsubscribe(filters)
-        }
+        val result = client.unsubscribe(filters)
 
         assertTrue(result.isSuccess)
         assertSame(unsuback, result.getOrNull())
@@ -367,8 +367,10 @@ class MqttClientTest {
         var inFlightPacket: InFlightPublish? = null
         val client = createClient(engine)
         connectionState.emit(true)
-        packetResults.emit(Result.success(Puback(1u, Success)))
-        everySuspend { engine.send(ofType<Publish>()) } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Publish>()) } calls {
+            packetResults.emit(Result.success(Puback(1u, Success)))
+            Result.success(Unit)
+        }
         every { session.store(any()) } calls { (publish: Publish) ->
             InFlightPublish(publish, Clock.System.now(), 1).also { inFlightPacket = it }
         }
@@ -391,10 +393,14 @@ class MqttClientTest {
         var inFlightPubrel: InFlightPubrel? = null
         val client = createClient(engine)
         connectionState.emit(true)
-        packetResults.emit(Result.success(Pubrec(1u, Success)))
-        packetResults.emit(Result.success(Pubcomp(1u, Success)))
-        everySuspend { engine.send(ofType<Publish>()) } returns Result.success(Unit)
-        everySuspend { engine.send(ofType<Pubrel>()) } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Publish>()) } calls {
+            packetResults.emit(Result.success(Pubrec(1u, Success)))
+            Result.success(Unit)
+        }
+        everySuspend { engine.send(ofType<Pubrel>()) } calls {
+            packetResults.emit(Result.success(Pubcomp(1u, Success)))
+            Result.success(Unit)
+        }
         every { session.store(any()) } calls { (publish: Publish) ->
             InFlightPublish(publish, Clock.System.now(), 1).also { inFlightPublish = it }
         }
@@ -444,10 +450,6 @@ class MqttClientTest {
 
     @Test
     fun `when the server does not support retained messages the retained flag is cleared`() = runTest {
-        everySuspend { engine.start() } returns Result.success(Unit)
-        everySuspend { engine.send(ofType<Connect>()) } returns Result.success(Unit)
-        everySuspend { engine.send(ofType<Publish>()) } returns Result.success(Unit)
-
         val connack = Connack(
             isSessionPresent = false,
             reason = Success,
@@ -455,12 +457,16 @@ class MqttClientTest {
             maximumQoS = MaximumQoS(1),
             retainAvailable = RetainAvailable(false)  // 1. Server says it doesn't support retain
         )
+        everySuspend { engine.start() } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Connect>()) } calls {
+            packetResults.emit(Result.success(connack))
+            Result.success(Unit)
+        }
+        everySuspend { engine.send(ofType<Publish>()) } returns Result.success(Unit)
         connectionState.emit(true)
 
         val client = createClient(engine)
-        val connect = sendPacket(connack) {
-            client.connect()
-        }
+        val connect = client.connect()
 
         assertTrue(connect.isSuccess)
 
@@ -520,19 +526,5 @@ class MqttClientTest {
             clientId = id ?: ""
         }
         return MqttClient(config, connection, session)
-    }
-
-    /**
-     * Executes the specified coroutine asynchronously and the sends the specified packet to the `packetResults` flow.
-     */
-    private suspend fun <T> TestScope.sendPacket(packet: Packet, block: suspend CoroutineScope.() -> T): T {
-        with(this) {
-            val response = async {
-                block()
-            }
-            testScheduler.advanceUntilIdle()
-            packetResults.emit(Result.success(packet))
-            return response.await()
-        }
     }
 }
