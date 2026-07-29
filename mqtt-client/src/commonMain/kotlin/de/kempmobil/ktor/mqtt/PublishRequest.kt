@@ -5,7 +5,6 @@ import de.kempmobil.ktor.mqtt.util.toTopic
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 
 public data class PublishRequest(
     val topic: Topic,
@@ -64,11 +63,12 @@ public class PublishRequestBuilder(
     public var isRetainMessage: Boolean = false
 
     /**
-     * Defines the lifetime of the Application Message. Using `null` means that the message expires when the session
-     * expires. The default value is 5 minutes, meaning that if a message of QoS 1 or 2 was not acknowledged within 5
-     * minutes, it will not be resented on session restart. For messages of QoS 0 this has no meaning.
+     * Defines the lifetime of the Application Message. When `null` (the default), no Message Expiry Interval is sent
+     * and the message does not expire [MQTT-3.3.2.3.3]. When set, the server drops the message once it has been
+     * queued for that long without being delivered, and this client will not resend it on session restart after it
+     * has expired.
      */
-    public var messageExpiryInterval: Duration? = 5.minutes
+    public var messageExpiryInterval: Duration? = null
 
     /**
      * Used as the Topic Name for a response message.
