@@ -19,6 +19,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.io.EOFException
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.incrementAndFetch
 
 /**
  * @property config the engine config
@@ -50,8 +53,16 @@ internal class DefaultEngine(
 
     private var receiverJob: Job? = null
 
+    // Incremented on every start(). Cleanup paths capture the epoch of the connection they belong
+    // to, so a cleanup that runs late -- after a reconnect has already replaced the engine state --
+    // recognizes it is stale and must not tear down the new connection's resources.
+    @OptIn(ExperimentalAtomicApi::class)
+    private val connectionEpoch = AtomicInt(0)
+
+    @OptIn(ExperimentalAtomicApi::class)
     override suspend fun start(): Result<Unit> {
         return try {
+            val epoch = connectionEpoch.incrementAndFetch()
             socket = scope.async {
                 val socket = withTimeout(config.connectionTimeout) {
                     socketHandler.openSocket(config)
@@ -64,7 +75,7 @@ internal class DefaultEngine(
                 // It's important to open the read channel here, if we do it in the job below exceptions will be ignored
                 val readChannel = socket.openReadChannel()
                 receiverJob = scope.launch {
-                    readChannel.incomingMessageLoop()
+                    readChannel.incomingMessageLoop(epoch)
                 }
             }
             Result.success(Unit)
@@ -73,17 +84,20 @@ internal class DefaultEngine(
         }
     }
 
+    @OptIn(ExperimentalAtomicApi::class)
     override suspend fun send(packet: Packet): Result<Unit> {
-        return sendChannel?.doSend(packet)
+        val epoch = connectionEpoch.load()
+        return sendChannel?.doSend(packet, epoch)
             ?: Result.failure(ConnectionException("Not connected to ${config.host}:${config.port}"))
     }
 
+    @OptIn(ExperimentalAtomicApi::class)
     override suspend fun disconnect() {
         socket?.let {
             socket = null
             it.close()
         }
-        disconnected()
+        disconnected(connectionEpoch.load())
     }
 
     override fun close() {
@@ -97,7 +111,7 @@ internal class DefaultEngine(
 
     // --- Private methods ---------------------------------------------------------------------------------------------
 
-    private suspend fun ByteReadChannel.incomingMessageLoop() {
+    private suspend fun ByteReadChannel.incomingMessageLoop(epoch: Int) {
         while (!isClosedForRead) {
             try {
                 _packetResults.emit(Result.success(readPacket()))
@@ -120,10 +134,10 @@ internal class DefaultEngine(
         }
 
         Logger.d { "Incoming message loop terminated" }
-        disconnected()
+        disconnected(epoch)
     }
 
-    private suspend fun ByteWriteChannel.doSend(packet: Packet): Result<Unit> {
+    private suspend fun ByteWriteChannel.doSend(packet: Packet, epoch: Int): Result<Unit> {
         Logger.d { "Sending $packet..." }
 
         return try {
@@ -134,20 +148,25 @@ internal class DefaultEngine(
             Result.success(Unit)
         } catch (ex: CancellationException) {
             Logger.v { "Packet writer job has been cancelled during write operation" }
-            disconnected()
+            disconnected(epoch)
             Result.failure(ex)
         } catch (ex: ClosedWriteChannelException) {
             Logger.w(throwable = ex) { "Write channel has been closed" }
-            disconnected()
+            disconnected(epoch)
             Result.failure(ex)
         } catch (ex: Exception) {
             Logger.w(throwable = ex) { "Write channel error detected" }
-            disconnected()
+            disconnected(epoch)
             Result.failure(ex)
         }
     }
 
-    private suspend fun disconnected() {
+    @OptIn(ExperimentalAtomicApi::class)
+    private suspend fun disconnected(epoch: Int) {
+        if (epoch != connectionEpoch.load()) {
+            Logger.v { "Skipping cleanup of connection $epoch, a newer connection owns the engine state" }
+            return
+        }
         _connected.value = false
         receiverJob?.cancel()
         socket?.close()
