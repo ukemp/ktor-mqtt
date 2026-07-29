@@ -131,11 +131,12 @@ public class MqttClient internal constructor(
 
     private val scope = CoroutineScope(config.dispatcher)
 
-    // A replay cache is crucial here to prevent a race condition where a response packet arrives
-    // before the corresponding `awaitResponseOf` call is able to subscribe to the flow. Without a
-    // replay cache, such a packet would be lost. A capacity of 16 is chosen to safely handle
-    // bursts of responses from concurrent requests.
-    private val receivedPackets = MutableSharedFlow<Packet>(replay = 16)
+    // Must not replay: a replayed packet lets a response that arrived before the request was even
+    // sent (e.g. an acknowledgement from a previous connection reusing the same packet identifier,
+    // or an old PINGRESP) be matched as the answer to a new request. The race between sending a
+    // request and subscribing to this flow is instead closed in awaitResponseOf(), which only
+    // sends the request once the subscription is established.
+    private val receivedPackets = MutableSharedFlow<Packet>()
 
     @OptIn(ExperimentalAtomicApi::class)
     private val packetIdentifier = AtomicInt(0)
@@ -634,9 +635,10 @@ public class MqttClient internal constructor(
         predicate: suspend (Packet) -> Boolean,
         request: suspend () -> Result<Unit>
     ): Result<P> {
+        val subscribed = CompletableDeferred<Unit>()
         val waitForResponse = scope.async {
             val response = withTimeoutOrNull(config.ackMessageTimeout) {
-                (receivedPackets.first(predicate) as P)
+                (receivedPackets.onSubscription { subscribed.complete(Unit) }.first(predicate) as P)
             }
             if (response != null) {
                 Result.success(response)
@@ -644,6 +646,13 @@ public class MqttClient internal constructor(
                 Result.failure(TimeoutException("Didn't receive requested packet within ${config.ackMessageTimeout}"))
             }
         }
+        waitForResponse.invokeOnCompletion { cause ->
+            if (cause != null) subscribed.completeExceptionally(cause)
+        }
+
+        // Only send the request once the response subscription is established, otherwise the response might
+        // arrive before the subscription and would then be lost.
+        subscribed.await()
         request().onFailure {
             waitForResponse.cancel()
             return Result.failure(it)
