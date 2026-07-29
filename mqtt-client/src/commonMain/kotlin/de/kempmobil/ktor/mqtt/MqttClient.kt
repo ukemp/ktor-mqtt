@@ -65,8 +65,13 @@ public class MqttClient internal constructor(
         get() = _receiveMaximum
     private var _receiveMaximum = UShort.MAX_VALUE
         set(value) {
-            field = value
-            sendQuota = Semaphore(value.toInt())
+            // Replacing the semaphore strands publishers already suspended in acquire() on the old instance and
+            // forgets the permits held by in-flight messages, hence keep it when the value is unchanged (the
+            // common case when reconnecting to the same server).
+            if (field != value) {
+                field = value
+                sendQuota = Semaphore(value.toInt())
+            }
         }
 
     /**
@@ -373,6 +378,7 @@ public class MqttClient internal constructor(
         val puback = awaitResponseOf<Puback>({ it.isResponseFor<Puback>(publish) }) {
             engine.send(publish)
         }.getOrElse {
+            releaseSendQuotaSafe() // No PUBACK will arrive to return the quota permit of this message
             it.throwHandshakeExceptionForTimeout("PUBACK", publish)
         }
 
@@ -387,6 +393,7 @@ public class MqttClient internal constructor(
         val pubrec = awaitResponseOf<Pubrec>({ it.isResponseFor<Pubrec>(publish) }) {
             engine.send(publish)
         }.getOrElse {
+            releaseSendQuotaSafe() // No PUBREC will arrive to return the quota permit of this message
             it.throwHandshakeExceptionForTimeout("PUBREC", publish)
         }
 
@@ -401,6 +408,7 @@ public class MqttClient internal constructor(
         val pubcomp = awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(pubrel.source) }) {
             engine.send(pubrel.source)
         }.getOrElse {
+            releaseSendQuotaSafe() // No PUBCOMP will arrive to return the quota permit of this message
             it.throwHandshakeExceptionForTimeout("PUBCOMP", publish)
         }
 
