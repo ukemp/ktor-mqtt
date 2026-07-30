@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.encodeToByteString
 import java.nio.channels.ClosedChannelException
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.*
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -133,6 +134,41 @@ class DefaultEngineTest {
     }
 
     @Test
+    fun `a reconnect survives the late teardown of the previous connection`() = runTest(timeout = 60.seconds) {
+        // Tearing down a connection is asynchronous: the receiver loop notices its cancellation and
+        // cleans up on the engine's dispatcher. A reconnect that has already replaced the engine's
+        // socket, send channel and receiver job by then must not be torn down by that late cleanup.
+        // A single reconnect only fails when the cleanup loses the race, so cycle often enough that
+        // losing at least once is practically certain. Each accepted connection greets the client
+        // with a packet naming its cycle; when the receiver of a fresh connection was torn down, the
+        // greeting never surfaces in packetResults.
+        val cycles = 20
+        val greeting = { cycle: Int ->
+            Publish(topic = "test-topic".toTopic(), payload = "cycle-$cycle".encodeToByteString())
+        }
+        val acceptCount = AtomicInteger(0)
+        stopServerJob = startServer(accepts = cycles, writer = {
+            write(greeting(acceptCount.getAndIncrement()))
+        })
+
+        MqttEngine().use { engine ->
+            withContext(Dispatchers.Default) { // See runTest { } on why we need this
+                repeat(cycles) { cycle ->
+                    assertTrue(engine.start().isSuccess, "Reconnect $cycle failed to establish a connection")
+
+                    val expected = greeting(cycle)
+                    withTimeout(5.seconds) {
+                        engine.packetResults.first { it.getOrNull() == expected }
+                    }
+
+                    assertTrue(engine.connected.value, "Reconnect $cycle was torn down by the previous connection's cleanup")
+                    engine.disconnect()
+                }
+            }
+        }
+    }
+
+    @Test
     fun `when sending a packet it is received by server`() = runTest {
         val serverPackets = Channel<Packet>()
         stopServerJob = startServer(reader = {
@@ -225,25 +261,29 @@ class DefaultEngineTest {
     }
 
     /**
-     * Starts a socket server and returns an (unstarted) [Job] to stop it.
+     * Starts a socket server accepting [accepts] consecutive connections and returns an (unstarted)
+     * [Job] to stop it. The [reader] and [writer] callbacks are invoked once per accepted connection.
      */
     private suspend fun TestScope.startServer(
+        accepts: Int = 1,
         reader: (suspend ByteReadChannel.() -> Unit)? = null,
         writer: (suspend ByteWriteChannel.() -> Unit)? = null
     ): Job {
         val selectorManager = SelectorManager(Dispatchers.Default)
         val serverSocket = aSocket(selectorManager).tcp().bind(host, port)
-        var socket: Socket? = null
+        val sockets = mutableListOf<Socket>()
 
         backgroundScope.launch {
             try {
-                socket = serverSocket.accept().also { accepted ->
+                repeat(accepts) {
+                    val accepted = serverSocket.accept()
+                    sockets.add(accepted)
                     Logger.d { "Client connected successfully to $host:$port" }
                     if (reader != null) {
-                        accepted.openReadChannel().reader()
+                        launch { runCatching { accepted.openReadChannel().reader() } }
                     }
                     if (writer != null) {
-                        accepted.openWriteChannel(autoFlush = true).writer()
+                        launch { runCatching { accepted.openWriteChannel(autoFlush = true).writer() } }
                     }
                 }
             } catch (_: CancellationException) {
@@ -257,7 +297,7 @@ class DefaultEngineTest {
 
         // Don't use TestScope here, as this might get canceled after test execution!
         return CoroutineScope(Dispatchers.Default).launch(start = CoroutineStart.LAZY) {
-            socket?.close()
+            sockets.forEach { it.close() }
             serverSocket.close()
             selectorManager.close()
         }

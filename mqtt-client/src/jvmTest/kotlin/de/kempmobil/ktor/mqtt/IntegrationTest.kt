@@ -2,9 +2,7 @@ package de.kempmobil.ktor.mqtt
 
 import co.touchlab.kermit.Severity
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -17,6 +15,7 @@ import kotlin.random.Random
 import kotlin.random.nextUInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.test.fail
 import kotlin.time.Duration
@@ -91,29 +90,22 @@ class IntegrationTest {
 
     @Test
     fun `reconnect after disconnect returns proper connection states`() = runClientTest("reconnect") { client ->
-        val asserter = launch {
-            val states = client.connectionState.take(5)
-                .map {
-                    when (it) {
-                        is Connected -> 1
-                        is Disconnected -> 0
-                    }
-                }
-                .toList()
-            assertEquals(listOf(0, 1, 0, 1, 0), states, "Connection states don't match expected sequence")
-        }
+        // connectionState is backed by state flows: a collector always observes the current state, but a
+        // rapid transition can be conflated away before a concurrent collector is scheduled to see it. So
+        // await each expected state after each step instead of collecting the sequence concurrently.
+        assertIs<Disconnected>(client.connectionState.first(), "A new client must start out disconnected")
 
-        yield()
         client.assertConnected()
-        yield()
-        client.disconnect()
-        yield()
-        client.assertConnected()
-        yield()
-        client.disconnect()
-        yield()
+        client.connectionState.first { it is Connected }
 
-        asserter.join()
+        client.disconnect()
+        client.connectionState.first { it is Disconnected }
+
+        client.assertConnected()
+        client.connectionState.first { it is Connected }
+
+        client.disconnect()
+        client.connectionState.first { it is Disconnected }
     }
 
     @Test
