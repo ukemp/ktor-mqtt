@@ -4,6 +4,8 @@
 
 1. Change the "Using in your project" section in [README.md](README.md) (check the ktor version as well).
 
+   (Use `readme-update.sh` to automatically update from libs.verions.toml.)
+
 1. Commit the changes and create a tag with the new version, for example `v.1.12.0`.
 
 1. Push both the commit and the tag.
