@@ -2,10 +2,43 @@ package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.bytestring.ByteString
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class PublishResponseTest {
+
+    @Test
+    fun `response factories do not echo publish user properties`() = runTest {
+        val properties = buildUserProperties {
+            "message-type" to "status"
+            "schema-version" to "1"
+            "correlation-id" to "test-correlation"
+        }
+        val publish = Publish(
+            qoS = QoS.AT_LEAST_ONCE,
+            packetIdentifier = 42u,
+            topic = Topic("test/status"),
+            userProperties = properties,
+            payload = ByteString()
+        )
+
+        listOf(
+            Puback.from(publish, NoMatchingSubscribers, "reason"),
+            Pubrec.from(publish, NoMatchingSubscribers, "reason"),
+            Pubrel.from(publish, NoMatchingSubscribers, "reason"),
+            Pubcomp.from(publish, NoMatchingSubscribers, "reason"),
+            Pubcomp.from(Pubrel(42u, Success, userProperties = properties), NoMatchingSubscribers, "reason")
+        ).forEach { response ->
+            assertEquals(42.toUShort(), response.packetIdentifier)
+            assertEquals(NoMatchingSubscribers, response.reason)
+            assertEquals(ReasonString("reason"), response.reasonString)
+            assertEquals(UserProperties.EMPTY, response.userProperties)
+            assertEncodeDecodeOf(response)
+        }
+        assertEquals(properties, publish.userProperties)
+    }
 
     @Test
     fun `encode and decode returns same packet`() = runTest {
