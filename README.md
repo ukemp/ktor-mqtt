@@ -53,22 +53,6 @@ runBlocking {
 }
 ```
 
-### Broker interoperability
-
-MQTT 5 allows user properties on publish acknowledgments, but some brokers (for example
-[Azure Event Grid](https://learn.microsoft.com/en-us/azure/event-grid/mqtt-support#mqtt-v5-current-limitations)) reject
-them on PUBACK. To omit user properties from outgoing PUBACK, PUBREC, PUBREL and PUBCOMP packets, opt in when
-creating the client:
-
-```kotlin
-val client = MqttClient("broker.example.com", 8883) {
-    suppressAcknowledgmentUserProperties = true
-}
-```
-
-The default is `false`, preserving existing behavior. This option also applies to acknowledgment retransmissions.
-It does not change properties on outgoing PUBLISH packets, received messages, or the public packet factories.
-
 ### Publishing to a topic
 
 To publish data, create a `PublishRequest` and specify the topic (or topic alias):
@@ -141,6 +125,14 @@ val client = MqttClient("test.mosquitto.org", 1883) {
     }
 }
 ```
+
+### Broker compatibility
+
+For brokers that reject user properties on acknowledgments, such as
+[Azure Event Grid](https://learn.microsoft.com/en-us/azure/event-grid/mqtt-support#mqtt-v5-current-limitations),
+set `suppressAcknowledgmentUserProperties = true` in the client configuration (default: `false`).
+This omits them from outgoing PUBACK/PUBREC/PUBREL/PUBCOMP packets, including retransmissions, without changing
+PUBLISH properties. See `MqttClientConfig` for details.
 
 ## Using in your project
 
