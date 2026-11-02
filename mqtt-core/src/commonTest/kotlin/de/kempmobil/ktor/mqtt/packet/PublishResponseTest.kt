@@ -10,7 +10,7 @@ import kotlin.test.assertFailsWith
 class PublishResponseTest {
 
     @Test
-    fun `response factories do not echo publish user properties`() = runTest {
+    fun `response factories preserve publish user properties`() = runTest {
         val properties = buildUserProperties {
             "message-type" to "status"
             "schema-version" to "1"
@@ -34,7 +34,7 @@ class PublishResponseTest {
             assertEquals(42.toUShort(), response.packetIdentifier)
             assertEquals(NoMatchingSubscribers, response.reason)
             assertEquals(ReasonString("reason"), response.reasonString)
-            assertEquals(UserProperties.EMPTY, response.userProperties)
+            assertEquals(properties, response.userProperties)
             assertEncodeDecodeOf(response)
         }
         assertEquals(properties, publish.userProperties)

@@ -66,7 +66,8 @@ public class Puback(
             return Puback(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
-                reasonString = reasonString?.let { ReasonString(it) }
+                reasonString = reasonString?.let { ReasonString(it) },
+                userProperties = publish.userProperties
             )
         }
     }
@@ -89,7 +90,8 @@ public class Pubrec(
             return Pubrec(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
-                reasonString = reasonString?.let { ReasonString(it) }
+                reasonString = reasonString?.let { ReasonString(it) },
+                userProperties = publish.userProperties
             )
         }
     }
@@ -114,7 +116,8 @@ public class Pubrel(
             return Pubrel(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
-                reasonString = reasonString?.let { ReasonString(it) }
+                reasonString = reasonString?.let { ReasonString(it) },
+                userProperties = publish.userProperties
             )
         }
     }
@@ -136,7 +139,8 @@ public class Pubcomp(
             return Pubcomp(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
-                reasonString = reasonString?.let { ReasonString(it) }
+                reasonString = reasonString?.let { ReasonString(it) },
+                userProperties = publish.userProperties
             )
         }
 
@@ -150,7 +154,8 @@ public class Pubcomp(
             return Pubcomp(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
-                reasonString = reasonString?.let { ReasonString(it) }
+                reasonString = reasonString?.let { ReasonString(it) },
+                userProperties = publish.userProperties
             )
         }
     }

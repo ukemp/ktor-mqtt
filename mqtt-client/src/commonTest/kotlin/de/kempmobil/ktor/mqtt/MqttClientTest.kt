@@ -9,6 +9,7 @@ import dev.mokkery.matcher.any
 import dev.mokkery.matcher.ofType
 import dev.mokkery.verify.VerifyMode
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 import kotlin.time.Clock
@@ -607,6 +609,136 @@ class MqttClientTest {
         assertEquals("after restart".encodeToByteString(), second.await().payload)
     }
 
+    @Test
+    fun `acknowledgment user property suppression is opt in`() {
+        assertFalse(buildConfig(DefaultEngineFactory("", 0)) { }.suppressAcknowledgmentUserProperties)
+        assertTrue(buildConfig(DefaultEngineFactory("", 0)) {
+            suppressAcknowledgmentUserProperties = true
+        }.suppressAcknowledgmentUserProperties)
+    }
+
+    @Test
+    fun `incoming publish acknowledgments preserve user properties by default`() = runTest {
+        checkIncomingAcknowledgmentProperties(false)
+    }
+
+    @Test
+    fun `incoming publish acknowledgments can suppress user properties`() = runTest {
+        checkIncomingAcknowledgmentProperties(true)
+    }
+
+    private suspend fun TestScope.checkIncomingAcknowledgmentProperties(suppress: Boolean) {
+        val properties = buildUserProperties { "message-type" to "status" }
+        val expected = if (suppress) UserProperties.EMPTY else properties
+        val acknowledgments = mutableListOf<PublishResponsePacket>()
+        everySuspend { engine.send(ofType<PublishResponsePacket>()) } calls { (packet: PublishResponsePacket) ->
+            acknowledgments.add(packet)
+            Result.success(Unit)
+        }
+        every { session.hasIncomingPacketId(any()) } returns false
+        every { session.rememberIncomingPacketId(any()) } returns true
+        every { session.releaseIncomingPacketId(any()) } returns Unit
+
+        every { engine.close() } returns Unit
+        val client = createClient(
+            engine,
+            suppressAcknowledgmentUserProperties = suppress,
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
+        val received = async { client.publishedPackets.first() }
+        testScheduler.runCurrent()
+        val publish = Publish(
+            qoS = QoS.AT_LEAST_ONCE,
+            packetIdentifier = 42u,
+            topic = "test/status".toTopic(),
+            userProperties = properties,
+            payload = "status".encodeToByteString()
+        )
+        packetResults.emit(Result.success(publish))
+        testScheduler.runCurrent()
+        assertEquals(properties, received.await().userProperties)
+
+        val qos2 = publish.copy(qoS = QoS.EXACTLY_ONE)
+        packetResults.emit(Result.success(qos2))
+        testScheduler.runCurrent()
+        packetResults.emit(Result.success(qos2.copy(isDupMessage = true)))
+        testScheduler.runCurrent()
+        packetResults.emit(Result.success(Pubrel(42u, Success, userProperties = properties)))
+        testScheduler.runCurrent()
+
+        assertEquals(listOf(PacketType.PUBACK, PacketType.PUBREC, PacketType.PUBREC, PacketType.PUBCOMP),
+            acknowledgments.map { it.type })
+        acknowledgments.forEach {
+            assertEquals(42.toUShort(), it.packetIdentifier)
+            assertEquals(Success, it.reason)
+            assertEquals(expected, it.userProperties)
+        }
+        client.close()
+    }
+
+    @Test
+    fun `outgoing QoS 2 acknowledgments preserve user properties by default`() = runTest {
+        checkOutgoingAcknowledgmentProperties(false)
+    }
+
+    @Test
+    fun `outgoing QoS 2 acknowledgments can suppress user properties`() = runTest {
+        checkOutgoingAcknowledgmentProperties(true)
+    }
+
+    private suspend fun TestScope.checkOutgoingAcknowledgmentProperties(suppress: Boolean) {
+        val properties = buildUserProperties { "message-type" to "status" }
+        val acknowledgments = mutableListOf<Pubrel>()
+        val publishes = mutableListOf<Publish>()
+        var stored: InFlightPubrel? = null
+        everySuspend { engine.send(ofType<Publish>()) } calls { (packet: Publish) ->
+            publishes.add(packet)
+            packetResults.emit(Result.success(Pubrec(packet.packetIdentifier!!, Success)))
+            Result.success(Unit)
+        }
+        everySuspend { engine.send(ofType<Pubrel>()) } calls { (packet: Pubrel) ->
+            acknowledgments.add(packet)
+            packetResults.emit(Result.success(Pubcomp(packet.packetIdentifier, Success)))
+            Result.success(Unit)
+        }
+        every { session.store(any()) } calls { (packet: Publish) ->
+            InFlightPublish(packet, Clock.System.now(), 1)
+        }
+        every { session.replace(any()) } calls { (packet: InFlightPublish) ->
+            InFlightPubrel(packet, 1.toLong()).also { stored = it }
+        }
+        every { session.acknowledge(any()) } returns Unit
+        every { engine.close() } returns Unit
+        val client = createClient(
+            engine,
+            suppressAcknowledgmentUserProperties = suppress,
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
+        connectionState.emit(true)
+        assertTrue(client.publish(PublishRequest("test/status") {
+            desiredQoS = QoS.EXACTLY_ONE
+            userProperties { "message-type" to "status" }
+        }).isSuccess)
+
+        val storedPubrel = assertNotNull(stored)
+        every { session.unacknowledgedPackets() } returns listOf(storedPubrel)
+        everySuspend { engine.start() } returns Result.success(Unit)
+        everySuspend { engine.send(ofType<Connect>()) } calls {
+            packetResults.emit(Result.success(Connack(isSessionPresent = true, reason = Success)))
+            Result.success(Unit)
+        }
+        assertTrue(client.connect().isSuccess)
+
+        assertEquals(properties, publishes.single().userProperties)
+        assertEquals(properties, storedPubrel.source.userProperties)
+        assertEquals(2, acknowledgments.size)
+        acknowledgments.forEach {
+            assertEquals(if (suppress) UserProperties.EMPTY else properties, it.userProperties)
+            assertEquals(storedPubrel.source.packetIdentifier, it.packetIdentifier)
+        }
+        client.close()
+    }
+
     // ---- Helper functions -------------------------------------------------------------------------------------------
 
     private fun qos2Publish(payload: String): Publish {
@@ -621,12 +753,16 @@ class MqttClientTest {
     private fun createClient(
         connection: MqttEngine,
         id: String? = null,
-        ackTimeout: Duration = 100.milliseconds
+        ackTimeout: Duration = 100.milliseconds,
+        suppressAcknowledgmentUserProperties: Boolean = false,
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
     ): MqttClient {
         val config = buildConfig(DefaultEngineFactory("", 0)) {
             connection { }
             ackMessageTimeout = ackTimeout
             clientId = id ?: ""
+            this.suppressAcknowledgmentUserProperties = suppressAcknowledgmentUserProperties
+            this.dispatcher = dispatcher
         }
         return MqttClient(config, connection, session)
     }
