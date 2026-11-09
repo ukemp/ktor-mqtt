@@ -406,7 +406,7 @@ public class MqttClient internal constructor(
 
         val pubrel = session.replace(inFlight)
         val pubcomp = awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(pubrel.source) }) {
-            engine.send(pubrel.source)
+            sendAcknowledgment(pubrel.source)
         }.getOrElse {
             releaseSendQuotaSafe() // No PUBCOMP will arrive to return the quota permit of this message
             it.throwHandshakeExceptionForTimeout("PUBCOMP", publish)
@@ -418,7 +418,7 @@ public class MqttClient internal constructor(
 
     private suspend fun sendPubrel(pubrel: Pubrel): Pubcomp? {
         return awaitResponseOf<Pubcomp>({ it.isResponseFor<Pubcomp>(pubrel) }) {
-            engine.send(pubrel)
+            sendAcknowledgment(pubrel)
         }.getOrElse {
             null
         }
@@ -551,6 +551,15 @@ public class MqttClient internal constructor(
         }
     }
 
+    private suspend fun sendAcknowledgment(packet: PublishResponsePacket): Result<Unit> {
+        val outgoing = if (config.suppressAcknowledgmentUserProperties) {
+            packet.copy(userProperties = UserProperties.EMPTY)
+        } else {
+            packet
+        }
+        return engine.send(outgoing)
+    }
+
     private suspend fun handlePacket(packet: Packet) {
         Logger.d { "Received packet: $packet" }
         when (packet) {
@@ -567,7 +576,7 @@ public class MqttClient internal constructor(
 
                     QoS.AT_LEAST_ONCE -> {
                         _publishedPackets.emit(packet)
-                        engine.send(Puback.from(packet))
+                        sendAcknowledgment(Puback.from(packet))
                     }
 
                     QoS.EXACTLY_ONE -> {
@@ -575,7 +584,7 @@ public class MqttClient internal constructor(
                         if (publishReceivedPackets.containsKey(id)) {
                             // Must resend the PUBREC packet
                             publishReceivedPackets[id]?.let {
-                                engine.send(it)
+                                sendAcknowledgment(it)
                             }
                         } else {
                             if (!session.hasIncomingPacketId(packet)) {
@@ -584,14 +593,14 @@ public class MqttClient internal constructor(
                             }
                             val pubrec = Pubrec.from(packet)
                             publishReceivedPackets[id] = pubrec
-                            engine.send(pubrec)
+                            sendAcknowledgment(pubrec)
                         }
                     }
                 }
             }
 
             is Pubrel -> {
-                engine.send(Pubcomp.from(packet))
+                sendAcknowledgment(Pubcomp.from(packet))
                 publishReceivedPackets.remove(packet.packetIdentifier)
                 session.releaseIncomingPacketId(packet)
             }

@@ -34,6 +34,13 @@ public interface MqttClientConfig {
     public val authenticationMethod: AuthenticationMethod?
     public val authenticationData: AuthenticationData?
     public val userProperties: UserProperties
+    /**
+     * Omits user properties from outgoing PUBACK, PUBREC, PUBREL and PUBCOMP packets for brokers that do not support
+     * them. MQTT 5 permits these properties. Defaults to false to preserve the existing acknowledgment behavior.
+     * Does not affect PUBLISH properties or received packets.
+     */
+    public val suppressAcknowledgmentUserProperties: Boolean
+        get() = false
     public val sessionStoreProvider: () -> SessionStore
 }
 
@@ -70,6 +77,8 @@ public fun <T : MqttEngineConfig> buildConfig(
  * @property authenticationMethod currently not used
  * @property authenticationData currently not used
  * @property sessionStoreProvider factory method for creating an instance of [SessionStore], defaults to create an [InMemorySessionStore]
+ * @property suppressAcknowledgmentUserProperties omit user properties from outgoing publish acknowledgments for broker
+ *           interoperability, defaults to `false`. PUBLISH properties and received packets are unaffected.
  */
 @MqttDslMarker
 @OptIn(ExperimentalTime::class)
@@ -97,6 +106,7 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
     public var authenticationMethod: String? = null
     public var authenticationData: ByteString? = null
     public var sessionStoreProvider: () -> SessionStore = { InMemorySessionStore() }
+    public var suppressAcknowledgmentUserProperties: Boolean = false
 
     public fun connection(init: T.() -> Unit) {
         engine = engineFactory.create(init)
@@ -149,7 +159,8 @@ public class MqttClientConfigBuilder<out T : MqttEngineConfig>(
             authenticationMethod = authenticationMethod?.let { AuthenticationMethod(it) },
             authenticationData = authenticationData?.let { AuthenticationData(it) },
             userProperties = userPropertiesBuilder?.build() ?: UserProperties.EMPTY,
-            sessionStoreProvider = sessionStoreProvider
+            sessionStoreProvider = sessionStoreProvider,
+            suppressAcknowledgmentUserProperties = suppressAcknowledgmentUserProperties
         )
     }
 }
@@ -175,4 +186,5 @@ private class MqttClientConfigImpl(
     override val authenticationData: AuthenticationData? = null,
     override val userProperties: UserProperties,
     override val sessionStoreProvider: () -> SessionStore,
+    override val suppressAcknowledgmentUserProperties: Boolean,
 ) : MqttClientConfig

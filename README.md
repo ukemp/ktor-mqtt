@@ -126,6 +126,14 @@ val client = MqttClient("test.mosquitto.org", 1883) {
 }
 ```
 
+### Broker compatibility
+
+For brokers that reject user properties on acknowledgments, such as
+[Azure Event Grid](https://learn.microsoft.com/en-us/azure/event-grid/mqtt-support#mqtt-v5-current-limitations),
+set `suppressAcknowledgmentUserProperties = true` in the client configuration (default: `false`).
+This omits them from outgoing PUBACK/PUBREC/PUBREL/PUBCOMP packets, including retransmissions, without changing
+PUBLISH properties. See `MqttClientConfig` for details.
+
 ## Using in your project
 
 Make sure that you have `mavenCentral()` in the list of repositories:

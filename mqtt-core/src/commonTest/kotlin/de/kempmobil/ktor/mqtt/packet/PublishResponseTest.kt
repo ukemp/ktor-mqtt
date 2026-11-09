@@ -2,10 +2,43 @@ package de.kempmobil.ktor.mqtt.packet
 
 import de.kempmobil.ktor.mqtt.*
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.bytestring.ByteString
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class PublishResponseTest {
+
+    @Test
+    fun `response factories preserve publish user properties`() = runTest {
+        val properties = buildUserProperties {
+            "message-type" to "status"
+            "schema-version" to "1"
+            "correlation-id" to "test-correlation"
+        }
+        val publish = Publish(
+            qoS = QoS.AT_LEAST_ONCE,
+            packetIdentifier = 42u,
+            topic = Topic("test/status"),
+            userProperties = properties,
+            payload = ByteString()
+        )
+
+        listOf(
+            Puback.from(publish, NoMatchingSubscribers, "reason"),
+            Pubrec.from(publish, NoMatchingSubscribers, "reason"),
+            Pubrel.from(publish, NoMatchingSubscribers, "reason"),
+            Pubcomp.from(publish, NoMatchingSubscribers, "reason"),
+            Pubcomp.from(Pubrel(42u, Success, userProperties = properties), NoMatchingSubscribers, "reason")
+        ).forEach { response ->
+            assertEquals(42.toUShort(), response.packetIdentifier)
+            assertEquals(NoMatchingSubscribers, response.reason)
+            assertEquals(ReasonString("reason"), response.reasonString)
+            assertEquals(properties, response.userProperties)
+            assertEncodeDecodeOf(response)
+        }
+        assertEquals(properties, publish.userProperties)
+    }
 
     @Test
     fun `encode and decode returns same packet`() = runTest {
@@ -36,5 +69,18 @@ class PublishResponseTest {
         assertFailsWith<MalformedPacketException> { (Pubrec(0u, Success)) }
         assertFailsWith<MalformedPacketException> { (Pubrel(0u, Success)) }
         assertFailsWith<MalformedPacketException> { (Pubcomp(0u, Success)) }
+    }
+
+    @Test
+    fun `copy preserves the response packet type`() {
+        val puback: Puback = Puback(42u, Success).copy(packetIdentifier = 43u)
+        val pubrec: Pubrec = Pubrec(42u, Success).copy(packetIdentifier = 43u)
+        val pubrel: Pubrel = Pubrel(42u, Success).copy(packetIdentifier = 43u)
+        val pubcomp: Pubcomp = Pubcomp(42u, Success).copy(packetIdentifier = 43u)
+
+        assertEquals(43.toUShort(), puback.packetIdentifier)
+        assertEquals(43.toUShort(), pubrec.packetIdentifier)
+        assertEquals(43.toUShort(), pubrel.packetIdentifier)
+        assertEquals(43.toUShort(), pubcomp.packetIdentifier)
     }
 }
