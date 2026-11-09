@@ -553,12 +553,7 @@ public class MqttClient internal constructor(
 
     private suspend fun sendAcknowledgment(packet: PublishResponsePacket): Result<Unit> {
         val outgoing = if (config.suppressAcknowledgmentUserProperties) {
-            when (packet) {
-                is Puback -> Puback(packet.packetIdentifier, packet.reason, packet.reasonString)
-                is Pubrec -> Pubrec(packet.packetIdentifier, packet.reason, packet.reasonString)
-                is Pubrel -> Pubrel(packet.packetIdentifier, packet.reason, packet.reasonString)
-                is Pubcomp -> Pubcomp(packet.packetIdentifier, packet.reason, packet.reasonString)
-            }
+            packet.copy(userProperties = UserProperties.EMPTY)
         } else {
             packet
         }

@@ -23,6 +23,13 @@ public sealed class PublishResponsePacket(
         }
     }
 
+    public abstract fun copy(
+        packetIdentifier: UShort = this.packetIdentifier,
+        reason: ReasonCode = this.reason,
+        reasonString: ReasonString? = this.reasonString,
+        userProperties: UserProperties = this.userProperties
+    ): PublishResponsePacket
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -57,6 +64,13 @@ public class Puback(
     userProperties: UserProperties = UserProperties.EMPTY
 ) : PublishResponsePacket(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties) {
 
+    public override fun copy(
+        packetIdentifier: UShort,
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties
+    ): Puback = Puback(packetIdentifier, reason, reasonString, userProperties)
+
     public companion object {
 
         public fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Puback {
@@ -80,6 +94,13 @@ public class Pubrec(
     reasonString: ReasonString? = null,
     userProperties: UserProperties = UserProperties.EMPTY
 ) : PublishResponsePacket(PacketType.PUBREC, packetIdentifier, reason, reasonString, userProperties) {
+
+    public override fun copy(
+        packetIdentifier: UShort,
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties
+    ): Pubrec = Pubrec(packetIdentifier, reason, reasonString, userProperties)
 
     public companion object {
 
@@ -107,6 +128,13 @@ public class Pubrel(
     // Note: this is the only response packet with a header flag!
     override val headerFlags: Int = 2
 
+    public override fun copy(
+        packetIdentifier: UShort,
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties
+    ): Pubrel = Pubrel(packetIdentifier, reason, reasonString, userProperties)
+
     public companion object {
 
         public fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Pubrel {
@@ -129,6 +157,13 @@ public class Pubcomp(
     reasonString: ReasonString? = null,
     userProperties: UserProperties = UserProperties.EMPTY
 ) : PublishResponsePacket(PacketType.PUBCOMP, packetIdentifier, reason, reasonString, userProperties) {
+
+    public override fun copy(
+        packetIdentifier: UShort,
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties
+    ): Pubcomp = Pubcomp(packetIdentifier, reason, reasonString, userProperties)
 
     public companion object {
 
@@ -239,4 +274,9 @@ internal fun <T : PublishResponsePacket> Source.readPublishResponse(createRespon
     } else {
         createResponse(packetIdentifier, Success)
     }
+}
+
+public fun main() {
+    val p = Puback(1.toUShort(), Success)
+    val p2 = p.copy()
 }

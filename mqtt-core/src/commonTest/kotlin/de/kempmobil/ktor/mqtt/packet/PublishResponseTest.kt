@@ -70,4 +70,17 @@ class PublishResponseTest {
         assertFailsWith<MalformedPacketException> { (Pubrel(0u, Success)) }
         assertFailsWith<MalformedPacketException> { (Pubcomp(0u, Success)) }
     }
+
+    @Test
+    fun `copy preserves the response packet type`() {
+        val puback: Puback = Puback(42u, Success).copy(packetIdentifier = 43u)
+        val pubrec: Pubrec = Pubrec(42u, Success).copy(packetIdentifier = 43u)
+        val pubrel: Pubrel = Pubrel(42u, Success).copy(packetIdentifier = 43u)
+        val pubcomp: Pubcomp = Pubcomp(42u, Success).copy(packetIdentifier = 43u)
+
+        assertEquals(43.toUShort(), puback.packetIdentifier)
+        assertEquals(43.toUShort(), pubrec.packetIdentifier)
+        assertEquals(43.toUShort(), pubrel.packetIdentifier)
+        assertEquals(43.toUShort(), pubcomp.packetIdentifier)
+    }
 }
